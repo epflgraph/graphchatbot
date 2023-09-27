@@ -1,2 +1,2 @@
-# graphchatbot
-Chatbot for the EPFL Graph project
+# EPFL Graph ChatBot
+Chatbot for the EPFL Graph project 🤖
