@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "graphchatbot"
+version = "0.0.1"
+authors = [
+  { name="Aitor Pérez", email="aitor.perez@epfl.ch" }
+]
+description = "GraphChatBot is an API that uses langchain to provide services leveraging LLMs in the context of the knowledge graph of the project EPFL Graph."
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent"
+]
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "requests",
+    "langchain",
+    "openai",
+    "elasticsearch",
+    "mysql-connector-python",
+]
+
+[tool.setuptools]
+packages = ["app"]
+
+[project.urls]
+"Homepage" = "https://github.com/epflgraph/graphchatbot"
+"Documentation" = "https://github.com/epflgraph/graphchatbot"
+"Source code" = "https://github.com/epflgraph/graphchatbot"
+"Bug Tracker" = "https://github.com/epflgraph/graphchatbot/issues"
