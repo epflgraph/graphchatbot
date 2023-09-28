@@ -65,10 +65,25 @@
             background-color: #3b76c4;
         }
 
+        .context-message {
+            margin: 15px 0 -10px 0;
+            max-width: 80%;
+            clear: both;
+            font-size: 14px;
+        }
+
         .bot-message, .user-message {
             margin: 15px 0;
             max-width: 80%;
             clear: both;
+        }
+
+        .context-message {
+            float: left;
+            background-color: #fef1b8;
+            padding: 10px 15px;
+            border-radius: 15px;
+            position: relative;
         }
 
         .bot-message {
@@ -121,25 +136,6 @@
     </div>
 </body>
     <script>
-        function send() {
-            let xhr = new XMLHttpRequest();
-            xhr.open("POST", "/chat", true);
-            xhr.setRequestHeader('Content-Type', 'application/json');
-
-            message = document.getElementById("message").value;
-
-            xhr.send(JSON.stringify({text: message}));
-
-            document.getElementById("conversation").innerText += "\n" + message;
-            document.getElementById("message").value = "";
-
-            xhr.onload = function() {
-                let data = JSON.parse(this.responseText);
-                document.getElementById("conversation").innerText += "\n" + data["text"];
-            }
-        }
-    </script>
-    <script>
     function appendMessage(className, message) {
         const chatContainer = document.getElementById('chat-container');
         const messageElem = document.createElement('div');
@@ -166,15 +162,17 @@
 
             xhr.onload = function() {
                 try {
-                    let message = JSON.parse(this.responseText)["text"];
-                    console.log(message);
-                    console.log(message.trim());
-                    console.log(message.trim() !== '');
-                    if (message.trim() !== '') {
-                        console.log('aaa');
+                    let response = JSON.parse(this.responseText)
+                    let context = response["context"].trim();
+                    let message = response["text"].trim();
+
+                    if (context !== '') {
+                        appendMessage('context-message', context);
+                    }
+
+                    if (message !== '') {
                         appendMessage('bot-message', message);
                     } else {
-                        console.log('bbb');
                         appendMessage('bot-message', "<No results>");
                     }
                 } catch (error) {

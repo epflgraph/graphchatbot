@@ -13,6 +13,7 @@ class Input(BaseModel):
 
 
 class Output(BaseModel):
+    context: str
     text: str
 
 
@@ -21,7 +22,8 @@ app = FastAPI()
 
 @app.post('/chat')
 async def chat(input: Input):
-    return Output(text=conversation(input.text))
+    context, text = conversation(input.text)
+    return Output(context=context, text=text)
 
 
 @app.get('/')

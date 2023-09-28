@@ -16,7 +16,7 @@ from app.nodes import get_neighborhood, take_intersection, take_union
 
 from app.config import config
 
-langchain.debug = True
+langchain.debug = False
 
 ################################################################
 
@@ -44,12 +44,21 @@ system_message = """
     Union(<nodeset_1>, <nodeset_2>)
     ```
     
-    Do not use any other instruction or node type different from the ones above. Do not output any other text.
+    Intersections and unions must are restricted to nodesets of the same type.
+    Do not use any other instruction or node type different from the ones above.
+    Do use exactly one of these instructions per line.
+    Do not output any other text.
     
     For example, if the input is `people working on sustainability`, you should answer
     ```
     A = Node(Sustainability, Concept)
     B = Neighborhood(A, Person)
+    ```
+    
+    Another example, if the input is `labs that do research in data science`, you should answer
+    ```
+    A = Node(Data Science, Concept)
+    B = Neighborhood(A, Unit)
     ```
     
     Another example, if the input is `courses about solar cells and urbanism`, you should answer
@@ -125,12 +134,15 @@ chains = {}
 ################################################################
 
 
-def follow_instructions(instructions):
+def parse_instructions(instructions):
     instructions = instructions.split('\n')
 
-    nodesets = {}
+    parsed_instructions = []
     for instruction in instructions:
         if '=' not in instruction:
+            continue
+
+        if '(' not in instruction or ')' not in instruction:
             continue
 
         # Split LHS and RHS
@@ -144,6 +156,18 @@ def follow_instructions(instructions):
         operator = rhs[: begin]
         params = rhs[begin + 1: end].split(',')
         params = [param.strip() for param in params]
+
+        parsed_instructions.append({'lhs': lhs, 'operator': operator, 'params': params})
+
+    return parsed_instructions
+
+
+def follow_instructions(instructions):
+    nodesets = {}
+    for instruction in instructions:
+        lhs = instruction['lhs']
+        operator = instruction['operator']
+        params = instruction['params']
 
         if operator == 'Node':
             nodeset = search_nodes(*params)
@@ -181,6 +205,79 @@ def format_nodeset(nodeset):
     return '\n'.join(results)
 
 
+def emojify(node_type):
+    if node_type == 'Concept':
+        return '⚛️'
+    elif node_type == 'Person':
+        return '👤'
+    elif node_type == 'Course':
+        return '📖'
+    elif node_type == 'Unit':
+        return '🔬'
+    elif node_type == 'Publication':
+        return '📄'
+    elif node_type == 'MOOC':
+        return '🎥'
+    else:
+        return ''
+
+
+def pluralise(node_type):
+    if node_type == 'Person':
+        return 'People'
+    else:
+        return f"{node_type}s"
+
+
+def find_instruction_index(instructions, lhs):
+    for i in range(len(instructions)):
+        if instructions[i]['lhs'] == lhs:
+            return i
+
+    return None
+
+
+def build_context_message_step(instructions, i):
+    if i is None:
+        return ''
+
+    operator = instructions[i]['operator']
+    params = instructions[i]['params']
+
+    if operator == 'Node':
+        [name, node_type] = params
+        return f"the {emojify(node_type)} {node_type} \"{name}\""
+
+    elif operator == 'Neighborhood':
+        [nodeset_name, node_type] = params
+
+        j = find_instruction_index(instructions, nodeset_name)
+
+        return f"{emojify(node_type)} {pluralise(node_type)} related to {build_context_message_step(instructions, j)}"
+
+    elif operator == 'Intersection':
+        [left_nodeset_name, right_nodeset_name] = params
+
+        left_j = find_instruction_index(instructions, left_nodeset_name)
+        right_j = find_instruction_index(instructions, right_nodeset_name)
+
+        return f"the intersection of {build_context_message_step(instructions, left_j)} and {build_context_message_step(instructions, right_j)}"
+
+    elif operator == 'Union':
+        [left_nodeset_name, right_nodeset_name] = params
+
+        left_j = find_instruction_index(instructions, left_nodeset_name)
+        right_j = find_instruction_index(instructions, right_nodeset_name)
+
+        return f"the union of {build_context_message_step(instructions, left_j)} and {build_context_message_step(instructions, right_j)}"
+
+    return ''
+
+
+def build_context_message(instructions):
+    return f"Showing {build_context_message_step(instructions, -1)}"
+
+
 def conversation(human_input):
     user_id = 1
 
@@ -198,18 +295,25 @@ def conversation(human_input):
         update_token_count(user_id, token_count)
 
     # Extract instructions as string
-    instructions = llm_output['text']
+    instructions_str = llm_output['text']
 
     print(human_input)
-    print(instructions)
+    print(instructions_str)
 
     try:
+        # Parse instructions from text to list of dict
+        instructions = parse_instructions(instructions_str)
+
         # Follow instructions to get target nodeset as list of nodes
         nodeset = follow_instructions(instructions)
 
         # Convert nodeset into text
         text_nodeset = format_nodeset(nodeset)
 
-        return text_nodeset
+        # Build context message based on instructions (e.g. "showing People related to the Concept Urbanism")
+        context_message = build_context_message(instructions)
+        print("Context:", context_message)
+
+        return context_message, text_nodeset
     except Exception:
-        return instructions
+        return '', instructions_str
