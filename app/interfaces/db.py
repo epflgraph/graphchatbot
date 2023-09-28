@@ -10,13 +10,16 @@ db = mysql.connector.connect(
 )
 
 
-def execute_query(query, values):
+def execute_query(query, values=None):
     db.ping(reconnect=True)
 
     cursor = db.cursor()
 
     try:
-        cursor.execute(query, values)
+        if values is not None:
+            cursor.execute(query, values)
+        else:
+            cursor.execute(query)
     except mysql.connector.Error as e:
         print("Error", e)
         raise e
@@ -26,3 +29,13 @@ def execute_query(query, values):
     db.commit()
 
     return results
+
+
+def update_token_count(user_id, token_count):
+    query = f"""
+    INSERT INTO chatbot.token_usage(user_id, token_count)
+    VALUES ({user_id}, {token_count})
+    ON DUPLICATE KEY UPDATE token_count = token_count + {token_count};
+    """
+
+    execute_query(query)
