@@ -7,11 +7,16 @@ from langchain.prompts import (
     SystemMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
+from langchain.callbacks import get_openai_callback
+import langchain
 
 from app.interfaces.es import search_nodes
+from app.interfaces.db import update_token_count
 from app.nodes import get_neighborhood, take_intersection, take_union
 
 from app.config import config
+
+langchain.debug = True
 
 ################################################################
 
@@ -78,26 +83,44 @@ system_message = """
     B = Neighborhood(A, Person)
     C = Neighborhood(B, MOOC)
     ```
+    Then if the user replies `Is any of those about machine learning?`, you should answer
+    ```
+    A = Node(MATH-302, Course)
+    B = Neighborhood(A, Person)
+    C = Neighborhood(B, MOOC)
+    D = Node(Machine Learning, Concept)
+    E = Neighborhood(D, MOOC)
+    F = Intersection(C, E)
+    ```
 """
 
 ################################################################
 
-chat = ChatOpenAI(temperature=0, openai_api_key=config['openai']['api_key'])
-memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
-prompt = ChatPromptTemplate(
-    messages=[
-        SystemMessagePromptTemplate.from_template(system_message),
-        MessagesPlaceholder(variable_name='chat_history'),
-        HumanMessagePromptTemplate.from_template("{human_input}")
-    ]
-)
 
-chain = LLMChain(
-    llm=chat,
-    prompt=prompt,
-    verbose=False,
-    memory=memory,
-)
+def create_chain(memory_key):
+    chat = ChatOpenAI(
+        temperature=0,
+        openai_api_key=config['openai']['api_key'],
+    )
+    memory = ConversationBufferMemory(memory_key=memory_key, return_messages=True)
+    prompt = ChatPromptTemplate(
+        messages=[
+            SystemMessagePromptTemplate.from_template(system_message),
+            MessagesPlaceholder(variable_name=memory_key),
+            HumanMessagePromptTemplate.from_template("{human_input}")
+        ]
+    )
+
+    return LLMChain(
+        llm=chat,
+        prompt=prompt,
+        verbose=False,
+        memory=memory,
+    )
+
+
+# Initialise object to store all chains
+chains = {}
 
 ################################################################
 
@@ -107,6 +130,9 @@ def follow_instructions(instructions):
 
     nodesets = {}
     for instruction in instructions:
+        if '=' not in instruction:
+            continue
+
         # Split LHS and RHS
         pieces = instruction.split('=')
         pieces = [piece.strip() for piece in pieces]
@@ -156,7 +182,20 @@ def format_nodeset(nodeset):
 
 
 def conversation(human_input):
-    llm_output = chain({'human_input': human_input})
+    user_id = 1
+
+    with get_openai_callback() as cb:
+        # Create chain if it does not exist
+        memory_key = 'chat_history'
+        if memory_key not in chains:
+            chains[memory_key] = create_chain(memory_key)
+
+        # Run chain with human message
+        llm_output = chains[memory_key]({'human_input': human_input})
+
+        # Update token count in database for usage control
+        token_count = cb.total_tokens
+        update_token_count(user_id, token_count)
 
     # Extract instructions as string
     instructions = llm_output['text']
