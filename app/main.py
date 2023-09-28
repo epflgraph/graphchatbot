@@ -26,4 +26,4 @@ async def chat(input: Input):
 
 @app.get('/')
 async def index():
-    return FileResponse('index.html')
+    return FileResponse('html/index.html')
