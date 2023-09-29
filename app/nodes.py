@@ -92,3 +92,74 @@ def get_neighborhood(nodeset, node_type):
 
     return nodes
 
+
+def limit(nodeset, n):
+    return nodeset[:n]
+
+
+def filter(nodeset, key, value):
+    if len(nodeset) == 0:
+        return []
+
+    # Assuming all nodes in nodeset are of the same type
+    node_type = nodeset[0]['NodeType']
+
+    # Extract ids from nodeset
+    ids = [node['NodeKey'] for node in nodeset]
+
+    # Dictionaries with information to build query
+    id_fields = {
+        'Concept': 'PageID',
+        'Person': 'SCIPER',
+        'Course': 'CourseCode',
+        'Unit': 'UnitID',
+        'MOOC': 'MoocID',
+        'Publication': 'PublicationID'
+    }
+
+    table_names = {
+        'Concept': 'Nodes_N_Concept',
+        'Person': 'Nodes_N_Person',
+        'Course': 'Nodes_N_Course',
+        'Unit': 'Nodes_N_Unit',
+        'MOOC': 'Nodes_N_MOOC',
+        'Publication': 'Nodes_N_Publication'
+    }
+
+    key_fields = {
+        ('Person', 'Gender'): 'Gender',
+        ('Person', 'Sex'): 'Gender',
+        ('Course', 'ExamType'): 'ExamType',
+        ('Course', 'Credits'): 'Credits',
+        ('Course', 'SectionCode'): 'SectionCode',
+        ('Course', 'Section'): 'SectionCode',
+        ('Unit', 'DateCreated'): 'UnitCreated',
+        ('Unit', 'DateTerminated'): 'UnitTerminated',
+        ('Unit', 'PrimaryLanguage'): 'PrimaryLanguage',
+        ('Unit', 'Language'): 'PrimaryLanguage',
+        ('Unit', 'IsEPFL'): 'IsEPFLUnit',
+        ('Publication', 'Year'): 'Year',
+        ('Publication', 'PublicationType'): 'PublicationType',
+        ('Publication', 'Type'): 'PublicationType',
+    }
+
+    # Implemented node_type and key combinations
+    id_field = id_fields[node_type]
+    table_name = table_names[node_type]
+    key_field = key_fields[node_type, key]
+
+    query = f"""
+    SELECT {id_field}
+    FROM graph.{table_name}
+    WHERE {id_field} IN ({', '.join(['%s'] * len(ids))})
+    AND {key_field} = "{value}"
+    """
+
+    results = execute_query(query, ids)
+    filtered_ids = [str(r) for r, in results]
+
+    filtered_nodeset = [node for node in nodeset if node['NodeKey'] in filtered_ids]
+
+    return filtered_nodeset
+
+    # TODO: If key is not implemented, as a fallback mechanism, just lookup key and/or value on elasticsearch's Content field

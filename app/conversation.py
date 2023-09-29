@@ -12,7 +12,7 @@ import langchain
 
 from app.interfaces.es import search_nodes
 from app.interfaces.db import update_token_count
-from app.nodes import get_neighborhood, take_intersection, take_union
+from app.nodes import get_neighborhood, take_intersection, take_union, limit, filter
 
 from app.config import config
 
@@ -47,8 +47,13 @@ system_message = """
     ```
     Limit(<nodeset>, <n>)
     ```
+    * Filter nodeset based on a field's value
+    ```
+    Filter(<nodeset>, <field>, <value>)
+    ```
     
     Intersections and unions must are restricted to nodesets of the same type.
+    Filters should be sensible and depend on the node type.
     Do not use any other instruction or node type different from the ones above.
     Do use exactly one of these instructions per line.
     Do not output any other text.
@@ -73,6 +78,13 @@ system_message = """
     C = Node(Urbanism, Concept)
     D = Neighborhood(C, Course)
     E = Intersection(B, D)
+    ```
+    
+    Another example, if the input is `female experts in genomics`, you should answer
+    ```
+    A = Node(Genomics, Concept)
+    B = Neighborhood(A, Person)
+    C = Filter(B, Gender, Female)
     ```
     
     Yet another example, if the input is `people working in computer science who teach courses about physics`, you should answer
@@ -195,7 +207,11 @@ def follow_instructions(instructions):
 
         elif operator == 'Limit':
             [nodeset, n] = params
-            nodesets[lhs] = nodesets[nodeset][:int(n)]
+            nodesets[lhs] = limit(nodesets[nodeset], int(n))
+
+        elif operator == 'Filter':
+            [nodeset, field, value] = params
+            nodesets[lhs] = filter(nodesets[nodeset], field, value)
 
     # Take nodeset referenced last
     nodeset = nodesets[lhs]
@@ -287,6 +303,13 @@ def build_context_message_step(instructions, i):
 
         return f"at most {n} {build_context_message_step(instructions, j)}"
 
+    elif operator == 'Filter':
+        [nodeset_name, field, value] = params
+
+        j = find_instruction_index(instructions, nodeset_name)
+
+        return f"{build_context_message_step(instructions, j)}, filtered by {field}={value}"
+
     return ''
 
 
@@ -334,6 +357,13 @@ def build_context_dict(instructions, i=-1):
         j = find_instruction_index(instructions, nodeset_name)
 
         return {'operation': 'limit', 'n': int(n), 'child': build_context_dict(instructions, j)}
+
+    elif operator == 'Filter':
+        [nodeset_name, field, value] = params
+
+        j = find_instruction_index(instructions, nodeset_name)
+
+        return {'operation': 'filter', 'field': field, 'value': value, 'child': build_context_dict(instructions, j)}
 
     return {}
 
