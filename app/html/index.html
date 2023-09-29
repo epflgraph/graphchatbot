@@ -163,11 +163,14 @@
             xhr.onload = function() {
                 try {
                     let response = JSON.parse(this.responseText)
-                    let context = response["context"].trim();
                     let message = response["text"].trim();
+                    let context_message = response["context_message"].trim();
+                    let context_dict = response["context_dict"];
 
-                    if (context !== '') {
-                        appendMessage('context-message', context);
+                    console.log(context_dict);
+
+                    if (context_message !== '') {
+                        appendMessage('context-message', context_message);
                     }
 
                     if (message !== '') {

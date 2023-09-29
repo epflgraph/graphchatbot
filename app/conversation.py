@@ -21,12 +21,12 @@ langchain.debug = False
 ################################################################
 
 system_message = """
-    You are an assistant that translates natural language to queries on knowledge graphs.
-    There are seven node types: `Concept`, `Person`, `Course`, `Unit`, `MOOC`, `Lecture` and `Publication`.
+    You are an assistant that translates natural language to queries on the knowledge graph of EPFL.
+    There are six node types: `Concept`, `Person`, `Course`, `Unit`, `MOOC` and `Publication`.
     Nodes have a `NodeKey`, a `NodeType` and a `Title`.
     
     For each query, you should return the sequence of instructions to produce the requested node set.
-    The available instructions are the following:
+    The available instructions always produce a nodeset, and they are the following:
     * Find a node by type and title:
     ```
     Node(<title>, <node_type>)
@@ -43,22 +43,27 @@ system_message = """
     ```
     Union(<nodeset_1>, <nodeset_2>)
     ```
+    * Keep the first `n` nodes in a nodeset:
+    ```
+    Limit(<nodeset>, <n>)
+    ```
     
     Intersections and unions must are restricted to nodesets of the same type.
     Do not use any other instruction or node type different from the ones above.
     Do use exactly one of these instructions per line.
     Do not output any other text.
     
-    For example, if the input is `people working on sustainability`, you should answer
-    ```
-    A = Node(Sustainability, Concept)
-    B = Neighborhood(A, Person)
-    ```
-    
-    Another example, if the input is `labs that do research in data science`, you should answer
+    For example, if the input is `labs that do research in data science`, you should answer
     ```
     A = Node(Data Science, Concept)
     B = Neighborhood(A, Unit)
+    ```
+    
+    Another example, if the input is `three people working on sustainability`, you should answer
+    ```
+    A = Node(Sustainability, Concept)
+    B = Neighborhood(A, Person)
+    C = Limit(B, 3)
     ```
     
     Another example, if the input is `courses about solar cells and urbanism`, you should answer
@@ -188,6 +193,10 @@ def follow_instructions(instructions):
             [left_nodeset, right_nodeset] = params
             nodesets[lhs] = take_union(nodesets[left_nodeset], nodesets[right_nodeset])
 
+        elif operator == 'Limit':
+            [nodeset, n] = params
+            nodesets[lhs] = nodesets[nodeset][:int(n)]
+
     # Take nodeset referenced last
     nodeset = nodesets[lhs]
 
@@ -271,11 +280,62 @@ def build_context_message_step(instructions, i):
 
         return f"the union of {build_context_message_step(instructions, left_j)} and {build_context_message_step(instructions, right_j)}"
 
+    elif operator == 'Limit':
+        [nodeset_name, n] = params
+
+        j = find_instruction_index(instructions, nodeset_name)
+
+        return f"at most {n} {build_context_message_step(instructions, j)}"
+
     return ''
 
 
 def build_context_message(instructions):
     return f"Showing {build_context_message_step(instructions, -1)}"
+
+
+def build_context_dict(instructions, i=-1):
+    if i is None:
+        return {}
+
+    operator = instructions[i]['operator']
+    params = instructions[i]['params']
+
+    if operator == 'Node':
+        [name, node_type] = params
+        return {'operation': 'node', 'node_type': node_type, 'name': name}
+
+    elif operator == 'Neighborhood':
+        [nodeset_name, node_type] = params
+
+        j = find_instruction_index(instructions, nodeset_name)
+
+        return {'operation': 'neighborhood', 'node_type': node_type, 'child': build_context_dict(instructions, j)}
+
+    elif operator == 'Intersection':
+        [left_nodeset_name, right_nodeset_name] = params
+
+        left_j = find_instruction_index(instructions, left_nodeset_name)
+        right_j = find_instruction_index(instructions, right_nodeset_name)
+
+        return {'operation': 'intersection', 'left_child': build_context_dict(instructions, left_j), 'right_child': build_context_dict(instructions, right_j)}
+
+    elif operator == 'Union':
+        [left_nodeset_name, right_nodeset_name] = params
+
+        left_j = find_instruction_index(instructions, left_nodeset_name)
+        right_j = find_instruction_index(instructions, right_nodeset_name)
+
+        return {'operation': 'union', 'left_child': build_context_dict(instructions, left_j), 'right_child': build_context_dict(instructions, right_j)}
+
+    elif operator == 'Limit':
+        [nodeset_name, n] = params
+
+        j = find_instruction_index(instructions, nodeset_name)
+
+        return {'operation': 'limit', 'n': int(n), 'child': build_context_dict(instructions, j)}
+
+    return {}
 
 
 def conversation(human_input):
@@ -312,8 +372,13 @@ def conversation(human_input):
 
         # Build context message based on instructions (e.g. "showing People related to the Concept Urbanism")
         context_message = build_context_message(instructions)
-        print("Context:", context_message)
 
-        return context_message, text_nodeset
-    except Exception:
-        return '', instructions_str
+        # Build context dictionary based on instructions
+        context_dict = build_context_dict(instructions)
+        print("Context message:", context_message)
+        print("Context dict:", context_dict)
+
+        return text_nodeset, context_message, context_dict
+    except Exception as e:
+        print('ERROR:', e)
+        return instructions_str, '', {}
