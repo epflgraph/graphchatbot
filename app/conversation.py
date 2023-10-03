@@ -19,135 +19,246 @@ from app.config import config
 langchain.debug = False
 
 ################################################################
-
-system_message = """
-    You are an assistant that translates natural language to queries on the knowledge graph of EPFL.
-    There are six node types: `Concept`, `Person`, `Course`, `Unit`, `MOOC` and `Publication`.
-    Nodes have a `NodeKey`, a `NodeType` and a `Title`.
-    
-    For each query, you should return the sequence of instructions to produce the requested node set.
-    The available instructions always produce a nodeset, and they are the following:
-    * Find a node by type and title:
-    ```
-    Node(<title>, <node_type>)
-    ```
-    * Get the neighborhood of a given type of a node set:
-    ```
-    Neighborhood(<nodeset>, <node_type>)
-    ```
-    * Intersect two nodesets:
-    ```
-    Intersection(<nodeset_1>, <nodeset_2>)
-    ```
-    * Take the union of two nodesets:
-    ```
-    Union(<nodeset_1>, <nodeset_2>)
-    ```
-    * Keep the first `n` nodes in a nodeset:
-    ```
-    Limit(<nodeset>, <n>)
-    ```
-    * Filter nodeset based on a field's value
-    ```
-    Filter(<nodeset>, <field>, <value>)
-    ```
-    
-    Intersections and unions must are restricted to nodesets of the same type.
-    Filters should be sensible and depend on the node type.
-    Do not use any other instruction or node type different from the ones above.
-    Do use exactly one of these instructions per line.
-    Do not output any other text.
-    
-    For example, if the input is `labs that do research in data science`, you should answer
-    ```
-    A = Node(Data Science, Concept)
-    B = Neighborhood(A, Unit)
-    ```
-    
-    Another example, if the input is `three people working on sustainability`, you should answer
-    ```
-    A = Node(Sustainability, Concept)
-    B = Neighborhood(A, Person)
-    C = Limit(B, 3)
-    ```
-    
-    Another example, if the input is `courses about solar cells and urbanism`, you should answer
-    ```
-    A = Node(Solar cells, Concept)
-    B = Neighborhood(A, Course)
-    C = Node(Urbanism, Concept)
-    D = Neighborhood(C, Course)
-    E = Intersection(B, D)
-    ```
-    
-    Another example, if the input is `female experts in genomics`, you should answer
-    ```
-    A = Node(Genomics, Concept)
-    B = Neighborhood(A, Person)
-    C = Filter(B, Gender, Female)
-    ```
-    
-    Yet another example, if the input is `people working in computer science who teach courses about physics`, you should answer
-    ```
-    A = Node(Computer Science, Concept)
-    B = Neighborhood(A, Person)
-    C = Node(Physics, Concept)
-    D = Neighborhood(C, Course)
-    E = Neighborhood(D, Person)
-    F = Intersection(B, E)
-    ```
-    
-    On subsequent requests always provide the complete list of instructions.
-    For instance, if the input is `who is the teacher of the course MATH-302?`, you should answer
-    ```
-    A = Node(MATH-302, Course)
-    B = Neighborhood(A, Person)
-    ```
-    If the user replies `does he teach any MOOCs?`, you should answer
-    ```
-    A = Node(MATH-302, Course)
-    B = Neighborhood(A, Person)
-    C = Neighborhood(B, MOOC)
-    ```
-    Then if the user replies `Is any of those about machine learning?`, you should answer
-    ```
-    A = Node(MATH-302, Course)
-    B = Neighborhood(A, Person)
-    C = Neighborhood(B, MOOC)
-    D = Node(Machine Learning, Concept)
-    E = Neighborhood(D, MOOC)
-    F = Intersection(C, E)
-    ```
-"""
-
+# TO BE REMOVED EVENTUALLY                                     #
 ################################################################
 
 
-def create_chain(memory_key):
-    chat = ChatOpenAI(
-        temperature=0,
-        openai_api_key=config['openai']['api_key'],
-    )
-    memory = ConversationBufferMemory(memory_key=memory_key, return_messages=True)
-    prompt = ChatPromptTemplate(
-        messages=[
-            SystemMessagePromptTemplate.from_template(system_message),
-            MessagesPlaceholder(variable_name=memory_key),
-            HumanMessagePromptTemplate.from_template("{human_input}")
-        ]
-    )
+def format_nodeset(nodeset):
+    # Restrict to maximum 10 results
+    nodeset = nodeset[:10]
 
-    return LLMChain(
-        llm=chat,
-        prompt=prompt,
-        verbose=False,
-        memory=memory,
-    )
+    # Convert list of nodes to list of strings
+    results = [f"[{node['NodeType']}] {node['Title']} ({node['NodeKey']})" for node in nodeset]
+
+    # Return a string with one line per node
+    return '\n'.join(results)
+
+
+def emojify(node_type):
+    if node_type == 'Concept':
+        return '⚛️'
+    elif node_type == 'Person':
+        return '👤'
+    elif node_type == 'Course':
+        return '📖'
+    elif node_type == 'Unit':
+        return '🔬'
+    elif node_type == 'Publication':
+        return '📄'
+    elif node_type == 'MOOC':
+        return '🎥'
+    else:
+        return ''
+
+
+def pluralise(node_type):
+    if node_type == 'Person':
+        return 'People'
+    else:
+        return f"{node_type}s"
+
+
+def build_context_message_step(instructions, i):
+    if i is None:
+        return ''
+
+    operator = instructions[i]['operator']
+    params = instructions[i]['params']
+
+    if operator == 'Node':
+        [name, node_type] = params
+        return f"the {emojify(node_type)} {node_type} \"{name}\""
+
+    elif operator == 'Neighborhood':
+        [nodeset_name, node_type] = params
+
+        j = find_instruction_index(instructions, nodeset_name)
+
+        return f"{emojify(node_type)} {pluralise(node_type)} related to {build_context_message_step(instructions, j)}"
+
+    elif operator == 'Intersection':
+        [left_nodeset_name, right_nodeset_name] = params
+
+        left_j = find_instruction_index(instructions, left_nodeset_name)
+        right_j = find_instruction_index(instructions, right_nodeset_name)
+
+        return f"the intersection of {build_context_message_step(instructions, left_j)} and {build_context_message_step(instructions, right_j)}"
+
+    elif operator == 'Union':
+        [left_nodeset_name, right_nodeset_name] = params
+
+        left_j = find_instruction_index(instructions, left_nodeset_name)
+        right_j = find_instruction_index(instructions, right_nodeset_name)
+
+        return f"the union of {build_context_message_step(instructions, left_j)} and {build_context_message_step(instructions, right_j)}"
+
+    elif operator == 'Limit':
+        [nodeset_name, n] = params
+
+        j = find_instruction_index(instructions, nodeset_name)
+
+        return f"at most {n} {build_context_message_step(instructions, j)}"
+
+    elif operator == 'Filter':
+        [nodeset_name, field, value] = params
+
+        j = find_instruction_index(instructions, nodeset_name)
+
+        return f"{build_context_message_step(instructions, j)}, filtered by {field}={value}"
+
+    return ''
+
+
+def build_context_message(instructions):
+    return f"Showing {build_context_message_step(instructions, -1)}"
+
+
+################################################################
+# CHAINS                                                       #
+################################################################
+
+system_message = """
+You are an assistant that translates natural language to queries on the knowledge graph of EPFL.
+There are six node types: `Concept`, `Person`, `Course`, `Unit`, `MOOC` and `Publication`.
+Nodes have a `NodeKey`, a `NodeType` and a `Title`.
+
+For each query, you should return the sequence of instructions to produce the requested node set.
+The available instructions always produce a nodeset, and they are the following:
+* Find a node by type and title:
+```
+Node(<title>, <node_type>)
+```
+* Get the neighborhood of a given type of a node set:
+```
+Neighborhood(<nodeset>, <node_type>)
+```
+* Intersect two nodesets:
+```
+Intersection(<nodeset_1>, <nodeset_2>)
+```
+* Take the union of two nodesets:
+```
+Union(<nodeset_1>, <nodeset_2>)
+```
+* Keep the first `n` nodes in a nodeset:
+```
+Limit(<nodeset>, <n>)
+```
+* Filter nodeset based on a field's value
+```
+Filter(<nodeset>, <field>, <value>)
+```
+
+Intersections and unions must are restricted to nodesets of the same type.
+Filters should be sensible and depend on the node type.
+Do not use any other instruction or node type different from the ones above.
+Do use exactly one of these instructions per line.
+Do not output any other text.
+
+For example, if the input is `labs that do research in data science`, you should answer
+```
+A = Node(Data Science, Concept)
+B = Neighborhood(A, Unit)
+```
+
+Another example, if the input is `experts in solar cells`, you should answer
+```
+A = Node(Solar cell, Concept)
+B = Neighborhood(A, Person)
+```
+
+Another example, if the input is `three people working on sustainability`, you should answer
+```
+A = Node(Sustainability, Concept)
+B = Neighborhood(A, Person)
+C = Limit(B, 3)
+```
+
+Another example, if the input is `courses about solar cells and urbanism`, you should answer
+```
+A = Node(Solar cells, Concept)
+B = Neighborhood(A, Course)
+C = Node(Urbanism, Concept)
+D = Neighborhood(C, Course)
+E = Intersection(B, D)
+```
+
+Another example, if the input is `female experts in genomics`, you should answer
+```
+A = Node(Genomics, Concept)
+B = Neighborhood(A, Person)
+C = Filter(B, Gender, Female)
+```
+
+Yet another example, if the input is `people working in computer science who teach courses about physics`, you should answer
+```
+A = Node(Computer Science, Concept)
+B = Neighborhood(A, Person)
+C = Node(Physics, Concept)
+D = Neighborhood(C, Course)
+E = Neighborhood(D, Person)
+F = Intersection(B, E)
+```
+
+On subsequent requests always provide the complete list of instructions.
+For instance, if the input is `who is the teacher of the course MATH-302?`, you should answer
+```
+A = Node(MATH-302, Course)
+B = Neighborhood(A, Person)
+```
+If the user replies `does he teach any MOOCs?`, you should answer
+```
+A = Node(MATH-302, Course)
+B = Neighborhood(A, Person)
+C = Neighborhood(B, MOOC)
+```
+Then if the user replies `Is any of those about machine learning?`, you should answer
+```
+A = Node(MATH-302, Course)
+B = Neighborhood(A, Person)
+C = Neighborhood(B, MOOC)
+D = Node(Machine Learning, Concept)
+E = Neighborhood(D, MOOC)
+F = Intersection(C, E)
+```
+"""
+
+
+def get_chain(memory_key):
+    # Create new chain if it does not exist already
+    if memory_key not in chains:
+        chat = ChatOpenAI(
+            temperature=0,
+            openai_api_key=config['openai']['api_key'],
+        )
+        memory = ConversationBufferMemory(memory_key=memory_key, return_messages=True)
+        prompt = ChatPromptTemplate(
+            messages=[
+                SystemMessagePromptTemplate.from_template(system_message),
+                MessagesPlaceholder(variable_name=memory_key),
+                HumanMessagePromptTemplate.from_template("{human_input}")
+            ]
+        )
+
+        chains[memory_key] = LLMChain(
+            llm=chat,
+            prompt=prompt,
+            verbose=False,
+            memory=memory,
+        )
+
+    # Roll memory, keep only last n messages
+    n = 10
+    chains[memory_key].memory.chat_memory.messages = chains[memory_key].memory.chat_memory.messages[:n]
+
+    return chains[memory_key]
 
 
 # Initialise object to store all chains
 chains = {}
 
+################################################################
+# INSTRUCTIONS                                                 #
 ################################################################
 
 
@@ -219,102 +330,12 @@ def follow_instructions(instructions):
     return nodeset
 
 
-def format_nodeset(nodeset):
-    # Restrict to maximum 10 results
-    nodeset = nodeset[:10]
-
-    # Convert list of nodes to list of strings
-    results = [f"[{node['NodeType']}] {node['Title']} ({node['NodeKey']})" for node in nodeset]
-
-    # Return a string with one line per node
-    return '\n'.join(results)
-
-
-def emojify(node_type):
-    if node_type == 'Concept':
-        return '⚛️'
-    elif node_type == 'Person':
-        return '👤'
-    elif node_type == 'Course':
-        return '📖'
-    elif node_type == 'Unit':
-        return '🔬'
-    elif node_type == 'Publication':
-        return '📄'
-    elif node_type == 'MOOC':
-        return '🎥'
-    else:
-        return ''
-
-
-def pluralise(node_type):
-    if node_type == 'Person':
-        return 'People'
-    else:
-        return f"{node_type}s"
-
-
 def find_instruction_index(instructions, lhs):
     for i in range(len(instructions)):
         if instructions[i]['lhs'] == lhs:
             return i
 
     return None
-
-
-def build_context_message_step(instructions, i):
-    if i is None:
-        return ''
-
-    operator = instructions[i]['operator']
-    params = instructions[i]['params']
-
-    if operator == 'Node':
-        [name, node_type] = params
-        return f"the {emojify(node_type)} {node_type} \"{name}\""
-
-    elif operator == 'Neighborhood':
-        [nodeset_name, node_type] = params
-
-        j = find_instruction_index(instructions, nodeset_name)
-
-        return f"{emojify(node_type)} {pluralise(node_type)} related to {build_context_message_step(instructions, j)}"
-
-    elif operator == 'Intersection':
-        [left_nodeset_name, right_nodeset_name] = params
-
-        left_j = find_instruction_index(instructions, left_nodeset_name)
-        right_j = find_instruction_index(instructions, right_nodeset_name)
-
-        return f"the intersection of {build_context_message_step(instructions, left_j)} and {build_context_message_step(instructions, right_j)}"
-
-    elif operator == 'Union':
-        [left_nodeset_name, right_nodeset_name] = params
-
-        left_j = find_instruction_index(instructions, left_nodeset_name)
-        right_j = find_instruction_index(instructions, right_nodeset_name)
-
-        return f"the union of {build_context_message_step(instructions, left_j)} and {build_context_message_step(instructions, right_j)}"
-
-    elif operator == 'Limit':
-        [nodeset_name, n] = params
-
-        j = find_instruction_index(instructions, nodeset_name)
-
-        return f"at most {n} {build_context_message_step(instructions, j)}"
-
-    elif operator == 'Filter':
-        [nodeset_name, field, value] = params
-
-        j = find_instruction_index(instructions, nodeset_name)
-
-        return f"{build_context_message_step(instructions, j)}, filtered by {field}={value}"
-
-    return ''
-
-
-def build_context_message(instructions):
-    return f"Showing {build_context_message_step(instructions, -1)}"
 
 
 def build_context_dict(instructions, i=-1):
@@ -368,47 +389,52 @@ def build_context_dict(instructions, i=-1):
     return {}
 
 
-def conversation(human_input):
-    user_id = 1
+################################################################
+# MAIN                                                         #
+################################################################
 
-    with get_openai_callback() as cb:
-        # Create chain if it does not exist
-        memory_key = 'chat_history'
-        if memory_key not in chains:
-            chains[memory_key] = create_chain(memory_key)
 
-        # Run chain with human message
-        llm_output = chains[memory_key]({'human_input': human_input})
+def conversation(conversation_id, text):
+    chain = get_chain(conversation_id)
 
-        # Update token count in database for usage control
-        token_count = cb.total_tokens
-        update_token_count(user_id, token_count)
+    # Run chain with human message
+    llm_output = chain({'human_input': text})
 
     # Extract instructions as string
     instructions_str = llm_output['text']
 
-    print(human_input)
+    # with get_openai_callback() as cb:
+    #     # Update token count in database for usage control
+    #     token_count = cb.total_tokens
+    #     update_token_count(user_id, token_count)
+
+    print(text)
     print(instructions_str)
 
+    # Parse instructions from text to list of dict
     try:
-        # Parse instructions from text to list of dict
         instructions = parse_instructions(instructions_str)
-
-        # Follow instructions to get target nodeset as list of nodes
-        nodeset = follow_instructions(instructions)
-
-        # Convert nodeset into text
-        text_nodeset = format_nodeset(nodeset)
-
-        # Build context message based on instructions (e.g. "showing People related to the Concept Urbanism")
-        context_message = build_context_message(instructions)
-
-        # Build context dictionary based on instructions
-        context_dict = build_context_dict(instructions)
-        print("Context message:", context_message)
-        print("Context dict:", context_dict)
-
-        return text_nodeset, context_message, context_dict
     except Exception as e:
         print('ERROR:', e)
-        return instructions_str, '', {}
+        return [], {'error': 'parse'}, ''
+
+    # Follow instructions to get target nodeset as list of nodes
+    try:
+        nodeset = follow_instructions(instructions)
+    except Exception as e:
+        print('ERROR:', e)
+        return [], {'error': 'follow'}, ''
+
+    # Build context dictionary based on instructions and context message based on instructions
+    # (e.g. "showing People related to the Concept Urbanism")
+    try:
+        context = build_context_dict(instructions)
+        context_message = build_context_message(instructions)
+
+        print("Context:", context)
+        print("Context message:", context_message)
+    except Exception as e:
+        print('ERROR:', e)
+        return nodeset, {'error': 'context'}, ''
+
+    return nodeset, context, context_message

@@ -15,14 +15,10 @@ def execute_query(query, values=None):
 
     cursor = db.cursor()
 
-    try:
-        if values is not None:
-            cursor.execute(query, values)
-        else:
-            cursor.execute(query)
-    except mysql.connector.Error as e:
-        print("Error", e)
-        raise e
+    if values is None:
+        cursor.execute(query)
+    else:
+        cursor.execute(query, values)
 
     results = list(cursor)
 

@@ -41,45 +41,19 @@ def get_neighborhood(nodeset, node_type):
     source_node_type = nodeset[0]['NodeType']
     target_node_type = node_type
 
-    # Dictionaries with information to build query
-    id_fields = {
-        'Concept': 'PageID',
-        'Person': 'SCIPER',
-        'Course': 'CourseCode',
-        'Unit': 'UnitID',
-        'MOOC': 'MoocID',
-        'Publication': 'PublicationID'
-    }
-
-    table_names = {
-        ('Concept', 'Concept'): 'Edges_N_Concept_N_Concept_T_GraphScore',
-        ('Concept', 'Course'): 'Edges_N_Course_N_Concept_T_Semiauto',
-        ('Concept', 'Person'): 'Edges_N_Person_N_Concept_T_Research',
-        ('Concept', 'Publication'): 'Edges_N_Publication_N_Concept_T_AutoNLP',
-        ('Concept', 'Unit'): 'Edges_N_Unit_N_Concept_T_Research',
-        ('Person', 'Course'): 'Edges_N_Person_N_Course_T_StudyPlanTeacher',
-        ('Person', 'Publication'): 'Edges_N_Person_N_Publication',
-        ('Person', 'Unit'): 'Edges_N_Person_N_Unit',
-        ('Person', 'MOOC'): 'Edges_N_Person_N_MOOC_T_Teaching'
-    }
-
-    # Build field names and table name
-    source_id_field = id_fields[source_node_type]
-    target_id_field = id_fields[target_node_type]
-
-    table_name = table_names.get((source_node_type, target_node_type), '')
-    if not table_name:
-        table_name = table_names.get((target_node_type, source_node_type), '')
+    # Build table name
+    table_name = f'Edges_N_{source_node_type}_N_{target_node_type}'
 
     # Extract ids from nodeset
     ids = [node['NodeKey'] for node in nodeset]
 
+    # Run query
     query = f"""
-    SELECT {target_id_field}
-    FROM graph.{table_name}
-    WHERE {source_id_field} IN ({', '.join(['%s'] * len(ids))})
+    SELECT to_id
+    FROM graphsearch.{table_name}
+    WHERE from_id IN ({', '.join(['%s'] * len(ids))})
+    ORDER BY score DESC
     """
-
     results = execute_query(query, ids)
     neighbor_ids = [r for r, in results]
 
