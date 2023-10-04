@@ -1,3 +1,5 @@
+import traceback
+
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import LLMChain
 from langchain.memory import ConversationBufferMemory
@@ -416,14 +418,14 @@ def conversation(conversation_id, text):
     try:
         instructions = parse_instructions(instructions_str)
     except Exception as e:
-        print('ERROR:', e)
+        traceback.print_exc()
         return [], {'error': 'parse'}, ''
 
     # Follow instructions to get target nodeset as list of nodes
     try:
         nodeset = follow_instructions(instructions)
     except Exception as e:
-        print('ERROR:', e)
+        traceback.print_exc()
         return [], {'error': 'follow'}, ''
 
     # Build context dictionary based on instructions and context message based on instructions
@@ -435,7 +437,7 @@ def conversation(conversation_id, text):
         print("Context:", context)
         print("Context message:", context_message)
     except Exception as e:
-        print('ERROR:', e)
+        traceback.print_exc()
         return nodeset, {'error': 'context'}, ''
 
     return nodeset, context, context_message
