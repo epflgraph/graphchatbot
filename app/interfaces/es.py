@@ -92,3 +92,68 @@ def search_nodes(text, node_type):
     results = [hit['_source'] for hit in res['hits']['hits']]
 
     return results
+
+
+def search_node_contents(text, node_type, filter_ids=None):
+    """Returns nodes based on a full-text match on the Content field."""
+
+    query = {
+        "function_score": {
+            "score_mode": "multiply",
+            "functions": [
+                {
+                    "field_value_factor": {"field": "DegreeScore"}
+                },
+                {
+                    "filter": {"term": {"NodeType.keyword": "Concept"}},
+                    "weight": 512
+                },
+                {
+                    "filter": {"term": {"NodeType.keyword": "Person"}},
+                    "weight": 128
+                },
+                {
+                    "filter": {"term": {"NodeType.keyword": "Course"}},
+                    "weight": 128
+                },
+                {
+                    "filter": {"term": {"NodeType.keyword": "Unit"}},
+                    "weight": 64
+                },
+                {
+                    "filter": {"term": {"NodeType.keyword": "MOOC"}},
+                    "weight": 64
+                },
+                {
+                    "filter": {"term": {"NodeType.keyword": "Publication"}},
+                    "weight": 1
+                }
+            ],
+            "query": {
+                "bool": {
+                    "filter": [
+                        {
+                            "term": {"NodeType.keyword": node_type}
+                        }
+                    ],
+                    "must": [
+                        {
+                            "match": {
+                                "Content": text
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    }
+
+    if filter_ids is not None:
+        query['function_score']['query']['bool']['filter'].append({"terms": {"NodeKey.keyword": filter_ids}})
+
+    res = es.search(index='graph_full_piper', source=['NodeKey', 'NodeType', 'Title'], query=query)
+
+    # Return only results with a score higher than half of max_score
+    results = [hit['_source'] for hit in res['hits']['hits'] if hit['_score'] > 0.5 * res['hits']['max_score']]
+
+    return results
