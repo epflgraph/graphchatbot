@@ -42,13 +42,13 @@ def emojify(node_type):
     elif node_type == 'Person':
         return '👤'
     elif node_type == 'Course':
+        return '📚'
+    elif node_type == 'Lecture':
         return '📖'
     elif node_type == 'Unit':
         return '🔬'
     elif node_type == 'Publication':
         return '📄'
-    elif node_type == 'MOOC':
-        return '🎥'
     else:
         return ''
 
@@ -108,11 +108,20 @@ def build_context_message_step(instructions, i):
 
         return f"{build_context_message_step(instructions, j)}, filtered by {field}={value}"
 
-    return ''
+    elif operator == 'Return':
+        context_messages = []
+        for nodeset_name in params:
+            j = find_instruction_index(instructions, nodeset_name)
+            context_message = f"Showing {build_context_message_step(instructions, j)}"
+            context_messages.append(context_message)
+
+        return context_messages
+
+    return []
 
 
 def build_context_message(instructions):
-    return f"Showing {build_context_message_step(instructions, -1)}"
+    return build_context_message_step(instructions, -1)
 
 
 ################################################################
@@ -150,50 +159,71 @@ Limit(<nodeset>, <n>)
 ```
 Filter(<nodeset>, <field>, <value>)
 ```
+* Return the given nodesets
+```
+Return(<nodeset_1>, ..., <nodeset_n>)
+```
 
 Any node type has meaningful neighborhoods of any other node type, including itself.
 Intersections and unions must are restricted to nodesets of the same type.
 Filters should be sensible and depend on the node type.
+The last instruction must always be Return, with one or more nodesets that give answer to the query. 
+
 Do not use any other instruction or node type different from the ones above.
 Do use exactly one of these instructions per line.
 Do not output any other text.
 
-For example, if the input is `labs that do research in data science`, you should answer
+Here are some examples:
+
+If the query is `labs that do research in data science`, you should answer
 ```
 A = Node(Data Science, Concept)
 B = Neighborhood(A, Unit)
+Return(B)
 ```
 
-Another example, if the input is `experts in solar cells`, you should answer
+If the query is `experts in solar cells`, you should answer
 ```
 A = Node(Solar cell, Concept)
 B = Neighborhood(A, Person)
+Return(B)
 ```
 
-Another example, if the input is `three people working on sustainability`, you should answer
+If the query is `three people working on sustainability`, you should answer
 ```
 A = Node(Sustainability, Concept)
 B = Neighborhood(A, Person)
 C = Limit(B, 3)
+Return(C)
 ```
 
-Another example, if the input is `courses about solar cells and urbanism`, you should answer
+If the query is `courses about solar cells and urbanism`, you should answer
 ```
 A = Node(Solar cells, Concept)
 B = Neighborhood(A, Course)
 C = Node(Urbanism, Concept)
 D = Neighborhood(C, Course)
 E = Intersection(B, D)
+Return(E)
 ```
 
-Another example, if the input is `female experts in genomics`, you should answer
+If the query is `female experts in genomics`, you should answer
 ```
 A = Node(Genomics, Concept)
 B = Neighborhood(A, Person)
 C = Filter(B, Gender, Female)
+Return(C)
 ```
 
-Yet another example, if the input is `people working in computer science who teach courses about physics`, you should answer
+If the query is `I want to learn about backpropagation`, you should answer
+```
+A = Node(Backpropagation, Concept)
+B = Neighborhood(A, Course)
+C = Neighborhood(A, Lecture)
+Return(A, B, C)
+```
+
+If the query is `people working in computer science who teach courses about physics`, you should answer
 ```
 A = Node(Computer Science, Concept)
 B = Neighborhood(A, Person)
@@ -201,19 +231,22 @@ C = Node(Physics, Concept)
 D = Neighborhood(C, Course)
 E = Neighborhood(D, Person)
 F = Intersection(B, E)
+Return(F)
 ```
 
 On subsequent requests always provide the complete list of instructions.
-For instance, if the input is `who is the teacher of the course MATH-302?`, you should answer
+If the query is `who is the teacher of the course MATH-302?`, you should answer
 ```
 A = Node(MATH-302, Course)
 B = Neighborhood(A, Person)
+Return(B)
 ```
-If the user replies `does he teach any other courses?`, you should answer
+Then if the user replies `does he teach any other courses?`, you should answer
 ```
 A = Node(MATH-302, Course)
 B = Neighborhood(A, Person)
 C = Neighborhood(B, Course)
+Return(C)
 ```
 Then if the user replies `Is any of those about machine learning?`, you should answer
 ```
@@ -223,6 +256,7 @@ C = Neighborhood(B, Course)
 D = Node(Machine Learning, Concept)
 E = Neighborhood(D, Course)
 F = Intersection(C, E)
+Return(F)
 ```
 """
 
@@ -270,16 +304,20 @@ def parse_instructions(instructions):
 
     parsed_instructions = []
     for instruction in instructions:
-        if '=' not in instruction:
-            continue
+        if 'Return' in instruction:
+            lhs = None
+            rhs = instruction
+        else:
+            if '=' not in instruction:
+                continue
 
-        if '(' not in instruction or ')' not in instruction:
-            continue
+            # Split LHS and RHS
+            pieces = instruction.split('=')
+            pieces = [piece.strip() for piece in pieces]
+            [lhs, rhs] = pieces
 
-        # Split LHS and RHS
-        pieces = instruction.split('=')
-        pieces = [piece.strip() for piece in pieces]
-        [lhs, rhs] = pieces
+        if '(' not in rhs or ')' not in rhs:
+            continue
 
         # Get operator and arguments from RHS
         begin = rhs.find('(')
@@ -308,29 +346,32 @@ def follow_instructions(instructions):
             nodesets[lhs] = nodeset
 
         elif operator == 'Neighborhood':
-            [nodeset, node_type] = params
-            nodesets[lhs] = get_neighborhood(nodesets[nodeset], node_type)
+            [nodeset_name, node_type] = params
+            nodesets[lhs] = get_neighborhood(nodesets[nodeset_name], node_type)
 
         elif operator == 'Intersection':
-            [left_nodeset, right_nodeset] = params
-            nodesets[lhs] = take_intersection(nodesets[left_nodeset], nodesets[right_nodeset])
+            [left_nodeset_name, right_nodeset_name] = params
+            nodesets[lhs] = take_intersection(nodesets[left_nodeset_name], nodesets[right_nodeset_name])
 
         elif operator == 'Union':
-            [left_nodeset, right_nodeset] = params
-            nodesets[lhs] = take_union(nodesets[left_nodeset], nodesets[right_nodeset])
+            [left_nodeset_name, right_nodeset_name] = params
+            nodesets[lhs] = take_union(nodesets[left_nodeset_name], nodesets[right_nodeset_name])
 
         elif operator == 'Limit':
-            [nodeset, n] = params
-            nodesets[lhs] = limit(nodesets[nodeset], int(n))
+            [nodeset_name, n] = params
+            nodesets[lhs] = limit(nodesets[nodeset_name], int(n))
 
         elif operator == 'Filter':
-            [nodeset, field, value] = params
-            nodesets[lhs] = filter(nodesets[nodeset], field, value)
+            [nodeset_name, field, value] = params
+            nodesets[lhs] = filter(nodesets[nodeset_name], field, value)
 
-    # Take nodeset referenced last
+        elif operator == 'Return':
+            return [nodesets[nodeset_name] for nodeset_name in params]
+
+    # Fallback: If no return operation, return nodeset referenced last
     nodeset = nodesets[lhs]
 
-    return nodeset
+    return [nodeset]
 
 
 def find_instruction_index(instructions, lhs):
@@ -341,7 +382,7 @@ def find_instruction_index(instructions, lhs):
     return None
 
 
-def build_context_dict(instructions, i=-1):
+def build_context(instructions, i=-1):
     if i is None:
         return {}
 
@@ -357,7 +398,7 @@ def build_context_dict(instructions, i=-1):
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return {'operation': 'neighborhood', 'node_type': node_type, 'child': build_context_dict(instructions, j)}
+        return {'operation': 'neighborhood', 'node_type': node_type, 'child': build_context(instructions, j)}
 
     elif operator == 'Intersection':
         [left_nodeset_name, right_nodeset_name] = params
@@ -365,7 +406,7 @@ def build_context_dict(instructions, i=-1):
         left_j = find_instruction_index(instructions, left_nodeset_name)
         right_j = find_instruction_index(instructions, right_nodeset_name)
 
-        return {'operation': 'intersection', 'left_child': build_context_dict(instructions, left_j), 'right_child': build_context_dict(instructions, right_j)}
+        return {'operation': 'intersection', 'left_child': build_context(instructions, left_j), 'right_child': build_context(instructions, right_j)}
 
     elif operator == 'Union':
         [left_nodeset_name, right_nodeset_name] = params
@@ -373,23 +414,31 @@ def build_context_dict(instructions, i=-1):
         left_j = find_instruction_index(instructions, left_nodeset_name)
         right_j = find_instruction_index(instructions, right_nodeset_name)
 
-        return {'operation': 'union', 'left_child': build_context_dict(instructions, left_j), 'right_child': build_context_dict(instructions, right_j)}
+        return {'operation': 'union', 'left_child': build_context(instructions, left_j), 'right_child': build_context(instructions, right_j)}
 
     elif operator == 'Limit':
         [nodeset_name, n] = params
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return {'operation': 'limit', 'n': int(n), 'child': build_context_dict(instructions, j)}
+        return {'operation': 'limit', 'n': int(n), 'child': build_context(instructions, j)}
 
     elif operator == 'Filter':
         [nodeset_name, field, value] = params
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return {'operation': 'filter', 'field': field, 'value': value, 'child': build_context_dict(instructions, j)}
+        return {'operation': 'filter', 'field': field, 'value': value, 'child': build_context(instructions, j)}
 
-    return {}
+    elif operator == 'Return':
+        contexts = []
+        for nodeset_name in params:
+            j = find_instruction_index(instructions, nodeset_name)
+            contexts.append(build_context(instructions, j))
+
+        return contexts
+
+    return []
 
 
 ################################################################
@@ -419,25 +468,38 @@ def conversation(conversation_id, text):
         instructions = parse_instructions(instructions_str)
     except Exception as e:
         traceback.print_exc()
-        return [], {'error': 'parse'}, ''
+        return [], 'error parsing instructions'
 
     # Follow instructions to get target nodeset as list of nodes
     try:
-        nodeset = follow_instructions(instructions)
+        nodesets = follow_instructions(instructions)
     except Exception as e:
         traceback.print_exc()
-        return [], {'error': 'follow'}, ''
+        return [], 'error following instructions'
 
-    # Build context dictionary based on instructions and context message based on instructions
+    # Build context dictionaries and context messages based on instructions
     # (e.g. "showing People related to the Concept Urbanism")
     try:
-        context = build_context_dict(instructions)
-        context_message = build_context_message(instructions)
+        contexts = build_context(instructions)
+        context_messages = build_context_message(instructions)
 
-        print("Context:", context)
-        print("Context message:", context_message)
+        if not isinstance(contexts, list):
+            contexts = [contexts]
+
+        if not isinstance(context_messages, list):
+            context_messages = [context_messages]
+
+        print("Contexts:", contexts)
+        print("Context messages:", context_messages)
     except Exception as e:
         traceback.print_exc()
-        return nodeset, {'error': 'context'}, ''
+        return [], 'error building context'
 
-    return nodeset, context, context_message
+    return [
+        {
+            'nodeset': nodeset,
+            'context': context,
+            'context_message': context_message
+        }
+        for nodeset, context, context_message in zip(nodesets, contexts, context_messages)
+    ], ''

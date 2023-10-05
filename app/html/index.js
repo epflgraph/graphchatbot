@@ -9,6 +9,28 @@ function appendMessage(className, message) {
     chatContainer.scrollTop = chatContainer.scrollHeight;  // Auto scroll to bottom
 }
 
+function processResponseElem(elem) {
+    // Extract response fields
+    let nodeset = elem["nodeset"];
+    let context = elem["context"];
+    let context_message = elem["context_message"].trim();
+
+    console.log(context);
+
+    // Convert object to string
+    let message = nodeset.map((node) => `[${node['NodeType']}] ${node['Title']} (${node['NodeKey']})`).join('\n');
+
+    if (context_message !== '') {
+        appendMessage('context-message', context_message);
+    }
+
+    if (message !== '') {
+        appendMessage('bot-message', message);
+    } else {
+        appendMessage('bot-message', "<No results>");
+    }
+}
+
 function sendMessage() {
     const chatInput = document.getElementById('chat-input');
     const message = chatInput.value;
@@ -24,26 +46,9 @@ function sendMessage() {
 
         xhr.onload = function() {
             try {
-                // Extract response fields
-                let response = JSON.parse(this.responseText)
-                let nodeset = response["nodeset"];
-                let context = response["context"];
-                let context_message = response["context_message"].trim();
+                let response = JSON.parse(this.responseText);
 
-                console.log(context);
-
-                // Convert object to string
-                let message = nodeset.map((node) => `[${node['NodeType']}] ${node['Title']} (${node['NodeKey']})`).join('\n');
-
-                if (context_message !== '') {
-                    appendMessage('context-message', context_message);
-                }
-
-                if (message !== '') {
-                    appendMessage('bot-message', message);
-                } else {
-                    appendMessage('bot-message', "<No results>");
-                }
+                response.forEach(processResponseElem);
             } catch (error) {
                 appendMessage('bot-message', "<Something went wrong>");
             }

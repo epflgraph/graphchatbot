@@ -12,12 +12,6 @@ class ChatInput(BaseModel):
     text: str
 
 
-class ChatOutput(BaseModel):
-    nodeset: list
-    context: dict
-    context_message: str
-
-
 app = FastAPI()
 
 
@@ -29,18 +23,20 @@ async def chat(input: ChatInput, response: Response):
     # Ensure text not too long
     if len(text) > 1000:
         response.status_code = 413  # Content too large
-        return ChatOutput(nodeset=[], context={}, context_message='')
+        return []
 
-    # Main call to generate result nodeset
-    nodeset, context, context_message = conversation(conversation_id, text)
+    # Main call to generate results
+    results, error = conversation(conversation_id, text)
+
+    if error:
+        response.status_code = 500  # Internal server error
+        return []
 
     # Limit nodeset length
-    nodeset = nodeset[:10]
+    for i in range(len(results)):
+        results[i]['nodeset'] = results[i]['nodeset'][:10]
 
-    if 'error' in context:
-        response.status_code = 500  # Internal server error
-
-    return ChatOutput(nodeset=nodeset, context=context, context_message=context_message)
+    return results
 
 
 @app.get('/')
