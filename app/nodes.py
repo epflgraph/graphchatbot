@@ -123,7 +123,7 @@ def filter(nodeset, key, value):
         filtered_ids = [str(r) for r, in results]
     except Exception as e:
         # If the above does not work as expected, just search both key and value on the Content field in elasticsearch
-        nodeset = search_node_contents(f"{key} {value}", node_type, filter_ids=ids)
+        nodeset = search_node_contents(value, node_type, filter_ids=ids)
         filtered_ids = [node['NodeKey'] for node in nodeset]
 
     # Filter nodeset, keep only ids found above
