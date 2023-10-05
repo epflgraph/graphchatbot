@@ -303,8 +303,51 @@ def get_chain(memory_key):
     return chains[memory_key]
 
 
-# Initialise object to store all chains
+def get_wrapper_chain(memory_key):
+    system_message = f"""
+You are an assistant who translates results from queries on the knowledge graph of EPFL to natural language.
+You will be given the input query as well as the result object after processing it.
+Your goal is to present the result in a human readable form.
+
+The response is a list of dictionaries, each containing a `nodeset` and a `context`.
+Those fields contain the set of resulting nodes and how they were obtained through graph operations, respectively.
+
+It is very important that you do not add any information, not even the definition of a concept.
+When nodesets have more than one node, use lists.
+"""
+
+    # Create new chain if it does not exist already
+    if memory_key not in wrapper_chains:
+        chat = ChatOpenAI(
+            temperature=0,
+            openai_api_key=config['openai']['api_key'],
+        )
+        memory = ConversationBufferMemory(memory_key=memory_key, return_messages=True)
+        prompt = ChatPromptTemplate(
+            messages=[
+                SystemMessagePromptTemplate.from_template(system_message),
+                MessagesPlaceholder(variable_name=memory_key),
+                HumanMessagePromptTemplate.from_template("{input}")
+            ]
+        )
+
+        wrapper_chains[memory_key] = LLMChain(
+            llm=chat,
+            memory=memory,
+            prompt=prompt,
+            verbose=True,
+        )
+
+    # Roll memory, keep only last n messages
+    n = 10
+    wrapper_chains[memory_key].memory.chat_memory.messages = wrapper_chains[memory_key].memory.chat_memory.messages[:n]
+
+    return wrapper_chains[memory_key]
+
+
+# Initialise objects to store chains
 chains = {}
+wrapper_chains = {}
 
 ################################################################
 # INSTRUCTIONS                                                 #
@@ -468,6 +511,13 @@ def build_context(instructions, i=-1):
 ################################################################
 # MAIN                                                         #
 ################################################################
+
+def wrap_nlp(conversation_id, query, results):
+    chain = get_wrapper_chain(conversation_id)
+
+    llm_output = chain({'input': f"Query: {query}\nResults: {str(results)}"})
+
+    return llm_output['text']
 
 
 def conversation(conversation_id, text):

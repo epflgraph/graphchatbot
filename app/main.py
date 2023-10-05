@@ -2,14 +2,16 @@ from fastapi import FastAPI, Response
 from fastapi.responses import FileResponse
 
 from pydantic import BaseModel
+from typing import Optional
 
-from app.conversation import conversation
+from app.conversation import conversation, wrap_nlp
 # from app.conversation_tools import conversation
 
 
 class ChatInput(BaseModel):
     conversation_id: str
     text: str
+    return_nlp: Optional[bool] = False
 
 
 app = FastAPI()
@@ -19,6 +21,7 @@ app = FastAPI()
 async def chat(input: ChatInput, response: Response):
     conversation_id = input.conversation_id
     text = input.text
+    return_nlp = input.return_nlp
 
     # Ensure text not too long
     if len(text) > 1000:
@@ -35,6 +38,11 @@ async def chat(input: ChatInput, response: Response):
     # Limit nodeset length
     for i in range(len(results)):
         results[i]['nodeset'] = results[i]['nodeset'][:10]
+
+    # Wrap results in natural language
+    if return_nlp:
+        output_text = wrap_nlp(conversation_id, text, results)
+        return {'text': output_text}
 
     return results
 

@@ -48,7 +48,15 @@ function sendMessage() {
             try {
                 let response = JSON.parse(this.responseText);
 
-                response.forEach(processResponseElem);
+                if ('text' in response) {
+                    appendMessage('bot-message', response['text']);
+                } else {
+                    if (response.length > 0) {
+                        response.forEach(processResponseElem);
+                    } else {
+                        appendMessage('bot-message', "<Something went wrong>");
+                    }
+                }
             } catch (error) {
                 appendMessage('bot-message', "<Something went wrong>");
             }
