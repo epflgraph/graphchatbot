@@ -33,6 +33,14 @@ def take_union(left_nodeset, right_nodeset):
     return union_nodeset
 
 
+def take_difference(left_nodeset, right_nodeset):
+    right_ids = {node['NodeKey'] for node in right_nodeset}
+
+    difference_nodeset = [node for node in left_nodeset if node['NodeKey'] not in right_ids]
+
+    return difference_nodeset
+
+
 def get_neighborhood(nodeset, node_type):
     if len(nodeset) == 0:
         return []

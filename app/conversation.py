@@ -14,7 +14,7 @@ import langchain
 
 from app.interfaces.es import search_nodes
 from app.interfaces.db import update_token_count
-from app.nodes import get_neighborhood, take_intersection, take_union, limit, filter
+from app.nodes import get_neighborhood, take_intersection, take_union, take_difference, limit, filter
 
 from app.config import config
 
@@ -94,6 +94,14 @@ def build_context_message_step(instructions, i):
 
         return f"the union of {build_context_message_step(instructions, left_j)} and {build_context_message_step(instructions, right_j)}"
 
+    elif operator == 'Difference':
+        [left_nodeset_name, right_nodeset_name] = params
+
+        left_j = find_instruction_index(instructions, left_nodeset_name)
+        right_j = find_instruction_index(instructions, right_nodeset_name)
+
+        return f"the nodes in {build_context_message_step(instructions, left_j)} not in {build_context_message_step(instructions, right_j)}"
+
     elif operator == 'Limit':
         [nodeset_name, n] = params
 
@@ -150,6 +158,10 @@ Intersection(<nodeset_1>, <nodeset_2>)
 * Take the union of two nodesets:
 ```
 Union(<nodeset_1>, <nodeset_2>)
+```
+* Take the set difference of two nodesets:
+```
+Difference(<nodeset_1>, <nodeset_2>)
 ```
 * Keep the first `n` nodes in a nodeset:
 ```
@@ -357,6 +369,10 @@ def follow_instructions(instructions):
             [left_nodeset_name, right_nodeset_name] = params
             nodesets[lhs] = take_union(nodesets[left_nodeset_name], nodesets[right_nodeset_name])
 
+        elif operator == 'Difference':
+            [left_nodeset_name, right_nodeset_name] = params
+            nodesets[lhs] = take_difference(nodesets[left_nodeset_name], nodesets[right_nodeset_name])
+
         elif operator == 'Limit':
             [nodeset_name, n] = params
             nodesets[lhs] = limit(nodesets[nodeset_name], int(n))
@@ -415,6 +431,14 @@ def build_context(instructions, i=-1):
         right_j = find_instruction_index(instructions, right_nodeset_name)
 
         return {'operation': 'union', 'left_child': build_context(instructions, left_j), 'right_child': build_context(instructions, right_j)}
+
+    elif operator == 'Difference':
+        [left_nodeset_name, right_nodeset_name] = params
+
+        left_j = find_instruction_index(instructions, left_nodeset_name)
+        right_j = find_instruction_index(instructions, right_nodeset_name)
+
+        return {'operation': 'difference', 'left_child': build_context(instructions, left_j), 'right_child': build_context(instructions, right_j)}
 
     elif operator == 'Limit':
         [nodeset_name, n] = params
