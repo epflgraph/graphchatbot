@@ -14,7 +14,9 @@ import langchain
 
 from app.interfaces.es import search_nodes
 from app.interfaces.db import update_token_count
-from app.nodes import get_neighborhood, take_intersection, take_union, take_difference, limit, filter
+
+from app.prompts import instructions_system_prompt, wrapper_system_prompt
+from app.nodes import get_neighborhood, get_all_nodes_and_filter, filter, take_intersection, take_union, take_difference, limit
 
 from app.config import config
 
@@ -71,12 +73,23 @@ def build_context_message_step(instructions, i):
         [name, node_type] = params
         return f"the {emojify(node_type)} {node_type} \"{name}\""
 
+    elif operator == 'All':
+        [node_type, field, value] = params
+        return f"all {emojify(node_type)} {pluralise(node_type)}, filtered by {field}={value}"
+
     elif operator == 'Neighborhood':
         [nodeset_name, node_type] = params
 
         j = find_instruction_index(instructions, nodeset_name)
 
         return f"{emojify(node_type)} {pluralise(node_type)} related to {build_context_message_step(instructions, j)}"
+
+    elif operator == 'Filter':
+        [nodeset_name, field, value] = params
+
+        j = find_instruction_index(instructions, nodeset_name)
+
+        return f"{build_context_message_step(instructions, j)}, filtered by {field}={value}"
 
     elif operator == 'Intersection':
         [left_nodeset_name, right_nodeset_name] = params
@@ -109,13 +122,6 @@ def build_context_message_step(instructions, i):
 
         return f"at most {n} {build_context_message_step(instructions, j)}"
 
-    elif operator == 'Filter':
-        [nodeset_name, field, value] = params
-
-        j = find_instruction_index(instructions, nodeset_name)
-
-        return f"{build_context_message_step(instructions, j)}, filtered by {field}={value}"
-
     elif operator == 'Return':
         context_messages = []
         for nodeset_name in params:
@@ -136,142 +142,6 @@ def build_context_message(instructions):
 # CHAINS                                                       #
 ################################################################
 
-system_message = """
-You are an assistant that translates natural language to queries on the knowledge graph of EPFL.
-There are six node types: `Concept`, `Person`, `Course`, `Lecture`, `Unit` and `Publication`.
-Nodes have a `NodeKey`, a `NodeType` and a `Title`.
-
-For each query, you should return the sequence of instructions to produce the requested node set.
-The available instructions always produce a nodeset, and they are the following:
-* Find a node by type and title:
-```
-Node(<title>, <node_type>)
-```
-* Get the neighborhood of a given type of a node set:
-```
-Neighborhood(<nodeset>, <node_type>)
-```
-* Intersect two nodesets:
-```
-Intersection(<nodeset_1>, <nodeset_2>)
-```
-* Take the union of two nodesets:
-```
-Union(<nodeset_1>, <nodeset_2>)
-```
-* Take the set difference of two nodesets:
-```
-Difference(<nodeset_1>, <nodeset_2>)
-```
-* Keep the first `n` nodes in a nodeset:
-```
-Limit(<nodeset>, <n>)
-```
-* Filter nodeset based on a field's value
-```
-Filter(<nodeset>, <field>, <value>)
-```
-* Return the given nodesets
-```
-Return(<nodeset_1>, ..., <nodeset_n>)
-```
-
-Any node type has meaningful neighborhoods of any other node type, including itself.
-Intersections and unions must are restricted to nodesets of the same type.
-Filters should be sensible and depend on the node type.
-The last instruction must always be Return, with one or more nodesets that give answer to the query. 
-
-Do not use any other instruction or node type different from the ones above.
-Do use exactly one of these instructions per line.
-Do not output any other text.
-
-Here are some examples:
-
-If the query is `labs that do research in data science`, you should answer
-```
-A = Node(Data Science, Concept)
-B = Neighborhood(A, Unit)
-Return(B)
-```
-
-If the query is `experts in solar cells`, you should answer
-```
-A = Node(Solar cell, Concept)
-B = Neighborhood(A, Person)
-Return(B)
-```
-
-If the query is `three people working on sustainability`, you should answer
-```
-A = Node(Sustainability, Concept)
-B = Neighborhood(A, Person)
-C = Limit(B, 3)
-Return(C)
-```
-
-If the query is `courses about solar cells and urbanism`, you should answer
-```
-A = Node(Solar cells, Concept)
-B = Neighborhood(A, Course)
-C = Node(Urbanism, Concept)
-D = Neighborhood(C, Course)
-E = Intersection(B, D)
-Return(E)
-```
-
-If the query is `female experts in genomics`, you should answer
-```
-A = Node(Genomics, Concept)
-B = Neighborhood(A, Person)
-C = Filter(B, Gender, Female)
-Return(C)
-```
-
-If the query is `I want to learn about backpropagation`, you should answer
-```
-A = Node(Backpropagation, Concept)
-B = Neighborhood(A, Course)
-C = Neighborhood(A, Lecture)
-Return(A, B, C)
-```
-
-If the query is `people working in computer science who teach courses about physics`, you should answer
-```
-A = Node(Computer Science, Concept)
-B = Neighborhood(A, Person)
-C = Node(Physics, Concept)
-D = Neighborhood(C, Course)
-E = Neighborhood(D, Person)
-F = Intersection(B, E)
-Return(F)
-```
-
-On subsequent requests always provide the complete list of instructions.
-If the query is `who is the teacher of the course MATH-302?`, you should answer
-```
-A = Node(MATH-302, Course)
-B = Neighborhood(A, Person)
-Return(B)
-```
-Then if the user replies `does he teach any other courses?`, you should answer
-```
-A = Node(MATH-302, Course)
-B = Neighborhood(A, Person)
-C = Neighborhood(B, Course)
-Return(C)
-```
-Then if the user replies `Is any of those about machine learning?`, you should answer
-```
-A = Node(MATH-302, Course)
-B = Neighborhood(A, Person)
-C = Neighborhood(B, Course)
-D = Node(Machine Learning, Concept)
-E = Neighborhood(D, Course)
-F = Intersection(C, E)
-Return(F)
-```
-"""
-
 
 def get_chain(memory_key):
     # Create new chain if it does not exist already
@@ -283,7 +153,7 @@ def get_chain(memory_key):
         memory = ConversationBufferMemory(memory_key=memory_key, return_messages=True)
         prompt = ChatPromptTemplate(
             messages=[
-                SystemMessagePromptTemplate.from_template(system_message),
+                SystemMessagePromptTemplate.from_template(instructions_system_prompt),
                 MessagesPlaceholder(variable_name=memory_key),
                 HumanMessagePromptTemplate.from_template("{human_input}")
             ]
@@ -304,18 +174,6 @@ def get_chain(memory_key):
 
 
 def get_wrapper_chain(memory_key):
-    system_message = f"""
-You are an assistant who translates results from queries on the knowledge graph of EPFL to natural language.
-You will be given the input query as well as the result object after processing it.
-Your goal is to present the result in a human readable form.
-
-The response is a list of dictionaries, each containing a `nodeset` and a `context`.
-Those fields contain the set of resulting nodes and how they were obtained through graph operations, respectively.
-
-It is very important that you do not add any information, not even the definition of a concept.
-When nodesets have more than one node, use lists.
-"""
-
     # Create new chain if it does not exist already
     if memory_key not in wrapper_chains:
         chat = ChatOpenAI(
@@ -325,7 +183,7 @@ When nodesets have more than one node, use lists.
         memory = ConversationBufferMemory(memory_key=memory_key, return_messages=True)
         prompt = ChatPromptTemplate(
             messages=[
-                SystemMessagePromptTemplate.from_template(system_message),
+                SystemMessagePromptTemplate.from_template(wrapper_system_prompt),
                 MessagesPlaceholder(variable_name=memory_key),
                 HumanMessagePromptTemplate.from_template("{input}")
             ]
@@ -397,12 +255,19 @@ def follow_instructions(instructions):
             nodeset = search_nodes(*params)
             if len(nodeset) > 0:
                 nodeset = [nodeset[0]]
-            print(nodeset)
             nodesets[lhs] = nodeset
+
+        elif operator == 'All':
+            [node_type, field, value] = params
+            nodesets[lhs] = get_all_nodes_and_filter(node_type, field, value)
 
         elif operator == 'Neighborhood':
             [nodeset_name, node_type] = params
             nodesets[lhs] = get_neighborhood(nodesets[nodeset_name], node_type)
+
+        elif operator == 'Filter':
+            [nodeset_name, field, value] = params
+            nodesets[lhs] = filter(nodesets[nodeset_name], field, value)
 
         elif operator == 'Intersection':
             [left_nodeset_name, right_nodeset_name] = params
@@ -419,10 +284,6 @@ def follow_instructions(instructions):
         elif operator == 'Limit':
             [nodeset_name, n] = params
             nodesets[lhs] = limit(nodesets[nodeset_name], int(n))
-
-        elif operator == 'Filter':
-            [nodeset_name, field, value] = params
-            nodesets[lhs] = filter(nodesets[nodeset_name], field, value)
 
         elif operator == 'Return':
             return [nodesets[nodeset_name] for nodeset_name in params]
@@ -452,12 +313,23 @@ def build_context(instructions, i=-1):
         [name, node_type] = params
         return {'operation': 'node', 'node_type': node_type, 'name': name}
 
+    elif operator == 'All':
+        [node_type, field, value] = params
+        return {'operation': 'all', 'node_type': node_type, 'field': field, 'value': value}
+
     elif operator == 'Neighborhood':
         [nodeset_name, node_type] = params
 
         j = find_instruction_index(instructions, nodeset_name)
 
         return {'operation': 'neighborhood', 'node_type': node_type, 'child': build_context(instructions, j)}
+
+    elif operator == 'Filter':
+        [nodeset_name, field, value] = params
+
+        j = find_instruction_index(instructions, nodeset_name)
+
+        return {'operation': 'filter', 'field': field, 'value': value, 'child': build_context(instructions, j)}
 
     elif operator == 'Intersection':
         [left_nodeset_name, right_nodeset_name] = params
@@ -489,13 +361,6 @@ def build_context(instructions, i=-1):
         j = find_instruction_index(instructions, nodeset_name)
 
         return {'operation': 'limit', 'n': int(n), 'child': build_context(instructions, j)}
-
-    elif operator == 'Filter':
-        [nodeset_name, field, value] = params
-
-        j = find_instruction_index(instructions, nodeset_name)
-
-        return {'operation': 'filter', 'field': field, 'value': value, 'child': build_context(instructions, j)}
 
     elif operator == 'Return':
         contexts = []
@@ -563,8 +428,6 @@ def conversation(conversation_id, text):
         if not isinstance(context_messages, list):
             context_messages = [context_messages]
 
-        print("Contexts:", contexts)
-        print("Context messages:", context_messages)
     except Exception as e:
         traceback.print_exc()
         return [], 'error building context'
