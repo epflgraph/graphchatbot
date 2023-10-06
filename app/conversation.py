@@ -15,7 +15,7 @@ import langchain
 from app.interfaces.es import search_nodes
 from app.interfaces.db import update_token_count
 
-from app.prompts import instructions_system_prompt, wrapper_system_prompt
+from app.prompts import system_messages
 from app.nodes import get_neighborhood, get_all_nodes_and_filter, filter, take_intersection, take_union, take_difference, limit
 
 from app.config import config
@@ -143,69 +143,40 @@ def build_context_message(instructions):
 ################################################################
 
 
-def get_chain(memory_key):
-    # Create new chain if it does not exist already
-    if memory_key not in chains:
-        chat = ChatOpenAI(
-            temperature=0,
-            openai_api_key=config['openai']['api_key'],
-        )
-        memory = ConversationBufferMemory(memory_key=memory_key, return_messages=True)
-        prompt = ChatPromptTemplate(
-            messages=[
-                SystemMessagePromptTemplate.from_template(instructions_system_prompt),
-                MessagesPlaceholder(variable_name=memory_key),
-                HumanMessagePromptTemplate.from_template("{human_input}")
-            ]
-        )
+def create_chain(type, memory_key):
+    chat = ChatOpenAI(
+        temperature=0,
+        openai_api_key=config['openai']['api_key'],
+    )
+    memory = ConversationBufferMemory(memory_key=memory_key, return_messages=True)
+    prompt = ChatPromptTemplate(messages=[
+            SystemMessagePromptTemplate.from_template(system_messages[type]),
+            MessagesPlaceholder(variable_name=memory_key),
+            HumanMessagePromptTemplate.from_template("{input}")
+    ])
 
-        chains[memory_key] = LLMChain(
-            llm=chat,
-            prompt=prompt,
-            verbose=False,
-            memory=memory,
-        )
+    return LLMChain(
+        llm=chat,
+        prompt=prompt,
+        verbose=False,
+        memory=memory,
+    )
+
+
+def get_chain(type, memory_key):
+    # Create new chain if it does not exist already
+    if memory_key not in chains[type]:
+        chains[type][memory_key] = create_chain(type, memory_key)
 
     # Roll memory, keep only last n messages
     n = 10
-    chains[memory_key].memory.chat_memory.messages = chains[memory_key].memory.chat_memory.messages[:n]
+    chains[type][memory_key].memory.chat_memory.messages = chains[type][memory_key].memory.chat_memory.messages[:n]
 
-    return chains[memory_key]
-
-
-def get_wrapper_chain(memory_key):
-    # Create new chain if it does not exist already
-    if memory_key not in wrapper_chains:
-        chat = ChatOpenAI(
-            temperature=0,
-            openai_api_key=config['openai']['api_key'],
-        )
-        memory = ConversationBufferMemory(memory_key=memory_key, return_messages=True)
-        prompt = ChatPromptTemplate(
-            messages=[
-                SystemMessagePromptTemplate.from_template(wrapper_system_prompt),
-                MessagesPlaceholder(variable_name=memory_key),
-                HumanMessagePromptTemplate.from_template("{input}")
-            ]
-        )
-
-        wrapper_chains[memory_key] = LLMChain(
-            llm=chat,
-            memory=memory,
-            prompt=prompt,
-            verbose=True,
-        )
-
-    # Roll memory, keep only last n messages
-    n = 10
-    wrapper_chains[memory_key].memory.chat_memory.messages = wrapper_chains[memory_key].memory.chat_memory.messages[:n]
-
-    return wrapper_chains[memory_key]
+    return chains[type][memory_key]
 
 
-# Initialise objects to store chains
-chains = {}
-wrapper_chains = {}
+# Initialise object to store chains
+chains = {type: {} for type in system_messages}
 
 ################################################################
 # INSTRUCTIONS                                                 #
@@ -378,7 +349,7 @@ def build_context(instructions, i=-1):
 ################################################################
 
 def wrap_nlp(conversation_id, query, results):
-    chain = get_wrapper_chain(conversation_id)
+    chain = get_chain('wrapper', conversation_id)
 
     llm_output = chain({'input': f"Query: {query}\nResults: {str(results)}"})
 
@@ -386,10 +357,10 @@ def wrap_nlp(conversation_id, query, results):
 
 
 def conversation(conversation_id, text):
-    chain = get_chain(conversation_id)
+    chain = get_chain('instructions', conversation_id)
 
     # Run chain with human message
-    llm_output = chain({'human_input': text})
+    llm_output = chain({'input': text})
 
     # Extract instructions as string
     instructions_str = llm_output['text']
