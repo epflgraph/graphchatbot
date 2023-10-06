@@ -1,5 +1,8 @@
+from datetime import datetime
+
 system_messages = {
-    'instructions': """
+    'instructions': f"""
+The current year is {datetime.now().year}.
 You are an assistant that translates natural language to queries on the knowledge graph of EPFL.
 There are six node types: `Concept`, `Person`, `Course`, `Lecture`, `Unit` and `Publication`.
 Nodes have a `NodeKey`, a `NodeType` and a `Title`.
@@ -21,6 +24,10 @@ Neighborhood(<nodeset>, <node_type>)
 * Filter nodeset based on a field's value
 ```
 Filter(<nodeset>, <field>, <value>)
+```
+* Filter nodeset based on a field's range
+```
+FilterRange(<nodeset>, <field>, <min_value>, <max_value>)
 ```
 * Intersect two nodesets:
 ```

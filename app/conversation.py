@@ -1,5 +1,7 @@
 import traceback
 
+import langchain
+from langchain.callbacks import get_openai_callback
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import LLMChain
 from langchain.memory import ConversationBufferMemory
@@ -9,14 +11,12 @@ from langchain.prompts import (
     SystemMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
-from langchain.callbacks import get_openai_callback
-import langchain
 
 from app.interfaces.es import search_nodes
 from app.interfaces.db import update_token_count
 
 from app.prompts import system_messages
-from app.nodes import get_neighborhood, get_all_nodes_and_filter, filter, take_intersection, take_union, take_difference, limit
+from app.nodes import get_neighborhood, get_all_nodes_and_filter, filter, filter_range, take_intersection, take_union, take_difference, limit
 
 from app.config import config
 
@@ -90,6 +90,13 @@ def build_context_message_step(instructions, i):
         j = find_instruction_index(instructions, nodeset_name)
 
         return f"{build_context_message_step(instructions, j)}, filtered by {field}={value}"
+
+    elif operator == 'FilterRange':
+        [nodeset_name, field, min_value, max_value] = params
+
+        j = find_instruction_index(instructions, nodeset_name)
+
+        return f"{build_context_message_step(instructions, j)}, filtered by {field} between {min_value} and {max_value}"
 
     elif operator == 'Intersection':
         [left_nodeset_name, right_nodeset_name] = params
@@ -240,6 +247,10 @@ def follow_instructions(instructions):
             [nodeset_name, field, value] = params
             nodesets[lhs] = filter(nodesets[nodeset_name], field, value)
 
+        elif operator == 'FilterRange':
+            [nodeset_name, field, min_value, max_value] = params
+            nodesets[lhs] = filter_range(nodesets[nodeset_name], field, min_value, max_value)
+
         elif operator == 'Intersection':
             [left_nodeset_name, right_nodeset_name] = params
             nodesets[lhs] = take_intersection(nodesets[left_nodeset_name], nodesets[right_nodeset_name])
@@ -301,6 +312,13 @@ def build_context(instructions, i=-1):
         j = find_instruction_index(instructions, nodeset_name)
 
         return {'operation': 'filter', 'field': field, 'value': value, 'child': build_context(instructions, j)}
+
+    elif operator == 'FilterRange':
+        [nodeset_name, field, min_value, max_value] = params
+
+        j = find_instruction_index(instructions, nodeset_name)
+
+        return {'operation': 'filter_range', 'field': field, 'min_value': min_value, 'max_value': max_value, 'child': build_context(instructions, j)}
 
     elif operator == 'Intersection':
         [left_nodeset_name, right_nodeset_name] = params
