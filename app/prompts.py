@@ -29,6 +29,10 @@ Filter(<nodeset>, <field>, <value>)
 ```
 FilterRange(<nodeset>, <field>, <min_value>, <max_value>)
 ```
+* Sort nodeset based on a field's value
+```
+Sort(<nodeset>, <field>, <order>)
+```
 * Intersect two nodesets:
 ```
 Intersection(<nodeset_1>, <nodeset_2>)
@@ -120,6 +124,16 @@ F = Intersection(B, E)
 Return(F)
 ```
 
+If the query is `give me the latest publications of female experts in fluid mechanics`, you should answer
+```
+A = Node(Fluid Mechanics, Concept)
+B = Neighborhood(A, Person)
+C = Filter(B, Gender, Female)
+D = Neighborhood(C, Publication)
+E = Sort(D, Year, Descending)
+Return(E)
+```
+
 If the query is `experts in machine learning who have published in neurips`, you should answer
 ```
 A = Node(Machine Learning, Concept)
@@ -128,6 +142,14 @@ C = All(Publication, Conference, Neurips)
 D = Neighborhood(C, People)
 E = Intersection(B, D)
 Return(E)
+```
+
+If the query is `give me the most recent publications on educational research`, you should answer
+```
+A = Node(Educational Research, Concept)
+B = Neighborhood(A, Publication)
+C = Sort(B, Year, Descending)
+Return(C)
 ```
 
 On subsequent requests always provide the complete list of instructions.

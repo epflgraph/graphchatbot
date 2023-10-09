@@ -185,6 +185,48 @@ def filter_range(nodeset, key, min_value, max_value):
     return filtered_nodeset
 
 
+def sort(nodeset, key, order):
+    if len(nodeset) == 0:
+        return []
+
+    # Assuming all nodes in nodeset are of the same type
+    node_type = nodeset[0]['NodeType']
+
+    # Build table name
+    table_name = f'Nodes_N_{node_type}'
+
+    # Extract ids from nodeset
+    ids = [node['NodeKey'] for node in nodeset]
+
+    # Project implemented (node_type, key) to field name
+    key_field = get_key_field(node_type, key)
+
+    # Project order to database syntax
+    if 'DESC' in order or 'Desc' in order or 'desc' in order:
+        key_order = 'DESC'
+    else:
+        key_order = 'ASC'
+
+    # Sort the node ids table using the (key_field, key_value)
+    query = f"""
+        SELECT id
+        FROM graphsearch.{table_name}
+        WHERE id IN ({', '.join(['%s'] * len(ids))})
+        ORDER BY {key_field} {key_order}
+    """
+
+    results = execute_query(query, ids)
+    sorted_ids = [str(r) for r, in results]
+
+    # Filter nodeset, keep only ids found above
+    filtered_nodeset = [node for node in nodeset if node['NodeKey'] in sorted_ids]
+
+    # Sort nodeset according to returned order
+    sorted_nodeset = sorted(filtered_nodeset, key=lambda node: sorted_ids.index(node['NodeKey']))
+
+    return sorted_nodeset
+
+
 def take_intersection(left_nodeset, right_nodeset):
     left_ids = {node['NodeKey'] for node in left_nodeset}
     right_ids = {node['NodeKey'] for node in right_nodeset}

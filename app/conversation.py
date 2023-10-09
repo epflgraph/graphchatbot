@@ -12,13 +12,25 @@ from langchain.prompts import (
     HumanMessagePromptTemplate,
 )
 
+from app.config import config
+
 from app.interfaces.es import search_nodes
 from app.interfaces.db import update_token_count
 
 from app.prompts import system_messages
-from app.nodes import get_neighborhood, get_all_nodes_and_filter, filter, filter_range, take_intersection, take_union, take_difference, limit
+from app.nodes import (
+    get_neighborhood,
+    get_all_nodes_and_filter,
+    filter,
+    filter_range,
+    sort,
+    take_intersection,
+    take_union,
+    take_difference,
+    limit
+)
 
-from app.config import config
+################################################################
 
 langchain.debug = False
 
@@ -97,6 +109,13 @@ def build_context_message_step(instructions, i):
         j = find_instruction_index(instructions, nodeset_name)
 
         return f"{build_context_message_step(instructions, j)}, filtered by {field} between {min_value} and {max_value}"
+
+    elif operator == 'Sort':
+        [nodeset_name, field, order] = params
+
+        j = find_instruction_index(instructions, nodeset_name)
+
+        return f"{build_context_message_step(instructions, j)}, sorted by {field} ({order})"
 
     elif operator == 'Intersection':
         [left_nodeset_name, right_nodeset_name] = params
@@ -250,6 +269,10 @@ def follow_instructions(instructions):
         elif operator == 'FilterRange':
             [nodeset_name, field, min_value, max_value] = params
             nodesets[lhs] = filter_range(nodesets[nodeset_name], field, min_value, max_value)
+
+        elif operator == 'Sort':
+            [nodeset_name, field, order] = params
+            nodesets[lhs] = sort(nodesets[nodeset_name], field, order)
 
         elif operator == 'Intersection':
             [left_nodeset_name, right_nodeset_name] = params
