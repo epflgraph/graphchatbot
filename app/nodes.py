@@ -46,6 +46,8 @@ def get_key_value(node_type, key_field, value):
 
     return value
 
+################################################################
+
 
 def get_neighborhood(nodeset, node_type):
     if len(nodeset) == 0:
@@ -105,8 +107,25 @@ def get_all_nodes_and_filter(node_type, key, value):
 
     return nodes
 
+################################################################
+
 
 def filter(nodeset, key, value):
+    """
+    Filters a nodeset according to a field's value or range.
+    The key identifier is used to infer which field of the nodes database table is used.
+    If no field can be inferred, the value is matched against the Content field on elasticsearch.
+
+    Args:
+      nodeset (list): A list of nodes.
+      key (str): A loose identifier of the node field to be used for filtering.
+      value (int|float|tuple): The value or interval to be used for filtering.
+
+    Returns (list):
+      A nodeset whose nodes are a subset of the original nodeset and satisfy the condition
+      inferred through the key field.
+    """
+
     if len(nodeset) == 0:
         return []
 
@@ -123,7 +142,13 @@ def filter(nodeset, key, value):
     key_field = get_key_field(node_type, key)
 
     # Project implemented (node_type, key_field, value) to field value for enumerations
-    key_value = get_key_value(node_type, key_field, value)
+    if isinstance(value, tuple):
+        key_value = (
+            get_key_value(node_type, key_field, value[0]),
+            get_key_value(node_type, key_field, value[1])
+        )
+    else:
+        key_value = get_key_value(node_type, key_field, value)
 
     try:
         # Try filtering the nodes table using the (key_field, key_value)
@@ -131,8 +156,15 @@ def filter(nodeset, key, value):
             SELECT id
             FROM graphsearch.{table_name}
             WHERE id IN ({', '.join(['%s'] * len(ids))})
-            AND {key_field} = "{key_value}"
         """
+
+        if isinstance(value, tuple):
+            query += f"""
+                AND {key_field} >= "{key_value[0]}"
+                AND {key_field} <= "{key_value[1]}"
+            """
+        else:
+            query += f"""AND {key_field} = "{key_value}" """
 
         results = execute_query(query, ids)
         filtered_ids = [str(r) for r, in results]
@@ -140,44 +172,6 @@ def filter(nodeset, key, value):
         # If the above does not work as expected, just search both key and value on the Content field in elasticsearch
         nodeset = search_node_contents(value, node_type, filter_ids=ids)
         filtered_ids = [node['NodeKey'] for node in nodeset]
-
-    # Filter nodeset, keep only ids found above
-    filtered_nodeset = [node for node in nodeset if node['NodeKey'] in filtered_ids]
-
-    return filtered_nodeset
-
-
-def filter_range(nodeset, key, min_value, max_value):
-    if len(nodeset) == 0:
-        return []
-
-    # Assuming all nodes in nodeset are of the same type
-    node_type = nodeset[0]['NodeType']
-
-    # Build table name
-    table_name = f'Nodes_N_{node_type}'
-
-    # Extract ids from nodeset
-    ids = [node['NodeKey'] for node in nodeset]
-
-    # Project implemented (node_type, key) to field name
-    key_field = get_key_field(node_type, key)
-
-    # Project implemented (node_type, key_field, value) to field value for enumerations
-    key_min_value = get_key_value(node_type, key_field, min_value)
-    key_max_value = get_key_value(node_type, key_field, max_value)
-
-    # Filter the nodes table using the (key_field, key_min_value, key_max_value)
-    query = f"""
-                SELECT id
-                FROM graphsearch.{table_name}
-                WHERE id IN ({', '.join(['%s'] * len(ids))})
-                AND {key_field} >= "{key_min_value}"
-                AND {key_field} <= "{key_max_value}"
-            """
-
-    results = execute_query(query, ids)
-    filtered_ids = [str(r) for r, in results]
 
     # Filter nodeset, keep only ids found above
     filtered_nodeset = [node for node in nodeset if node['NodeKey'] in filtered_ids]
@@ -225,6 +219,8 @@ def sort(nodeset, key, order):
     sorted_nodeset = sorted(filtered_nodeset, key=lambda node: sorted_ids.index(node['NodeKey']))
 
     return sorted_nodeset
+
+################################################################
 
 
 def take_intersection(left_nodeset, right_nodeset):

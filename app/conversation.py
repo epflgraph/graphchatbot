@@ -22,7 +22,6 @@ from app.nodes import (
     get_neighborhood,
     get_all_nodes_and_filter,
     filter,
-    filter_range,
     sort,
     take_intersection,
     take_union,
@@ -268,7 +267,7 @@ def follow_instructions(instructions):
 
         elif operator == 'FilterRange':
             [nodeset_name, field, min_value, max_value] = params
-            nodesets[lhs] = filter_range(nodesets[nodeset_name], field, min_value, max_value)
+            nodesets[lhs] = filter(nodesets[nodeset_name], field, (min_value, max_value))
 
         elif operator == 'Sort':
             [nodeset_name, field, order] = params
