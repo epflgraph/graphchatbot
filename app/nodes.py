@@ -46,6 +46,15 @@ def get_key_value(node_type, key_field, value):
 
     return value
 
+
+def want_exact_match(node_type, key_field):
+    want_exact_matches = [
+        ('Person', 'gender_en'),
+        ('Publication', 'year'),
+    ]
+
+    return (node_type, key_field) in want_exact_matches
+
 ################################################################
 
 
@@ -163,11 +172,14 @@ def filter(nodeset, key, value):
                 AND {key_field} >= "{key_value[0]}"
                 AND {key_field} <= "{key_value[1]}"
             """
-        else:
+        elif want_exact_match(node_type, key_field):
             query += f"""AND {key_field} = "{key_value}" """
+        else:
+            query += f"""AND {key_field} LIKE "%{key_value}%" """
 
         results = execute_query(query, ids)
         filtered_ids = [str(r) for r, in results]
+
     except Exception as e:
         # If the above does not work as expected, just search both key and value on the Content field in elasticsearch
         nodeset = search_node_contents(value, node_type, filter_ids=ids)
