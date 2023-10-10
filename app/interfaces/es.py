@@ -41,10 +41,16 @@ score_functions = [
 
 def get_nodes(ids, node_type):
     """Returns nodes based on exact match on the NodeKey field."""
+    split_size = 1000
 
-    # Keep only first 1000 ids to avoid elasticsearch issues
-    ids = ids[:1000]
+    # Split in two if too many ids
+    n = len(ids)
+    if n > split_size:
+        first_nodeset = get_nodes(ids[: n // 2], node_type)
+        last_nodeset = get_nodes(ids[n // 2:], node_type)
+        return first_nodeset + last_nodeset
 
+    # Fetch nodes from elasticsearch with the given ids
     query = {
         "bool": {
             "filter": [
@@ -54,7 +60,7 @@ def get_nodes(ids, node_type):
         }
     }
 
-    res = es.search(index='graph_full_piper', source=['NodeKey', 'NodeType', 'Title'], query=query, size=1000)
+    res = es.search(index='graph_full_piper', source=['NodeKey', 'NodeType', 'Title'], query=query, size=split_size)
     nodeset = [hit['_source'] for hit in res['hits']['hits']]
 
     # Keep original order
