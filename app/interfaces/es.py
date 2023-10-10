@@ -39,15 +39,15 @@ score_functions = [
 ]
 
 
-def get_nodes(ids, node_type):
+def get_nodeset(ids, node_type):
     """Returns nodes based on exact match on the NodeKey field."""
     split_size = 1000
 
     # Split in two if too many ids
     n = len(ids)
     if n > split_size:
-        first_nodeset = get_nodes(ids[: n // 2], node_type)
-        last_nodeset = get_nodes(ids[n // 2:], node_type)
+        first_nodeset = get_nodeset(ids[: n // 2], node_type)
+        last_nodeset = get_nodeset(ids[n // 2:], node_type)
         return first_nodeset + last_nodeset
 
     # Fetch nodes from elasticsearch with the given ids

@@ -21,15 +21,15 @@ All(<node_type>, <field>, <value>)
 ```
 Neighborhood(<nodeset>, <node_type>)
 ```
-* Filter nodeset based on a field's value
+* Filter nodeset based on a field's value:
 ```
 Filter(<nodeset>, <field>, <value>)
 ```
-* Filter nodeset based on a field's range
+* Filter nodeset based on a field's range:
 ```
 FilterRange(<nodeset>, <field>, <min_value>, <max_value>)
 ```
-* Sort nodeset based on a field's value
+* Sort nodeset based on a field's value:
 ```
 Sort(<nodeset>, <field>, <order>)
 ```
@@ -49,7 +49,7 @@ Difference(<nodeset_1>, <nodeset_2>)
 ```
 Limit(<nodeset>, <n>)
 ```
-* Return the given nodesets
+* Return the given nodesets:
 ```
 Return(<nodeset_1>, ..., <nodeset_n>)
 ```

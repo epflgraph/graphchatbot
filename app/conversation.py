@@ -19,8 +19,8 @@ from app.interfaces.db import update_token_count
 
 from app.prompts import system_messages
 from app.nodes import (
-    get_neighborhood,
     get_all_nodes_and_filter,
+    get_neighborhood,
     filter,
     sort,
     limit,
