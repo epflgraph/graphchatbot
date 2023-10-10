@@ -8,6 +8,36 @@ es = Elasticsearch(
     ca_certs=config['elasticsearch']['cert'],
 )
 
+score_functions = [
+    {
+        "field_value_factor": {"field": "DegreeScore"}
+    },
+    {
+        "filter": {"term": {"NodeType.keyword": "Concept"}},
+        "weight": 512
+    },
+    {
+        "filter": {"term": {"NodeType.keyword": "Person"}},
+        "weight": 128
+    },
+    {
+        "filter": {"term": {"NodeType.keyword": "Course"}},
+        "weight": 128
+    },
+    {
+        "filter": {"term": {"NodeType.keyword": "Unit"}},
+        "weight": 64
+    },
+    {
+        "filter": {"term": {"NodeType.keyword": "MOOC"}},
+        "weight": 64
+    },
+    {
+        "filter": {"term": {"NodeType.keyword": "Publication"}},
+        "weight": 1
+    }
+]
+
 
 def get_nodes(ids, node_type):
     """Returns nodes based on exact match on the NodeKey field."""
@@ -24,12 +54,13 @@ def get_nodes(ids, node_type):
         }
     }
 
-    sort = [{"DegreeScore": {"order": "desc"}}]
+    res = es.search(index='graph_full_piper', source=['NodeKey', 'NodeType', 'Title'], query=query, size=1000)
+    nodeset = [hit['_source'] for hit in res['hits']['hits']]
 
-    res = es.search(index='graph_full_piper', source=['NodeKey', 'NodeType', 'Title'], query=query, sort=sort, size=1000)
-    results = [hit['_source'] for hit in res['hits']['hits']]
+    # Keep original order
+    nodeset = sorted(nodeset, key=lambda node: ids.index(node['NodeKey']))
 
-    return results
+    return nodeset
 
 
 def search_nodes(text, node_type):
@@ -37,35 +68,7 @@ def search_nodes(text, node_type):
     query = {
         "function_score": {
             "score_mode": "multiply",
-            "functions": [
-                {
-                    "field_value_factor": {"field": "DegreeScore"}
-                },
-                {
-                    "filter": {"term": {"NodeType.keyword": "Concept"}},
-                    "weight": 512
-                },
-                {
-                    "filter": {"term": {"NodeType.keyword": "Person"}},
-                    "weight": 128
-                },
-                {
-                    "filter": {"term": {"NodeType.keyword": "Course"}},
-                    "weight": 128
-                },
-                {
-                    "filter": {"term": {"NodeType.keyword": "Unit"}},
-                    "weight": 64
-                },
-                {
-                    "filter": {"term": {"NodeType.keyword": "MOOC"}},
-                    "weight": 64
-                },
-                {
-                    "filter": {"term": {"NodeType.keyword": "Publication"}},
-                    "weight": 1
-                }
-            ],
+            "functions": score_functions,
             "query": {
                 "bool": {
                     "filter": [
@@ -76,7 +79,7 @@ def search_nodes(text, node_type):
                     "must": [
                         {
                             "multi_match": {
-                                "type": "bool_prefix",
+                                "type": "most_fields",
                                 "operator": "and",
                                 "fields": ["NodeKey", "Title", "Title.raw", "Title.trigram"],
                                 "query": text
@@ -100,35 +103,7 @@ def search_node_contents(text, node_type, filter_ids=None):
     query = {
         "function_score": {
             "score_mode": "multiply",
-            "functions": [
-                {
-                    "field_value_factor": {"field": "DegreeScore"}
-                },
-                {
-                    "filter": {"term": {"NodeType.keyword": "Concept"}},
-                    "weight": 512
-                },
-                {
-                    "filter": {"term": {"NodeType.keyword": "Person"}},
-                    "weight": 128
-                },
-                {
-                    "filter": {"term": {"NodeType.keyword": "Course"}},
-                    "weight": 128
-                },
-                {
-                    "filter": {"term": {"NodeType.keyword": "Unit"}},
-                    "weight": 64
-                },
-                {
-                    "filter": {"term": {"NodeType.keyword": "MOOC"}},
-                    "weight": 64
-                },
-                {
-                    "filter": {"term": {"NodeType.keyword": "Publication"}},
-                    "weight": 1
-                }
-            ],
+            "functions": score_functions,
             "query": {
                 "bool": {
                     "filter": [
