@@ -220,6 +220,10 @@ def sort(nodeset, key, order):
 
     return sorted_nodeset
 
+
+def limit(nodeset, n):
+    return nodeset[:n]
+
 ################################################################
 
 
@@ -247,7 +251,3 @@ def take_difference(left_nodeset, right_nodeset):
     difference_nodeset = [node for node in left_nodeset if node['NodeKey'] not in right_ids]
 
     return difference_nodeset
-
-
-def limit(nodeset, n):
-    return nodeset[:n]
