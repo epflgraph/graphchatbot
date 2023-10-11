@@ -69,7 +69,7 @@ def get_nodeset(ids, node_type):
     return nodeset
 
 
-def search_nodes(text, node_type):
+def search_nodes(node_type, text):
     """Returns nodes based on a full-text match on the Title field."""
     query = {
         "function_score": {

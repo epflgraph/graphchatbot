@@ -80,8 +80,8 @@ def build_context_message_step(instructions, i):
     operator = instructions[i]['operator']
     params = instructions[i]['params']
 
-    if operator == 'Node':
-        [name, node_type] = params
+    if operator == 'Search':
+        [node_type, name] = params
         return f"the {emojify(node_type)} {node_type} \"{name}\""
 
     elif operator == 'All':
@@ -247,10 +247,9 @@ def follow_instructions(instructions):
         operator = instruction['operator']
         params = instruction['params']
 
-        if operator == 'Node':
+        if operator == 'Search':
             nodeset = search_nodes(*params)
-            if len(nodeset) > 0:
-                nodeset = [nodeset[0]]
+            nodeset = nodeset[:1]
             nodesets[lhs] = nodeset
 
         elif operator == 'All':
@@ -313,9 +312,9 @@ def build_context(instructions, i=-1):
     operator = instructions[i]['operator']
     params = instructions[i]['params']
 
-    if operator == 'Node':
-        [name, node_type] = params
-        return {'operation': 'node', 'node_type': node_type, 'name': name}
+    if operator == 'Search':
+        [node_type, name] = params
+        return {'operation': 'search', 'node_type': node_type, 'name': name}
 
     elif operator == 'All':
         [node_type, field, value] = params
