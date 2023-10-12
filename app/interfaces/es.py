@@ -4,7 +4,7 @@ from app.config import config
 
 es = Elasticsearch(
     [config['elasticsearch']['host']],
-    http_auth=(config['elasticsearch']['user'], config['elasticsearch']['password']),
+    basic_auth=(config['elasticsearch']['user'], config['elasticsearch']['password']),
     ca_certs=config['elasticsearch']['cert'],
 )
 
