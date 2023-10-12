@@ -138,7 +138,7 @@ If the query is `experts in machine learning who have published in neurips`, ans
 A = Search(Concept, Machine Learning)
 B = Neighborhood(A, Person)
 C = All(Publication, Conference, Neurips)
-D = Neighborhood(C, People)
+D = Neighborhood(C, Person)
 E = Intersection(B, D)
 Return(E)
 ```
