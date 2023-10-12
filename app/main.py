@@ -8,13 +8,13 @@ from app.conversation import conversation, wrap_nlp
 # from app.conversation_tools import conversation
 
 
+app = FastAPI()
+
+
 class ChatInput(BaseModel):
     conversation_id: str
     text: str
     return_nlp: Optional[bool] = False
-
-
-app = FastAPI()
 
 
 @app.post('/chat')
