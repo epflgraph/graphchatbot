@@ -1,5 +1,26 @@
 from datetime import datetime
 
+from app.data import get_examples
+
+
+def build_examples_str():
+    examples = get_examples()
+
+    examples_list = []
+    for example in examples:
+        instructions_str = '\n'.join(example['instructions'])
+        example_str = '\n'.join([
+            f"""If the query is `{example['query']}`, answer""",
+            """```""",
+            instructions_str,
+            """```""",
+        ])
+
+        examples_list.append(example_str)
+
+    return '\n\n'.join(examples_list)
+
+
 system_messages = {
     'instructions': f"""
 The current year is {datetime.now().year}.
@@ -64,117 +85,7 @@ Do not output any other text.
 
 Here are some examples:
 
-If the query is `labs that do research in data science`, answer
-```
-A = Search(Concept, Data Science)
-B = Neighborhood(A, Unit)
-Return(B)
-```
-
-If the query is `experts in solar cells`, answer
-```
-A = Search(Concept, Solar cell)
-B = Neighborhood(A, Person)
-Return(B)
-```
-
-If the query is `three people working on sustainability`, answer
-```
-A = Search(Concept, Sustainability)
-B = Neighborhood(A, Person)
-C = Limit(B, 3)
-Return(C)
-```
-
-If the query is `courses about solar cells and urbanism`, answer
-```
-A = Search(Concept, Solar cells)
-B = Neighborhood(A, Course)
-C = Search(Concept, Urbanism)
-D = Neighborhood(C, Course)
-E = Intersection(B, D)
-Return(E)
-```
-
-If the query is `female experts in genomics`, answer
-```
-A = Search(Concept, Genomics)
-B = Neighborhood(A, Person)
-C = Filter(B, Gender, Female)
-Return(C)
-```
-
-If the query is `I want to learn about backpropagation`, answer
-```
-A = Search(Concept, Backpropagation)
-B = Neighborhood(A, Course)
-C = Neighborhood(A, Lecture)
-Return(A, B, C)
-```
-
-If the query is `people working in computer science who teach courses about physics`, answer
-```
-A = Search(Concept, Computer Science)
-B = Neighborhood(A, Person)
-C = Search(Concept, Physics)
-D = Neighborhood(C, Course)
-E = Neighborhood(D, Person)
-F = Intersection(B, E)
-Return(F)
-```
-
-If the query is `give me the latest publications of female experts in fluid mechanics`, answer
-```
-A = Search(Concept, Fluid Mechanics)
-B = Neighborhood(A, Person)
-C = Filter(B, Gender, Female)
-D = Neighborhood(C, Publication)
-E = Sort(D, Year, Descending)
-Return(E)
-```
-
-If the query is `experts in machine learning who have published in neurips`, answer
-```
-A = Search(Concept, Machine Learning)
-B = Neighborhood(A, Person)
-C = All(Publication, Conference, Neurips)
-D = Neighborhood(C, Person)
-E = Intersection(B, D)
-Return(E)
-```
-
-If the query is `give me the most recent publications on educational research`, answer
-```
-A = Search(Concept, Educational Research)
-B = Neighborhood(A, Publication)
-C = Sort(B, Year, Descending)
-Return(C)
-```
-
-On subsequent requests always provide the complete list of instructions.
-If the query is `who is the teacher of the course MATH-302?`, answer
-```
-A = Search(Course, MATH-302)
-B = Neighborhood(A, Person)
-Return(B)
-```
-Then if the user replies `does he teach any other courses?`, answer
-```
-A = Search(Course, MATH-302)
-B = Neighborhood(A, Person)
-C = Neighborhood(B, Course)
-Return(C)
-```
-Then if the user replies `Is any of those about machine learning?`, answer
-```
-A = Search(Course, MATH-302)
-B = Neighborhood(A, Person)
-C = Neighborhood(B, Course)
-D = Search(Concept, Machine Learning)
-E = Neighborhood(D, Course)
-F = Intersection(C, E)
-Return(F)
-```
+{build_examples_str()}
 """,
     'wrapper': """
 You are an assistant who translates results from queries on the knowledge graph of EPFL to natural language.
