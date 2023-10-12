@@ -19,15 +19,14 @@ from app.interfaces.db import update_token_count
 
 from app.prompts import system_messages
 from app.nodes import (
-    get_neighborhood,
     get_all_nodes_and_filter,
+    get_neighborhood,
     filter,
-    filter_range,
     sort,
+    limit,
     take_intersection,
     take_union,
     take_difference,
-    limit
 )
 
 ################################################################
@@ -81,8 +80,8 @@ def build_context_message_step(instructions, i):
     operator = instructions[i]['operator']
     params = instructions[i]['params']
 
-    if operator == 'Node':
-        [name, node_type] = params
+    if operator == 'Search':
+        [node_type, name] = params
         return f"the {emojify(node_type)} {node_type} \"{name}\""
 
     elif operator == 'All':
@@ -117,6 +116,13 @@ def build_context_message_step(instructions, i):
 
         return f"{build_context_message_step(instructions, j)}, sorted by {field} ({order})"
 
+    elif operator == 'Limit':
+        [nodeset_name, n] = params
+
+        j = find_instruction_index(instructions, nodeset_name)
+
+        return f"at most {n} {build_context_message_step(instructions, j)}"
+
     elif operator == 'Intersection':
         [left_nodeset_name, right_nodeset_name] = params
 
@@ -140,13 +146,6 @@ def build_context_message_step(instructions, i):
         right_j = find_instruction_index(instructions, right_nodeset_name)
 
         return f"the nodes in {build_context_message_step(instructions, left_j)} not in {build_context_message_step(instructions, right_j)}"
-
-    elif operator == 'Limit':
-        [nodeset_name, n] = params
-
-        j = find_instruction_index(instructions, nodeset_name)
-
-        return f"at most {n} {build_context_message_step(instructions, j)}"
 
     elif operator == 'Return':
         context_messages = []
@@ -248,10 +247,9 @@ def follow_instructions(instructions):
         operator = instruction['operator']
         params = instruction['params']
 
-        if operator == 'Node':
+        if operator == 'Search':
             nodeset = search_nodes(*params)
-            if len(nodeset) > 0:
-                nodeset = [nodeset[0]]
+            nodeset = nodeset[:1]
             nodesets[lhs] = nodeset
 
         elif operator == 'All':
@@ -268,11 +266,15 @@ def follow_instructions(instructions):
 
         elif operator == 'FilterRange':
             [nodeset_name, field, min_value, max_value] = params
-            nodesets[lhs] = filter_range(nodesets[nodeset_name], field, min_value, max_value)
+            nodesets[lhs] = filter(nodesets[nodeset_name], field, (min_value, max_value))
 
         elif operator == 'Sort':
             [nodeset_name, field, order] = params
             nodesets[lhs] = sort(nodesets[nodeset_name], field, order)
+
+        elif operator == 'Limit':
+            [nodeset_name, n] = params
+            nodesets[lhs] = limit(nodesets[nodeset_name], int(n))
 
         elif operator == 'Intersection':
             [left_nodeset_name, right_nodeset_name] = params
@@ -285,10 +287,6 @@ def follow_instructions(instructions):
         elif operator == 'Difference':
             [left_nodeset_name, right_nodeset_name] = params
             nodesets[lhs] = take_difference(nodesets[left_nodeset_name], nodesets[right_nodeset_name])
-
-        elif operator == 'Limit':
-            [nodeset_name, n] = params
-            nodesets[lhs] = limit(nodesets[nodeset_name], int(n))
 
         elif operator == 'Return':
             return [nodesets[nodeset_name] for nodeset_name in params]
@@ -314,9 +312,9 @@ def build_context(instructions, i=-1):
     operator = instructions[i]['operator']
     params = instructions[i]['params']
 
-    if operator == 'Node':
-        [name, node_type] = params
-        return {'operation': 'node', 'node_type': node_type, 'name': name}
+    if operator == 'Search':
+        [node_type, name] = params
+        return {'operation': 'search', 'node_type': node_type, 'name': name}
 
     elif operator == 'All':
         [node_type, field, value] = params
@@ -343,6 +341,20 @@ def build_context(instructions, i=-1):
 
         return {'operation': 'filter_range', 'field': field, 'min_value': min_value, 'max_value': max_value, 'child': build_context(instructions, j)}
 
+    elif operator == 'Sort':
+        [nodeset_name, field, order] = params
+
+        j = find_instruction_index(instructions, nodeset_name)
+
+        return {'operation': 'sort', 'field': field, 'order': order, 'child': build_context(instructions, j)}
+
+    elif operator == 'Limit':
+        [nodeset_name, n] = params
+
+        j = find_instruction_index(instructions, nodeset_name)
+
+        return {'operation': 'limit', 'n': int(n), 'child': build_context(instructions, j)}
+
     elif operator == 'Intersection':
         [left_nodeset_name, right_nodeset_name] = params
 
@@ -366,13 +378,6 @@ def build_context(instructions, i=-1):
         right_j = find_instruction_index(instructions, right_nodeset_name)
 
         return {'operation': 'difference', 'left_child': build_context(instructions, left_j), 'right_child': build_context(instructions, right_j)}
-
-    elif operator == 'Limit':
-        [nodeset_name, n] = params
-
-        j = find_instruction_index(instructions, nodeset_name)
-
-        return {'operation': 'limit', 'n': int(n), 'child': build_context(instructions, j)}
 
     elif operator == 'Return':
         contexts = []

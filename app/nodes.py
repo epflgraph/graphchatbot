@@ -1,5 +1,5 @@
 from app.interfaces.db import execute_query
-from app.interfaces.es import get_nodes, search_node_contents
+from app.interfaces.es import get_nodeset, search_node_contents
 
 
 def drop_duplicates(nodeset):
@@ -36,6 +36,12 @@ def get_key_field(node_type, key):
 
 
 def get_key_value(node_type, key_field, value):
+    if isinstance(value, tuple):
+        return (
+            get_key_value(node_type, key_field, value[0]),
+            get_key_value(node_type, key_field, value[1])
+        )
+
     key_values = {
         ('Person', 'gender_en', 'Woman'): 'Female',
         ('Person', 'gender_en', 'Man'): 'Male',
@@ -45,6 +51,70 @@ def get_key_value(node_type, key_field, value):
         return key_values[node_type, key_field, value]
 
     return value
+
+
+def want_exact_match(node_type, key_field):
+    want_exact_matches = [
+        ('Person', 'gender_en'),
+        ('Publication', 'year'),
+    ]
+
+    return (node_type, key_field) in want_exact_matches
+
+
+def filter_node_ids(node_type, key, value, filter_ids=None):
+    # Build table name
+    table_name = f'Nodes_N_{node_type}'
+
+    # Project implemented (node_type, key) to field name
+    key_field = get_key_field(node_type, key)
+
+    # Project implemented (node_type, key_field, value) to field value for enumerations
+    key_value = get_key_value(node_type, key_field, value)
+
+    # Filter all nodes table using the (key_field, key_value)
+    query = f"""
+        SELECT id
+        FROM graphsearch.{table_name}
+    """
+
+    conditions = []
+    if filter_ids is not None:
+        conditions.append(f"""id IN ({', '.join(['%s'] * len(filter_ids))})""")
+
+    if isinstance(value, tuple):
+        conditions.append(f"""{key_field} >= "{key_value[0]}" """)
+        conditions.append(f"""{key_field} <= "{key_value[1]}" """)
+    elif want_exact_match(node_type, key_field):
+        conditions.append(f"""{key_field} = "{key_value}" """)
+    else:
+        conditions.append(f"""{key_field} LIKE "%{key_value}%" """)
+
+    conditions_str = '\nAND '.join(conditions)
+
+    query += f"""WHERE {conditions_str}"""
+
+    if filter_ids is None:
+        results = execute_query(query)
+    else:
+        results = execute_query(query, filter_ids)
+
+    node_ids = [str(r) for r, in results]
+
+    return node_ids
+
+
+################################################################
+
+
+def get_all_nodes_and_filter(node_type, key, value):
+    # Get node ids
+    node_ids = filter_node_ids(node_type, key, value)
+
+    # Get nodeset from ids
+    nodeset = get_nodeset(node_ids, node_type)
+
+    return nodeset
 
 
 def get_neighborhood(nodeset, node_type):
@@ -75,109 +145,46 @@ def get_neighborhood(nodeset, node_type):
     neighbor_ids = list(dict.fromkeys(neighbor_ids))
 
     # Get nodes from ids
-    nodes = get_nodes(neighbor_ids, target_node_type)
+    nodes = get_nodeset(neighbor_ids, target_node_type)
     nodes = drop_duplicates(nodes)
 
     return nodes
 
 
-def get_all_nodes_and_filter(node_type, key, value):
-    # Build table name
-    table_name = f'Nodes_N_{node_type}'
-
-    # Project implemented (node_type, key) to field name
-    key_field = get_key_field(node_type, key)
-
-    # Project implemented (node_type, key_field, value) to field value for enumerations
-    key_value = get_key_value(node_type, key_field, value)
-
-    # Filter all nodes table using the (key_field, key_value)
-    query = f"""
-        SELECT id
-        FROM graphsearch.{table_name}
-        WHERE {key_field} LIKE "%{key_value}%"
-    """
-    results = execute_query(query)
-    ids = [str(r) for r, in results]
-
-    # Get nodes from ids
-    nodes = get_nodes(ids, node_type)
-
-    return nodes
+################################################################
 
 
 def filter(nodeset, key, value):
+    """
+    Filters a nodeset according to a field's value or range.
+    The key identifier is used to infer which field of the nodes database table is used.
+    If no field can be inferred, the value is matched against the Content field on elasticsearch.
+
+    Args:
+      nodeset (list): A list of nodes.
+      key (str): A loose identifier of the node field to be used for filtering.
+      value (int|float|tuple): The value or interval to be used for filtering.
+
+    Returns (list):
+      A nodeset whose nodes are a subset of the original nodeset and satisfy the condition
+      inferred through the key field.
+    """
+
     if len(nodeset) == 0:
         return []
 
     # Assuming all nodes in nodeset are of the same type
     node_type = nodeset[0]['NodeType']
 
-    # Build table name
-    table_name = f'Nodes_N_{node_type}'
-
     # Extract ids from nodeset
     ids = [node['NodeKey'] for node in nodeset]
 
-    # Project implemented (node_type, key) to field name
-    key_field = get_key_field(node_type, key)
-
-    # Project implemented (node_type, key_field, value) to field value for enumerations
-    key_value = get_key_value(node_type, key_field, value)
-
     try:
-        # Try filtering the nodes table using the (key_field, key_value)
-        query = f"""
-            SELECT id
-            FROM graphsearch.{table_name}
-            WHERE id IN ({', '.join(['%s'] * len(ids))})
-            AND {key_field} = "{key_value}"
-        """
-
-        results = execute_query(query, ids)
-        filtered_ids = [str(r) for r, in results]
+        filtered_ids = filter_node_ids(node_type, key, value, filter_ids=ids)
     except Exception as e:
         # If the above does not work as expected, just search both key and value on the Content field in elasticsearch
         nodeset = search_node_contents(value, node_type, filter_ids=ids)
         filtered_ids = [node['NodeKey'] for node in nodeset]
-
-    # Filter nodeset, keep only ids found above
-    filtered_nodeset = [node for node in nodeset if node['NodeKey'] in filtered_ids]
-
-    return filtered_nodeset
-
-
-def filter_range(nodeset, key, min_value, max_value):
-    if len(nodeset) == 0:
-        return []
-
-    # Assuming all nodes in nodeset are of the same type
-    node_type = nodeset[0]['NodeType']
-
-    # Build table name
-    table_name = f'Nodes_N_{node_type}'
-
-    # Extract ids from nodeset
-    ids = [node['NodeKey'] for node in nodeset]
-
-    # Project implemented (node_type, key) to field name
-    key_field = get_key_field(node_type, key)
-
-    # Project implemented (node_type, key_field, value) to field value for enumerations
-    key_min_value = get_key_value(node_type, key_field, min_value)
-    key_max_value = get_key_value(node_type, key_field, max_value)
-
-    # Filter the nodes table using the (key_field, key_min_value, key_max_value)
-    query = f"""
-                SELECT id
-                FROM graphsearch.{table_name}
-                WHERE id IN ({', '.join(['%s'] * len(ids))})
-                AND {key_field} >= "{key_min_value}"
-                AND {key_field} <= "{key_max_value}"
-            """
-
-    results = execute_query(query, ids)
-    filtered_ids = [str(r) for r, in results]
 
     # Filter nodeset, keep only ids found above
     filtered_nodeset = [node for node in nodeset if node['NodeKey'] in filtered_ids]
@@ -227,6 +234,13 @@ def sort(nodeset, key, order):
     return sorted_nodeset
 
 
+def limit(nodeset, n):
+    return nodeset[:n]
+
+
+################################################################
+
+
 def take_intersection(left_nodeset, right_nodeset):
     left_ids = {node['NodeKey'] for node in left_nodeset}
     right_ids = {node['NodeKey'] for node in right_nodeset}
@@ -251,7 +265,3 @@ def take_difference(left_nodeset, right_nodeset):
     difference_nodeset = [node for node in left_nodeset if node['NodeKey'] not in right_ids]
 
     return difference_nodeset
-
-
-def limit(nodeset, n):
-    return nodeset[:n]
