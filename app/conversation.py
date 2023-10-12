@@ -341,6 +341,13 @@ def build_context(instructions, i=-1):
 
         return {'operation': 'filter_range', 'field': field, 'min_value': min_value, 'max_value': max_value, 'child': build_context(instructions, j)}
 
+    elif operator == 'Sort':
+        [nodeset_name, field, order] = params
+
+        j = find_instruction_index(instructions, nodeset_name)
+
+        return {'operation': 'sort', 'field': field, 'order': order, 'child': build_context(instructions, j)}
+
     elif operator == 'Limit':
         [nodeset_name, n] = params
 
