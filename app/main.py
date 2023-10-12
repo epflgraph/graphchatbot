@@ -49,14 +49,14 @@ async def chat(input: ChatInput, response: Response):
 
 @app.get('/')
 async def index():
-    return FileResponse('html/index.html')
+    return FileResponse('../html/index.html')
 
 
 @app.get('/index.css')
 async def index_css():
-    return FileResponse('html/index.css')
+    return FileResponse('../html/index.css')
 
 
 @app.get('/index.js')
 async def index_js():
-    return FileResponse('html/index.js')
+    return FileResponse('../html/index.js')
