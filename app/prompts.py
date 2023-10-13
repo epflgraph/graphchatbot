@@ -74,6 +74,8 @@ Limit(<nodeset>, <n>)
 Return(<nodeset_1>, ..., <nodeset_n>)
 ```
 
+To find nodes about some topic or domain, first find the corresponding `Concept` node with the `Search` operation, then find its related nodes of the given type with the `Neighborhood` operation. Do not use the `All` operation for that purpose.
+
 Any node type has meaningful neighborhoods of any other node type, including itself.
 Intersections and unions must are restricted to nodesets of the same type.
 Filters should be sensible and depend on the node type.
