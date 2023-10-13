@@ -23,10 +23,12 @@ def get_key_field(node_type, key):
         ('Course', 'SectionCode'): 'section_code',
         ('Course', 'Section'): 'section_code',
         ('Publication', 'Year'): 'year',
+        ('Publication', 'Date'): 'year',
         ('Publication', 'PublicationType'): 'publication_type_en',
         ('Publication', 'Type'): 'publication_type_en',
         ('Publication', 'Journal'): 'published_in',
         ('Publication', 'Conference'): 'published_in',
+        ('Lecture', 'Date'): 'creation_date_title',
     }
 
     if (node_type, key) in key_fields:

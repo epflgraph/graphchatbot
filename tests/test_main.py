@@ -1,4 +1,4 @@
-from app.data import get_examples
+from app.data import get_prompt_examples, get_test_examples
 from app.conversation import (
     parse_instructions,
     follow_instructions,
@@ -7,7 +7,7 @@ from app.conversation import (
 
 
 def test_examples():
-    examples = get_examples()
+    examples = get_prompt_examples() + get_test_examples()
 
     for example in examples:
         # Parse instructions
