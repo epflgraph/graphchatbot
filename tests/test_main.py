@@ -1,9 +1,29 @@
+import random
+
 from app.data import get_prompt_examples, get_test_examples
 from app.conversation import (
+    get_chain,
     parse_instructions,
     follow_instructions,
     build_context,
 )
+
+
+def test_instructions():
+    # Check generation of instructions on a randomly sampled set of test examples
+    examples = get_test_examples()
+    examples = random.sample(examples, 3)
+
+    for example in examples:
+        # Use list index as conversation id
+        conversation_id = str(examples.index(example))
+        chain = get_chain('instructions', conversation_id)
+
+        # Run chain with human message
+        instructions_str = chain({'input': example['query']})['text']
+
+        # Check if returned instructions match the expected ones
+        assert instructions_str.split('\n') == example['instructions']
 
 
 def test_examples():
