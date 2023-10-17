@@ -1,7 +1,6 @@
 import traceback
 
 import langchain
-from langchain.callbacks import get_openai_callback
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import LLMChain
 from langchain.memory import ConversationBufferMemory
@@ -15,7 +14,6 @@ from langchain.prompts import (
 from app.config import config
 
 from app.interfaces.es import search_nodes
-from app.interfaces.db import update_token_count
 
 from app.prompts import system_messages
 from app.nodes import (
@@ -36,17 +34,6 @@ langchain.debug = False
 ################################################################
 # TO BE REMOVED EVENTUALLY                                     #
 ################################################################
-
-
-def format_nodeset(nodeset):
-    # Restrict to maximum 10 results
-    nodeset = nodeset[:10]
-
-    # Convert list of nodes to list of strings
-    results = [f"[{node['NodeType']}] {node['Title']} ({node['NodeKey']})" for node in nodeset]
-
-    # Return a string with one line per node
-    return '\n'.join(results)
 
 
 def emojify(node_type):
@@ -230,7 +217,7 @@ def parse_instructions(instructions):
 
         # Get operator and arguments from RHS
         begin = rhs.find('(')
-        end = rhs.find(')')
+        end = rhs.rfind(')')
         operator = rhs[: begin]
         params = rhs[begin + 1: end].split(',')
         params = [param.strip() for param in params]
@@ -238,6 +225,117 @@ def parse_instructions(instructions):
         parsed_instructions.append({'lhs': lhs, 'operator': operator, 'params': params})
 
     return parsed_instructions
+
+
+def check_instructions(instructions):
+    supported_node_types = ['Concept', 'Person', 'Course', 'Lecture', 'Unit', 'Publication']
+
+    supported_operators = {
+        'Search': ['node_type', 'value'],
+        'All': ['node_type', 'field', 'value'],
+        'Neighborhood': ['nodeset', 'node_type'],
+        'Filter': ['nodeset', 'field', 'value'],
+        'FilterRange': ['nodeset', 'field', 'value', 'value'],
+        'Sort': ['nodeset', 'field', 'order'],
+        'Limit': ['nodeset', 'int'],
+        'Intersection': ['nodeset', 'nodeset'],
+        'Union': ['nodeset', 'nodeset'],
+        'Difference': ['nodeset', 'nodeset'],
+        'Return': ['nodeset'],
+    }
+
+    retrieval_operators = ['Search', 'All']
+    navigation_operators = ['Neighborhood']
+    manipulation_operators = ['Filter', 'FilterRange', 'Sort', 'Limit']
+    set_operators = ['Intersection', 'Union', 'Difference']
+    return_operators = ['Return']
+
+    # Check instructions individually
+    seen_lhss = {}
+    seen_return = False
+    for instruction in instructions:
+        lhs = instruction['lhs']
+        operator = instruction['operator']
+
+        # Check lhs is not duplicate
+        if lhs in seen_lhss:
+            return False, {'code': 'DUPLICATE_LHS', 'instruction': instruction}
+
+        # Check valid operator
+        if operator not in supported_operators:
+            return False, {'code': 'INVALID_OPERATOR', 'instruction': instruction}
+
+        # Check parameter count
+        actual_params = instruction['params']
+        actual_param_count = len(actual_params)
+
+        target_params = supported_operators[operator] if operator != 'Return' else supported_operators[operator] * actual_param_count
+        target_param_count = len(target_params)
+
+        if actual_param_count != target_param_count:
+            return False, {'code': 'INVALID_PARAM_COUNT', 'instruction': instruction}
+
+        # Check parameter type
+        for actual_param, target_param in zip(actual_params, target_params):
+            if target_param == 'node_type' and actual_param not in supported_node_types:
+                return False, {'code': 'INVALID_NODE_TYPE', 'instruction': instruction}
+
+            elif target_param == 'field':
+                if not isinstance(actual_param, str):
+                    return False, {'code': 'INVALID_FIELD', 'instruction': instruction}
+
+                if '(' in actual_param and ')' in actual_param:
+                    return False, {'code': 'NESTED_OPERATOR', 'instruction': instruction}
+
+            elif target_param == 'value' and not isinstance(actual_param, str):
+                return False, {'code': 'INVALID_VALUE', 'instruction': instruction}
+
+            elif target_param == 'order' and actual_param not in ['Ascending', 'Descending']:
+                return False, {'code': 'INVALID_ORDER', 'instruction': instruction}
+
+            elif target_param == 'int' and not actual_param.isdigit():
+                return False, {'code': 'INVALID_INT', 'instruction': instruction}
+
+            elif target_param == 'nodeset':
+                if '(' in actual_param and ')' in actual_param:
+                    return False, {'code': 'NESTED_OPERATOR', 'instruction': instruction}
+
+                if actual_param not in seen_lhss:
+                    return False, {'code': 'UNDEFINED_NODESET', 'instruction': instruction}
+
+        # Check set operations of the same node type
+        if operator in set_operators:
+            node_types = [seen_lhss[nodeset_name] for nodeset_name in actual_params]
+            if len(set(node_types)) > 1:
+                return False, {'code': 'SET_OPERATION_DIFFERENT_TYPES', 'instruction': instruction}
+
+        # Check only one return
+        if seen_return and operator in return_operators:
+            return False, {'code': 'SEVERAL_RETURNS', 'instruction': instruction}
+
+        # Check return is last
+        if seen_return and operator not in return_operators:
+            return False, {'code': 'INSTRUCTION_AFTER_RETURN', 'instruction': instruction}
+
+        # Infer node type
+        if operator in retrieval_operators:
+            node_type = actual_params[0]
+        elif operator in navigation_operators:
+            node_type = actual_params[1]
+        elif operator in manipulation_operators + set_operators:
+            node_type = seen_lhss[actual_params[0]]
+        else:
+            node_type = None
+
+        # Add instruction lhs and node type to list of seen lhss
+        seen_lhss[instruction['lhs']] = node_type
+
+        # Update if seen return
+        if operator in return_operators:
+            seen_return = False
+
+    # If we reach this point, everything was fine
+    return True, {}
 
 
 def follow_instructions(instructions):
@@ -411,11 +509,6 @@ def conversation(conversation_id, text):
     # Extract instructions as string
     instructions_str = llm_output['text']
 
-    # with get_openai_callback() as cb:
-    #     # Update token count in database for usage control
-    #     token_count = cb.total_tokens
-    #     update_token_count(user_id, token_count)
-
     print(text)
     print(instructions_str)
 
@@ -425,6 +518,11 @@ def conversation(conversation_id, text):
     except Exception as e:
         traceback.print_exc()
         return [], 'error parsing instructions'
+
+    ok, error = check_instructions(instructions)
+    print(ok)
+    if not ok:
+        return [], 'error checking instructions'
 
     # Follow instructions to get target nodeset as list of nodes
     try:
