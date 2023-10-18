@@ -15,6 +15,56 @@ def drop_duplicates(nodeset):
     return unique_nodeset
 
 
+def get_node_db_info(node_type):
+    """
+    For a node_type, returns the corresponding (table_name, id_field)
+    """
+
+    if node_type == 'Concept':
+        return 'Nodes_N_Concept_T_Neighbours', 'id'
+
+    return f'Nodes_N_{node_type}', 'id'
+
+
+def get_edge_db_info(source_node_type, target_node_type):
+    """
+    For a combination of (source_node_type, target_node_type),
+    returns the corresponding (table_name, source_id_field, target_id_field, order_field)
+    """
+
+    if (source_node_type, target_node_type) == ('Course', 'Lecture'):
+        return 'Edges_N_Course_N_Lecture_MV', 'from_id', 'to_id', None
+
+    if (source_node_type, target_node_type) == ('Lecture', 'Course'):
+        return 'Edges_N_Course_N_Lecture_MV', 'to_id', 'from_id', None
+
+    if (source_node_type, target_node_type) == ('Person', 'Course'):
+        return 'Edges_N_Person_N_Course_T_StudyPlanTeacher', 'from_id', 'to_id', None
+
+    if (source_node_type, target_node_type) == ('Course', 'Person'):
+        return 'Edges_N_Person_N_Course_T_StudyPlanTeacher', 'to_id', 'from_id', None
+
+    if (source_node_type, target_node_type) == ('Person', 'Lecture'):
+        return 'Edges_N_Person_N_Lecture_MV', 'from_id', 'to_id', None
+
+    if (source_node_type, target_node_type) == ('Lecture', 'Person'):
+        return 'Edges_N_Person_N_Lecture_MV', 'to_id', 'from_id', None
+
+    if (source_node_type, target_node_type) == ('Person', 'Publication'):
+        return 'Edges_N_Person_N_Publication_T_Author', 'from_id', 'to_id', None
+
+    if (source_node_type, target_node_type) == ('Publication', 'Person'):
+        return 'Edges_N_Person_N_Publication_T_Author', 'to_id', 'from_id', None
+
+    if (source_node_type, target_node_type) == ('Person', 'Unit'):
+        return 'Edges_N_Person_N_Unit_T_Positions', 'from_id', 'to_id', None
+
+    if (source_node_type, target_node_type) == ('Unit', 'Person'):
+        return 'Edges_N_Person_N_Unit_T_Positions', 'to_id', 'from_id', None
+
+    return f'Edges_N_{source_node_type}_N_{target_node_type}_T_SemanticSimilarity_CQ', 'from_id', 'to_id', 'score'
+
+
 def get_key_field(node_type, key):
     key_fields = {
         ('Person', 'Gender'): 'gender_en',
@@ -29,6 +79,7 @@ def get_key_field(node_type, key):
         ('Publication', 'Journal'): 'published_in',
         ('Publication', 'Conference'): 'published_in',
         ('Lecture', 'Date'): 'creation_date_title',
+        ('Lecture', 'Year'): 'creation_date_title',
     }
 
     if (node_type, key) in key_fields:
@@ -65,8 +116,8 @@ def want_exact_match(node_type, key_field):
 
 
 def filter_node_ids(node_type, key, value, filter_ids=None):
-    # Build table name
-    table_name = f'Nodes_N_{node_type}'
+    # Build table name and id field
+    table_name, id_field = get_node_db_info(node_type)
 
     # Project implemented (node_type, key) to field name
     key_field = get_key_field(node_type, key)
@@ -76,7 +127,7 @@ def filter_node_ids(node_type, key, value, filter_ids=None):
 
     # Filter all nodes table using the (key_field, key_value)
     query = f"""
-        SELECT id
+        SELECT {id_field}
         FROM graphsearch.{table_name}
     """
 
@@ -128,18 +179,22 @@ def get_neighborhood(nodeset, node_type):
     target_node_type = node_type
 
     # Build table name
-    table_name = f'Edges_N_{source_node_type}_N_{target_node_type}'
+    db_info = get_edge_db_info(source_node_type, target_node_type)
+    table_name, source_id_field, target_id_field, order_field = db_info
 
     # Extract ids from nodeset
     ids = [node['NodeKey'] for node in nodeset]
 
     # Run query
     query = f"""
-        SELECT to_id
+        SELECT DISTINCT {target_id_field}
         FROM graphsearch.{table_name}
-        WHERE from_id IN ({', '.join(['%s'] * len(ids))})
-        ORDER BY score DESC
+        WHERE {source_id_field} IN ({', '.join(['%s'] * len(ids))})
     """
+
+    if order_field is not None:
+        query += f"""ORDER BY {order_field} DESC"""
+
     results = execute_query(query, ids)
     neighbor_ids = [r for r, in results]
 
@@ -202,7 +257,7 @@ def sort(nodeset, key, order):
     node_type = nodeset[0]['NodeType']
 
     # Build table name
-    table_name = f'Nodes_N_{node_type}'
+    table_name, id_field = get_node_db_info(node_type)
 
     # Extract ids from nodeset
     ids = [node['NodeKey'] for node in nodeset]
@@ -218,9 +273,9 @@ def sort(nodeset, key, order):
 
     # Sort the node ids table using the (key_field, key_value)
     query = f"""
-        SELECT id
+        SELECT {id_field}
         FROM graphsearch.{table_name}
-        WHERE id IN ({', '.join(['%s'] * len(ids))})
+        WHERE {id_field} IN ({', '.join(['%s'] * len(ids))})
         ORDER BY {key_field} {key_order}
     """
 

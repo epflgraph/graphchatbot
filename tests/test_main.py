@@ -21,9 +21,10 @@ def test_instructions():
 
         # Run chain with human message
         instructions_str = chain({'input': example['query']})['text']
+        instructions = instructions_str.split('\n')
 
         # Check if returned instructions match the expected ones
-        assert instructions_str.split('\n') == example['instructions']
+        assert instructions == example['instructions']
 
 
 def test_examples():
@@ -57,4 +58,5 @@ def test_examples():
         contexts = build_context(instructions)
 
         # Check contexts are the same as expected
+        print(contexts)
         assert contexts == example['contexts']
