@@ -11,6 +11,28 @@ from app.nodes import (
     take_difference,
 )
 
+################################################################
+# ERROR CODES                                                  #
+################################################################
+
+ERR_DUPLICATE_LHS = 'DUPLICATE_LHS'
+ERR_NESTED_OPERATOR = 'NESTED_OPERATOR'
+ERR_INVALID_OPERATOR = 'INVALID_OPERATOR'
+ERR_INVALID_PARAM_COUNT = 'INVALID_PARAM_COUNT'
+ERR_INVALID_NODE_TYPE = 'INVALID_NODE_TYPE'
+ERR_INVALID_FIELD = 'INVALID_FIELD'
+ERR_INVALID_VALUE = 'INVALID_VALUE'
+ERR_INVALID_ORDER = 'INVALID_ORDER'
+ERR_INVALID_INT = 'INVALID_INT'
+ERR_UNDEFINED_NODESET = 'UNDEFINED_NODESET'
+ERR_SET_OPERATION_DIFFERENT_TYPES = 'SET_OPERATION_DIFFERENT_TYPES'
+ERR_SEVERAL_RETURNS = 'SEVERAL_RETURNS'
+ERR_INSTRUCTION_AFTER_RETURN = 'INSTRUCTION_AFTER_RETURN'
+
+################################################################
+# MAIN                                                         #
+################################################################
+
 
 def parse_instructions(instructions_str):
     instructions = instructions_str.split('\n')
@@ -82,11 +104,11 @@ def check_instructions(instructions):
 
         # Check lhs is not duplicate
         if lhs in seen_lhss:
-            return False, {'code': 'DUPLICATE_LHS', 'instruction': instruction}
+            return False, {'code': ERR_DUPLICATE_LHS, 'instruction': instruction}
 
         # Check valid operator
         if operator not in supported_operators:
-            return False, {'code': 'INVALID_OPERATOR', 'instruction': instruction}
+            return False, {'code': ERR_INVALID_OPERATOR, 'instruction': instruction}
 
         # Check parameter count
         actual_params = instruction['params']
@@ -96,49 +118,49 @@ def check_instructions(instructions):
         target_param_count = len(target_params)
 
         if actual_param_count != target_param_count:
-            return False, {'code': 'INVALID_PARAM_COUNT', 'instruction': instruction}
+            return False, {'code': ERR_INVALID_PARAM_COUNT, 'instruction': instruction}
 
         # Check parameter type
         for actual_param, target_param in zip(actual_params, target_params):
             if target_param == 'node_type' and actual_param not in supported_node_types:
-                return False, {'code': 'INVALID_NODE_TYPE', 'instruction': instruction}
+                return False, {'code': ERR_INVALID_NODE_TYPE, 'instruction': instruction}
 
             elif target_param == 'field':
                 if not isinstance(actual_param, str):
-                    return False, {'code': 'INVALID_FIELD', 'instruction': instruction}
+                    return False, {'code': ERR_INVALID_FIELD, 'instruction': instruction}
 
                 if '(' in actual_param and ')' in actual_param:
-                    return False, {'code': 'NESTED_OPERATOR', 'instruction': instruction}
+                    return False, {'code': ERR_NESTED_OPERATOR, 'instruction': instruction}
 
             elif target_param == 'value' and not isinstance(actual_param, str):
-                return False, {'code': 'INVALID_VALUE', 'instruction': instruction}
+                return False, {'code': ERR_INVALID_VALUE, 'instruction': instruction}
 
             elif target_param == 'order' and actual_param not in ['Ascending', 'Descending']:
-                return False, {'code': 'INVALID_ORDER', 'instruction': instruction}
+                return False, {'code': ERR_INVALID_ORDER, 'instruction': instruction}
 
             elif target_param == 'int' and not actual_param.isdigit():
-                return False, {'code': 'INVALID_INT', 'instruction': instruction}
+                return False, {'code': ERR_INVALID_INT, 'instruction': instruction}
 
             elif target_param == 'nodeset':
                 if '(' in actual_param and ')' in actual_param:
-                    return False, {'code': 'NESTED_OPERATOR', 'instruction': instruction}
+                    return False, {'code': ERR_NESTED_OPERATOR, 'instruction': instruction}
 
                 if actual_param not in seen_lhss:
-                    return False, {'code': 'UNDEFINED_NODESET', 'instruction': instruction}
+                    return False, {'code': ERR_UNDEFINED_NODESET, 'instruction': instruction}
 
         # Check set operations of the same node type
         if operator in set_operators:
             node_types = [seen_lhss[nodeset_name] for nodeset_name in actual_params]
             if len(set(node_types)) > 1:
-                return False, {'code': 'SET_OPERATION_DIFFERENT_TYPES', 'instruction': instruction}
+                return False, {'code': ERR_SET_OPERATION_DIFFERENT_TYPES, 'instruction': instruction}
 
         # Check only one return
         if seen_return and operator in return_operators:
-            return False, {'code': 'SEVERAL_RETURNS', 'instruction': instruction}
+            return False, {'code': ERR_SEVERAL_RETURNS, 'instruction': instruction}
 
         # Check return is last
         if seen_return and operator not in return_operators:
-            return False, {'code': 'INSTRUCTION_AFTER_RETURN', 'instruction': instruction}
+            return False, {'code': ERR_INSTRUCTION_AFTER_RETURN, 'instruction': instruction}
 
         # Infer node type
         if operator in retrieval_operators:

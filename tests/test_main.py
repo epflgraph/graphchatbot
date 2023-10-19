@@ -1,8 +1,8 @@
 import random
 
 from app.data import get_prompt_examples, get_test_examples
-from app.conversation import (
-    get_chain,
+from app.conversation import get_chain
+from app.instructions import (
     parse_instructions,
     follow_instructions,
     build_context,
