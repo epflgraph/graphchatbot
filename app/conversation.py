@@ -195,8 +195,8 @@ chains = {type: {} for type in system_messages}
 ################################################################
 
 
-def parse_instructions(instructions):
-    instructions = instructions.split('\n')
+def parse_instructions(instructions_str):
+    instructions = instructions_str.split('\n')
 
     parsed_instructions = []
     for instruction in instructions:
@@ -223,6 +223,12 @@ def parse_instructions(instructions):
         params = [param.strip() for param in params]
 
         parsed_instructions.append({'lhs': lhs, 'operator': operator, 'params': params})
+
+    # Raise exception if no instructions were extracted
+    if len(parsed_instructions) == 0:
+        if len(instructions_str) > 60:
+            instructions_str = instructions_str[:60] + "..."
+        raise ValueError(f"""No instructions can be extracted from "{instructions_str}" """)
 
     return parsed_instructions
 
@@ -488,9 +494,14 @@ def build_context(instructions, i=-1):
     return []
 
 
+def build_retry_message(error):
+    return "These instructions did not work, please reply only with the updated instructions"
+
+
 ################################################################
 # MAIN                                                         #
 ################################################################
+
 
 def wrap_nlp(conversation_id, query, results):
     chain = get_chain('wrapper', conversation_id)
@@ -501,57 +512,81 @@ def wrap_nlp(conversation_id, query, results):
 
 
 def conversation(conversation_id, text):
+    # Fetch or create chain
     chain = get_chain('instructions', conversation_id)
 
-    # Run chain with human message
-    llm_output = chain({'input': text})
+    # Iterate trying to produce a result as long as there are retries left
+    retries = 2
+    while retries > 0:
+        retries -= 1
 
-    # Extract instructions as string
-    instructions_str = llm_output['text']
+        # Ask LLM to generate instructions for input text
+        print(text)
+        instructions_str = chain({'input': text})['text']
+        print(instructions_str)
 
-    print(text)
-    print(instructions_str)
+        # Parse instructions from text to list of dict
+        try:
+            instructions = parse_instructions(instructions_str)
+        except Exception as e:
+            # If this fails, the LLM did not even return a syntactically correct set of instructions
+            # The typical case for this is when the input is something like "dlifhaslkjfn"
+            # We do not even retry and just return an error
+            print('Error parsing instructions')
+            traceback.print_exc()
+            return [], 'error parsing instructions'
 
-    # Parse instructions from text to list of dict
-    try:
-        instructions = parse_instructions(instructions_str)
-    except Exception as e:
-        traceback.print_exc()
-        return [], 'error parsing instructions'
+        # --- If we reach this point, the instructions are syntactically correct ---
 
-    ok, error = check_instructions(instructions)
-    print(ok)
-    if not ok:
-        return [], 'error checking instructions'
+        # Check instructions and return error object on failure
+        ok, error = check_instructions(instructions)
 
-    # Follow instructions to get target nodeset as list of nodes
-    try:
-        nodesets = follow_instructions(instructions)
-    except Exception as e:
-        traceback.print_exc()
-        return [], 'error following instructions'
+        # If the instructions are not ok, build a new input text and retry
+        if not ok:
+            text = build_retry_message(error)
+            continue
 
-    # Build context dictionaries and context messages based on instructions
-    # (e.g. "showing People related to the Concept Urbanism")
-    try:
-        contexts = build_context(instructions)
-        context_messages = build_context_message(instructions)
+        # --- If we reach this point, the instructions are syntactic and semantically correct ---
 
-        if not isinstance(contexts, list):
-            contexts = [contexts]
+        # We follow the instructions to get the nodesets that answer the prompt
+        try:
+            nodesets = follow_instructions(instructions)
+        except Exception as e:
+            # If this fails, some instruction failed in its execution
+            # An example for this is when we run an "All" instruction with some unsupported field
+            # We do retry with a generic retry message
+            print('Error following instructions')
+            traceback.print_exc()
+            text = build_retry_message(error)
+            continue
 
-        if not isinstance(context_messages, list):
-            context_messages = [context_messages]
+        # --- If we reach this point, we successfully obtained a list of nodesets by following the instructions ---
 
-    except Exception as e:
-        traceback.print_exc()
-        return [], 'error building context'
+        # We build context dictionaries and context messages based on instructions
+        # (e.g. "showing People related to the Concept Urbanism")
+        try:
+            contexts = build_context(instructions)
+            context_messages = build_context_message(instructions)
 
-    return [
-        {
-            'nodeset': nodeset,
-            'context': context,
-            'context_message': context_message
-        }
-        for nodeset, context, context_message in zip(nodesets, contexts, context_messages)
-    ], ''
+            if not isinstance(contexts, list):
+                contexts = [contexts]
+
+            if not isinstance(context_messages, list):
+                context_messages = [context_messages]
+
+        except Exception as e:
+            print('Error building context')
+            traceback.print_exc()
+            return [], 'error building context'
+
+        # --- If we reach this point, we successfully created the contexts for the returned nodesets ---
+
+        # We return a list of objects with all the information
+        return [
+            {
+                'nodeset': nodeset,
+                'context': context,
+                'context_message': context_message
+            }
+            for nodeset, context, context_message in zip(nodesets, contexts, context_messages)
+        ], ''
