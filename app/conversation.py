@@ -87,7 +87,7 @@ def conversation(conversation_id, text):
     chain = get_chain('instructions', conversation_id)
 
     # Iterate trying to produce a result as long as there are retries left
-    max_retries = 2
+    max_retries = 3
     retries = max_retries
     while retries > 0:
         retries -= 1

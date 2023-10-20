@@ -79,9 +79,9 @@ Difference(<nodeset_1>, <nodeset_2>)
 ```
 
 Return operation:
-* Return the given nodesets:
+* Return the given nodesets, specifying their node type:
 ```
-Return(<nodeset_1>, ..., <nodeset_n>)
+Return(<nodeset_1>, <node_type_1>, ..., <nodeset_n>, <node_type_n>)
 ```
 
 To find nodes about some topic or domain, first find the corresponding `Concept` node with the `Search` operation, then find its related nodes of the given type with the `Neighborhood` operation. Do not use the `All` operation for that purpose.
