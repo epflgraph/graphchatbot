@@ -87,7 +87,8 @@ def conversation(conversation_id, text):
     chain = get_chain('instructions', conversation_id)
 
     # Iterate trying to produce a result as long as there are retries left
-    retries = 2
+    max_retries = 2
+    retries = max_retries
     while retries > 0:
         retries -= 1
 
@@ -114,6 +115,7 @@ def conversation(conversation_id, text):
 
         # If the instructions are not ok, build a new input text and retry
         if not ok:
+            print(f"Error {error['code']}")
             text = build_retry_message(error)
             continue
 
@@ -127,8 +129,7 @@ def conversation(conversation_id, text):
             # An example for this is when we run an "All" instruction with some unsupported field
             # We do retry with a generic retry message
             print('Error following instructions')
-            traceback.print_exc()
-            text = build_retry_message(error)
+            text = build_retry_message()
             continue
 
         # --- If we reach this point, we successfully obtained a list of nodesets by following the instructions ---
@@ -161,3 +162,6 @@ def conversation(conversation_id, text):
             }
             for nodeset, context, context_message in zip(nodesets, contexts, context_messages)
         ], ''
+
+    print(f"Giving up after not getting a result after {max_retries} retries.")
+    return [], ''

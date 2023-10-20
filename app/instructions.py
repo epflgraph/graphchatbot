@@ -61,7 +61,7 @@ def parse_instructions(instructions_str):
         params = rhs[begin + 1: end].split(',')
         params = [param.strip() for param in params]
 
-        parsed_instructions.append({'lhs': lhs, 'operator': operator, 'params': params})
+        parsed_instructions.append({'source': instruction, 'lhs': lhs, 'operator': operator, 'params': params})
 
     # Raise exception if no instructions were extracted
     if len(parsed_instructions) == 0:
@@ -99,16 +99,17 @@ def check_instructions(instructions):
     seen_lhss = {}
     seen_return = False
     for instruction in instructions:
+        source = instruction['source']
         lhs = instruction['lhs']
         operator = instruction['operator']
 
         # Check lhs is not duplicate
         if lhs in seen_lhss:
-            return False, {'code': ERR_DUPLICATE_LHS, 'instruction': instruction}
+            return False, {'code': ERR_DUPLICATE_LHS, 'instruction': source}
 
         # Check valid operator
         if operator not in supported_operators:
-            return False, {'code': ERR_INVALID_OPERATOR, 'instruction': instruction}
+            return False, {'code': ERR_INVALID_OPERATOR, 'instruction': source}
 
         # Check parameter count
         actual_params = instruction['params']
@@ -118,49 +119,49 @@ def check_instructions(instructions):
         target_param_count = len(target_params)
 
         if actual_param_count != target_param_count:
-            return False, {'code': ERR_INVALID_PARAM_COUNT, 'instruction': instruction}
+            return False, {'code': ERR_INVALID_PARAM_COUNT, 'instruction': source}
 
         # Check parameter type
         for actual_param, target_param in zip(actual_params, target_params):
             if target_param == 'node_type' and actual_param not in supported_node_types:
-                return False, {'code': ERR_INVALID_NODE_TYPE, 'instruction': instruction}
+                return False, {'code': ERR_INVALID_NODE_TYPE, 'instruction': source}
 
             elif target_param == 'field':
                 if not isinstance(actual_param, str):
-                    return False, {'code': ERR_INVALID_FIELD, 'instruction': instruction}
+                    return False, {'code': ERR_INVALID_FIELD, 'instruction': source}
 
                 if '(' in actual_param and ')' in actual_param:
-                    return False, {'code': ERR_NESTED_OPERATOR, 'instruction': instruction}
+                    return False, {'code': ERR_NESTED_OPERATOR, 'instruction': source}
 
             elif target_param == 'value' and not isinstance(actual_param, str):
-                return False, {'code': ERR_INVALID_VALUE, 'instruction': instruction}
+                return False, {'code': ERR_INVALID_VALUE, 'instruction': source}
 
             elif target_param == 'order' and actual_param not in ['Ascending', 'Descending']:
-                return False, {'code': ERR_INVALID_ORDER, 'instruction': instruction}
+                return False, {'code': ERR_INVALID_ORDER, 'instruction': source}
 
             elif target_param == 'int' and not actual_param.isdigit():
-                return False, {'code': ERR_INVALID_INT, 'instruction': instruction}
+                return False, {'code': ERR_INVALID_INT, 'instruction': source}
 
             elif target_param == 'nodeset':
                 if '(' in actual_param and ')' in actual_param:
-                    return False, {'code': ERR_NESTED_OPERATOR, 'instruction': instruction}
+                    return False, {'code': ERR_NESTED_OPERATOR, 'instruction': source}
 
                 if actual_param not in seen_lhss:
-                    return False, {'code': ERR_UNDEFINED_NODESET, 'instruction': instruction}
+                    return False, {'code': ERR_UNDEFINED_NODESET, 'instruction': source}
 
         # Check set operations of the same node type
         if operator in set_operators:
             node_types = [seen_lhss[nodeset_name] for nodeset_name in actual_params]
             if len(set(node_types)) > 1:
-                return False, {'code': ERR_SET_OPERATION_DIFFERENT_TYPES, 'instruction': instruction}
+                return False, {'code': ERR_SET_OPERATION_DIFFERENT_TYPES, 'instruction': source}
 
         # Check only one return
         if seen_return and operator in return_operators:
-            return False, {'code': ERR_SEVERAL_RETURNS, 'instruction': instruction}
+            return False, {'code': ERR_SEVERAL_RETURNS, 'instruction': source}
 
         # Check return is last
         if seen_return and operator not in return_operators:
-            return False, {'code': ERR_INSTRUCTION_AFTER_RETURN, 'instruction': instruction}
+            return False, {'code': ERR_INSTRUCTION_AFTER_RETURN, 'instruction': source}
 
         # Infer node type
         if operator in retrieval_operators:
@@ -333,8 +334,45 @@ def build_context(instructions, i=-1):
     return []
 
 
-def build_retry_message(error):
-    return "These instructions did not work, please reply only with the updated instructions"
+def build_retry_message(error=None):
+    if error is None:
+        return """There was a problem following these instructions. Give a new list of instructions which avoids this problem and still gives answer to the query. Reply only with the updated list of instructions, nothing more."""
+
+    code = error['code']
+    instruction = error['instruction']
+
+    if code == ERR_DUPLICATE_LHS:
+        msg = f"""The instruction "{instruction}" redefines the same nodeset."""
+    elif code == ERR_NESTED_OPERATOR:
+        msg = f"""The instruction "{instruction}" has a nested operator."""
+    elif code == ERR_INVALID_OPERATOR:
+        msg = f"""The instruction "{instruction}" contains an operator that was not specified above."""
+    elif code == ERR_INVALID_PARAM_COUNT:
+        msg = f"""The instruction "{instruction}" has a number of parameters different to what was specified."""
+    elif code == ERR_INVALID_NODE_TYPE:
+        msg = f"""The instruction "{instruction}" contains a node type that was not specified above."""
+    elif code == ERR_INVALID_FIELD:
+        msg = f"""The instruction "{instruction}" does not contain a valid field."""
+    elif code == ERR_INVALID_VALUE:
+        msg = f"""The instruction "{instruction}" does not contain a valid value."""
+    elif code == ERR_INVALID_ORDER:
+        msg = f"""The instruction "{instruction}" does not contain a valid order, it should be "Ascending" or "Descending"."""
+    elif code == ERR_INVALID_INT:
+        msg = f"""The instruction "{instruction}" does not contain a valid integer value."""
+    elif code == ERR_UNDEFINED_NODESET:
+        msg = f"""The instruction "{instruction}" references a nodeset that has not been defined before."""
+    elif code == ERR_SET_OPERATION_DIFFERENT_TYPES:
+        msg = f"""The instruction "{instruction}" performs a set operation on nodesets of different type."""
+    elif code == ERR_SEVERAL_RETURNS:
+        msg = f"""The instruction "{instruction}" is the second "Return" instruction. There should only be one "Return" instruction and it should be the last one."""
+    elif code == ERR_INSTRUCTION_AFTER_RETURN:
+        msg = f"""The instruction "{instruction}" comes after a "Return" instruction. There should only be one "Return" instruction and it should be the last one."""
+    else:
+        msg = f"""The instruction "{instruction}" is not correct."""
+
+    msg = f"""{msg} Fix the list of instructions to address this issue and still give answer to the query. Reply only with the updated list of instructions, nothing more."""
+    return msg
+
 
 ################################################################
 # TO BE REMOVED EVENTUALLY                                     #
