@@ -28,6 +28,7 @@ ERR_UNDEFINED_NODESET = 'UNDEFINED_NODESET'
 ERR_SET_OPERATION_DIFFERENT_TYPES = 'SET_OPERATION_DIFFERENT_TYPES'
 ERR_SEVERAL_RETURNS = 'SEVERAL_RETURNS'
 ERR_INSTRUCTION_AFTER_RETURN = 'INSTRUCTION_AFTER_RETURN'
+ERR_UNUSED_LHS = 'UNUSED_LHS'
 
 ################################################################
 # MAIN                                                         #
@@ -97,11 +98,14 @@ def check_instructions(instructions):
 
     # Check instructions individually
     seen_lhss = {}
+    used_lhss = set()
     seen_return = False
     for instruction in instructions:
         source = instruction['source']
         lhs = instruction['lhs']
         operator = instruction['operator']
+        actual_params = instruction['params']
+        actual_param_count = len(actual_params)
 
         # Check lhs is not duplicate
         if lhs in seen_lhss:
@@ -112,16 +116,13 @@ def check_instructions(instructions):
             return False, {'code': ERR_INVALID_OPERATOR, 'instruction': source}
 
         # Check parameter count
-        actual_params = instruction['params']
-        actual_param_count = len(actual_params)
-
-        target_params = supported_operators[operator] if operator != 'Return' else supported_operators[operator] * actual_param_count
+        target_params = supported_operators[operator] if operator not in return_operators else supported_operators[operator] * actual_param_count
         target_param_count = len(target_params)
 
         if actual_param_count != target_param_count:
             return False, {'code': ERR_INVALID_PARAM_COUNT, 'instruction': source}
 
-        # Check parameter type
+        # Check parameters
         for actual_param, target_param in zip(actual_params, target_params):
             if target_param == 'node_type' and actual_param not in supported_node_types:
                 return False, {'code': ERR_INVALID_NODE_TYPE, 'instruction': source}
@@ -149,6 +150,8 @@ def check_instructions(instructions):
                 if actual_param not in seen_lhss:
                     return False, {'code': ERR_UNDEFINED_NODESET, 'instruction': source}
 
+                used_lhss.add(actual_param)
+
         # Check set operations of the same node type
         if operator in set_operators:
             node_types = [seen_lhss[nodeset_name] for nodeset_name in actual_params]
@@ -174,11 +177,22 @@ def check_instructions(instructions):
             node_type = None
 
         # Add instruction lhs and node type to list of seen lhss
-        seen_lhss[instruction['lhs']] = node_type
+        if lhs is not None:
+            seen_lhss[lhs] = node_type
 
         # Update if seen return
         if operator in return_operators:
             seen_return = False
+
+    # After iterating over all instructions, check whether all defined nodesets are used
+    # This is not an error on itself, but a strong indicator that the instructions are wrong
+    # In any case, they can be simplified by deleting the unused definitions, so we treat it as an error
+    unused_lhss = set(seen_lhss.keys()) - used_lhss
+    if len(unused_lhss) > 0:
+        # Find instructions defining an unused lhs
+        unused_instructions = [instruction for instruction in instructions if instruction['lhs'] in unused_lhss]
+        # Return the first one
+        return False, {'code': ERR_UNUSED_LHS, 'instruction': unused_instructions[0]['source']}
 
     # If we reach this point, everything was fine
     return True, {}
@@ -336,12 +350,15 @@ def build_context(instructions, i=-1):
 
 def build_retry_message(error=None):
     if error is None:
-        return """There was a problem following these instructions. Give a new list of instructions which avoids this problem and still gives answer to the query. Reply only with the updated list of instructions, nothing more."""
+        code = None
+        instruction = None
+    else:
+        code = error['code']
+        instruction = error['instruction']
 
-    code = error['code']
-    instruction = error['instruction']
-
-    if code == ERR_DUPLICATE_LHS:
+    if code is None:
+        msg = """There was a problem following these instructions."""
+    elif code == ERR_DUPLICATE_LHS:
         msg = f"""The instruction "{instruction}" redefines the same nodeset."""
     elif code == ERR_NESTED_OPERATOR:
         msg = f"""The instruction "{instruction}" has a nested operator."""
@@ -367,10 +384,12 @@ def build_retry_message(error=None):
         msg = f"""The instruction "{instruction}" is the second "Return" instruction. There should only be one "Return" instruction and it should be the last one."""
     elif code == ERR_INSTRUCTION_AFTER_RETURN:
         msg = f"""The instruction "{instruction}" comes after a "Return" instruction. There should only be one "Return" instruction and it should be the last one."""
+    elif code == ERR_UNUSED_LHS:
+        msg = f"""The instruction "{instruction}" defines a nodeset that is never used to build the returned nodesets."""
     else:
         msg = f"""The instruction "{instruction}" is not correct."""
 
-    msg = f"""{msg} Fix the list of instructions to address this issue and still give answer to the query. Reply only with the updated list of instructions, nothing more."""
+    msg = f"""{msg} Give a new list of instructions which avoids this problem and still gives answer to the query. Reply only with the new list of instructions, nothing more."""
     return msg
 
 
