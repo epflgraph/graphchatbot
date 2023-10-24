@@ -29,6 +29,7 @@ ERR_SET_OPERATION_DIFFERENT_TYPES = 'SET_OPERATION_DIFFERENT_TYPES'
 ERR_SEVERAL_RETURNS = 'SEVERAL_RETURNS'
 ERR_INSTRUCTION_AFTER_RETURN = 'INSTRUCTION_AFTER_RETURN'
 ERR_UNUSED_LHS = 'UNUSED_LHS'
+ERR_RETURN_WRONG_NODE_TYPE = 'RETURN_WRONG_NODE_TYPE'
 
 ################################################################
 # MAIN                                                         #
@@ -87,7 +88,7 @@ def check_instructions(instructions):
         'Intersection': ['nodeset', 'nodeset'],
         'Union': ['nodeset', 'nodeset'],
         'Difference': ['nodeset', 'nodeset'],
-        'Return': ['nodeset'],
+        'Return': ['nodeset', 'node_type'],
     }
 
     retrieval_operators = ['Search', 'All']
@@ -116,7 +117,7 @@ def check_instructions(instructions):
             return False, {'code': ERR_INVALID_OPERATOR, 'instruction': source}
 
         # Check parameter count
-        target_params = supported_operators[operator] if operator not in return_operators else supported_operators[operator] * actual_param_count
+        target_params = supported_operators[operator] if operator not in return_operators else supported_operators[operator] * (actual_param_count // 2)
         target_param_count = len(target_params)
 
         if actual_param_count != target_param_count:
@@ -165,6 +166,22 @@ def check_instructions(instructions):
         # Check return is last
         if seen_return and operator not in return_operators:
             return False, {'code': ERR_INSTRUCTION_AFTER_RETURN, 'instruction': source}
+
+        # Check return has the correct node types
+        if operator in return_operators:
+            nodeset_names = actual_params[::2]
+            claimed_node_types = actual_params[1::2]
+            for nodeset_name, claimed_node_type in zip(nodeset_names, claimed_node_types):
+                true_node_type = seen_lhss[nodeset_name]
+                if true_node_type != claimed_node_type:
+                    error = {
+                        'code': ERR_RETURN_WRONG_NODE_TYPE,
+                        'instruction': source,
+                        'nodeset_name': nodeset_name,
+                        'claimed_node_type': claimed_node_type,
+                        'true_node_type': true_node_type
+                    }
+                    return False, error
 
         # Infer node type
         if operator in retrieval_operators:
@@ -247,7 +264,7 @@ def follow_instructions(instructions):
             nodesets[lhs] = take_difference(nodesets[left_nodeset_name], nodesets[right_nodeset_name])
 
         elif operator == 'Return':
-            return [nodesets[nodeset_name] for nodeset_name in params]
+            return [nodesets[nodeset_name] for nodeset_name in params[::2]]
 
     # Fallback: If no return operation, return nodeset referenced last
     nodeset = nodesets[lhs]
@@ -339,7 +356,7 @@ def build_context(instructions, i=-1):
 
     elif operator == 'Return':
         contexts = []
-        for nodeset_name in params:
+        for nodeset_name in params[::2]:
             j = find_instruction_index(instructions, nodeset_name)
             contexts.append(build_context(instructions, j))
 
@@ -386,6 +403,9 @@ def build_retry_message(error=None):
         msg = f"""The instruction "{instruction}" comes after a "Return" instruction. There should only be one "Return" instruction and it should be the last one."""
     elif code == ERR_UNUSED_LHS:
         msg = f"""The instruction "{instruction}" defines a nodeset that is never used to build the returned nodesets."""
+    elif code == ERR_RETURN_WRONG_NODE_TYPE:
+        print(error)
+        msg = f"""The instruction "{instruction}" returns nodeset {error['nodeset_name']} claiming that its nodes are of type {error['claimed_node_type']}, but they are actually of type {error['true_node_type']}."""
     else:
         msg = f"""The instruction "{instruction}" is not correct."""
 
@@ -498,7 +518,7 @@ def build_context_message_step(instructions, i):
 
     elif operator == 'Return':
         context_messages = []
-        for nodeset_name in params:
+        for nodeset_name in params[::2]:
             j = find_instruction_index(instructions, nodeset_name)
             context_message = f"Showing {build_context_message_step(instructions, j)}"
             context_messages.append(context_message)
