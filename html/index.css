@@ -57,42 +57,41 @@ button:hover {
     background-color: #3b76c4;
 }
 
-.context-message {
-    margin: 15px 0 -10px 0;
+/****************************************************************/
+
+.message {
     max-width: 80%;
     clear: both;
+    padding: 10px 15px;
+    border-radius: 15px;
+    position: relative;
+}
+
+.context-message {
+    margin: 15px 0 -10px 0;
+    float: left;
+    background-color: #fef1b8;
     font-size: 14px;
 }
 
-.bot-message, .user-message {
-    margin: 15px 0;
-    max-width: 80%;
-    clear: both;
-}
-
-.context-message {
+.error-message {
+    margin: 15px 0 -10px 0;
     float: left;
-    background-color: #fef1b8;
-    padding: 10px 15px;
-    border-radius: 15px;
-    position: relative;
+    background-color: #ffcccc;
+    font-size: 14px;
 }
 
 .bot-message {
+    margin: 15px 0;
     float: left;
     background-color: #e5e5e5;
-    padding: 10px 15px;
-    border-radius: 15px;
-    position: relative;
 }
 
 .user-message {
+    margin: 15px 0;
     float: right;
     background-color: #4e90e0;
     color: white;
-    padding: 10px 15px;
-    border-radius: 15px;
-    position: relative;
 }
 
 /* Message arrow tails */

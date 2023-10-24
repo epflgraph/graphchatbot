@@ -2,7 +2,7 @@ function appendMessage(className, message) {
     const chatContainer = document.getElementById('chat-container');
     const messageElem = document.createElement('div');
 
-    messageElem.className = className;
+    messageElem.className = `message ${className}`;
     messageElem.innerText = message;
 
     chatContainer.appendChild(messageElem);
@@ -48,17 +48,23 @@ function sendMessage() {
             try {
                 let response = JSON.parse(this.responseText);
 
-                if ('text' in response) {
-                    appendMessage('bot-message', response['text']);
+                if (response.hasOwnProperty('error_code')) {
+                    appendMessage('error-message', `ERROR: ${response['error_code']}`)
+                }
+
+                if (response.hasOwnProperty('message')) {
+                    appendMessage('bot-message', response['message'])
                 } else {
-                    if (response.length > 0) {
-                        response.forEach(processResponseElem);
-                    } else {
-                        appendMessage('bot-message', "<Something went wrong>");
+                    if (response.hasOwnProperty('results')) {
+                        if (response['results'].length > 0) {
+                            response['results'].forEach(processResponseElem);
+                        } else {
+                            appendMessage('error-message', "ERROR: Something went wrong");
+                        }
                     }
                 }
             } catch (error) {
-                appendMessage('bot-message', "<Something went wrong>");
+                appendMessage('error-message', "ERROR: Something went wrong");
             }
         }
     }

@@ -14,7 +14,7 @@ from langchain.prompts import (
 from app.config import config
 
 from app.prompts import system_messages
-
+import app.error_codes as ec
 from app.instructions import (
     parse_instructions,
     check_instructions,
@@ -103,10 +103,10 @@ def conversation(conversation_id, text):
         except Exception as e:
             # If this fails, the LLM did not even return a syntactically correct set of instructions
             # The typical case for this is when the input is something like "dlifhaslkjfn"
-            # We do not even retry and just return an error
+            # We do not even retry and just return the error code and the message for display
             print('Error parsing instructions')
             traceback.print_exc()
-            return [], 'error parsing instructions'
+            return {'error_code': ec.ERR_CANNOT_PARSE_INSTRUCTIONS, 'message': instructions_str}
 
         # --- If we reach this point, the instructions are syntactically correct ---
 
@@ -149,19 +149,20 @@ def conversation(conversation_id, text):
         except Exception as e:
             print('Error building context')
             traceback.print_exc()
-            return [], 'error building context'
+            return {'error_code': ec.ERR_CANNOT_BUILD_CONTEXT}
 
         # --- If we reach this point, we successfully created the contexts for the returned nodesets ---
 
         # We return a list of objects with all the information
-        return [
+        results = [
             {
                 'nodeset': nodeset,
                 'context': context,
                 'context_message': context_message
             }
             for nodeset, context, context_message in zip(nodesets, contexts, context_messages)
-        ], ''
+        ]
+        return {'results': results}
 
     print(f"Giving up after not getting a result after {max_retries} retries.")
-    return [], ''
+    return {'error_code': ec.ERR_TOO_MANY_RETRIES}
