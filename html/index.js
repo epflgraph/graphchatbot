@@ -15,8 +15,6 @@ function processResponseElem(elem) {
     let context = elem["context"];
     let context_message = elem["context_message"].trim();
 
-    console.log(context);
-
     // Convert object to string
     let message = nodeset.map((node) => `[${node['NodeType']}] ${node['Title']} (${node['NodeKey']})`).join('\n');
 
@@ -47,6 +45,7 @@ function sendMessage() {
         xhr.onload = function() {
             try {
                 let response = JSON.parse(this.responseText);
+                console.log(response);
 
                 if (response.hasOwnProperty('error_code')) {
                     appendMessage('error-message', `ERROR: ${response['error_code']}`)

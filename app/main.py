@@ -21,6 +21,8 @@ class ChatOutput(BaseModel):
     results: Optional[list] = None
     error_code: Optional[str] = None
     message: Optional[str] = None
+    formatted_message: Optional[str] = None
+    formatting_dict: Optional[dict] = None
     tokens: Optional[int] = None
     price: Optional[float] = None
 
@@ -66,7 +68,10 @@ async def chat(input: ChatInput, response: Response):
 
     # Wrap results in natural language if needed
     if return_nlp:
-        output.message = wrap_nlp(conversation_id, text, conversation_result['results'])
+        wrapping_nlp_result = wrap_nlp(conversation_id, text, conversation_result['results'])
+        output.message = wrapping_nlp_result['message']
+        output.formatted_message = wrapping_nlp_result['formatted_message']
+        output.formatting_dict = wrapping_nlp_result['formatting_dict']
 
     return output
 

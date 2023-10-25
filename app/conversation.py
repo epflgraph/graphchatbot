@@ -77,9 +77,33 @@ chains = {type: {} for type in system_messages}
 def wrap_nlp(conversation_id, query, results):
     chain = get_chain('wrapper', conversation_id)
 
-    llm_output = chain({'input': f"Query: {query}\nResults: {str(results)}"})
+    # Keep minimal information to send to the LLM
+    input_results = [
+        {
+            'nodeset': [{'NodeType': node['NodeType'], 'Title': node['Title']} for node in result['nodeset']],
+            'context': result['context']
+        }
+        for result in results
+    ]
 
-    return llm_output['text']
+    answer = chain({'input': f"Query: {query}\nResults: {str(input_results)}"})['text']
+
+    # Create formatted answer with placeholders to replace names with links
+    formatted_answer = answer
+    formatting_dict = {}
+    i = 0
+    for result in results:
+        for node in result['nodeset']:
+            formatted_answer = formatted_answer.replace(node['Title'], f'%{i}$')
+            formatted_answer = formatted_answer.replace(node['Title'].lower(), f'%{i}$')
+            formatting_dict[i] = node
+            i += 1
+
+    return {
+        'message': answer,
+        'formatted_message': formatted_answer,
+        'formatting_dict': formatting_dict
+    }
 
 
 def conversation(conversation_id, text):
