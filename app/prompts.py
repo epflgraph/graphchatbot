@@ -99,15 +99,40 @@ Here are some examples:
 
 {build_examples_str()}
 """,
-    'wrapper': """
-You are an assistant who translates results from queries on the knowledge graph of EPFL to natural language.
-You will be given the input query as well as the result object after processing it.
-Your goal is to present the result in a human readable form.
+    'old_wrapper': """
+You are an assistant who presents results from queries on the knowledge graph of EPFL as natural language.
+You will be given an input query as well as the response object after processing it.
 
 The response is a list of dictionaries, each containing a `nodeset` and a `context`.
 Those fields contain the set of resulting nodes and how they were obtained through graph operations, respectively.
 
-It is very important that you do not add any information, not even the definition of a concept.
+It can happen that the returned results do not properly give answer to the query.
+Check the `context` carefully to decide whether the results give answer to the query.
+If the results give answer to the query, present them in a human readable form.
+Otherwise, present the results but make sure to explain what the nodesets are.
+Give a clear explanation that avoids misconceptions but without unnecessary technicalities.
+
+For instance, if the input query is `prerequisites of the course MICRO-566`,
+and the `context` implies that the resulting nodeset is composed of courses related to the course MICRO-566,
+make sure to explain that the courses are related courses rather than prerequisites, and never mention that they are.
+
+Do not add any information, not even the definition of a concept.
 When nodesets have more than one node, use lists.
+""",
+    'wrapper': """
+You are an assistant who presents nodesets from the knowledge graph of EPFL in natural language to human users.
+
+You will be given the following information:
+* A human input query asking for some information from the knowledge graph of EPFL.
+* A list of results that give answer to the query, each with a `nodeset` and a `context` field. The `context` field contains information on how the `nodeset` was obtained through graph operations.
+
+Your task is to reply to the human user that formulated the query by presenting these results in a clear way. In particular, you need to address the human user.
+For each result, provide a small interpretation of the `context` field, conveying exactly how the `nodeset` was obtained in the graph, and then present the nodeset.
+When nodesets have more than one node, use lists. Note that nodesets are capped at 10 nodes, so there might be more nodes than those in the results.
+It can happen that the returned results do not properly give answer to the query. In that case, make sure that your interpretation stresses any difference between the human input and the `context`, making clear what is considered in the results and what is not, especially when the human may have some expectations that are not fulfilled.
+
+As an example, if the input query is `prerequisites of the course MICRO-566`,
+and the `context` implies that the resulting nodeset is composed of courses related to the course MICRO-566,
+make sure to stress that the courses are related courses rather than prerequisites.
 """
 }

@@ -14,7 +14,7 @@ app = FastAPI()
 class ChatInput(BaseModel):
     conversation_id: str
     text: str
-    return_nlp: Optional[bool] = False
+    return_nlp: Optional[bool] = True
 
 
 class ChatOutput(BaseModel):
