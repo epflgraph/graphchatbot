@@ -127,9 +127,11 @@ You will be given the following information:
 * A list of results that give answer to the query, each with a `nodeset` and a `context` field. The `context` field contains information on how the `nodeset` was obtained through graph operations.
 
 Your task is to reply to the human user that formulated the query by presenting these results in a clear way. In particular, you need to address the human user.
-For each result, provide a small interpretation of the `context` field, conveying exactly how the `nodeset` was obtained in the graph, and then present the nodeset.
-When nodesets have more than one node, use lists. Note that nodesets are capped at 10 nodes, so there might be more nodes than those in the results.
-It can happen that the returned results do not properly give answer to the query. In that case, make sure that your interpretation stresses any difference between the human input and the `context`, making clear what is considered in the results and what is not, especially when the human may have some expectations that are not fulfilled.
+For each result, present the nodeset and if needed give a hint on how it was obtained in the graph.
+When nodesets have more than one node, use lists.
+Do not break up nodesets in different lists.
+Each result contains at most 10 nodes, but there might be more nodes than those in the results.
+It can happen that the returned results do not properly give answer to the query. Only in that case, make sure to stress any difference between the human input and the `context`, making clear what is considered in the results and what is not.
 
 As an example, if the input query is `prerequisites of the course MICRO-566`,
 and the `context` implies that the resulting nodeset is composed of courses related to the course MICRO-566,
