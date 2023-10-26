@@ -82,10 +82,7 @@ def get_key_field(node_type, key):
         ('Lecture', 'Year'): 'creation_date_title',
     }
 
-    if (node_type, key) in key_fields:
-        return key_fields[node_type, key]
-
-    return key
+    return key_fields[node_type, key]
 
 
 def get_key_value(node_type, key_field, value):
@@ -130,27 +127,32 @@ def filter_node_ids(node_type, key, value, filter_ids=None):
         SELECT {id_field}
         FROM graphsearch.{table_name}
     """
+    query_params = []
 
     conditions = []
     if filter_ids is not None:
         conditions.append(f"""id IN ({', '.join(['%s'] * len(filter_ids))})""")
+        query_params += filter_ids
 
     if isinstance(value, tuple):
-        conditions.append(f"""{key_field} >= "{key_value[0]}" """)
-        conditions.append(f"""{key_field} <= "{key_value[1]}" """)
+        conditions.append(f"""{key_field} >= %s """)
+        conditions.append(f"""{key_field} <= %s """)
+        query_params += [key_value[0], key_value[1]]
     elif want_exact_match(node_type, key_field):
-        conditions.append(f"""{key_field} = "{key_value}" """)
+        conditions.append(f"""{key_field} = %s """)
+        query_params += [key_value]
     else:
-        conditions.append(f"""{key_field} LIKE "%{key_value}%" """)
+        conditions.append(f"""{key_field} LIKE %s """)
+        query_params += [f"%{key_value}%"]
 
     conditions_str = '\nAND '.join(conditions)
 
     query += f"""WHERE {conditions_str}"""
 
-    if filter_ids is None:
-        results = execute_query(query)
+    if query_params:
+        results = execute_query(query, query_params)
     else:
-        results = execute_query(query, filter_ids)
+        results = execute_query(query)
 
     node_ids = [str(r) for r, in results]
 
