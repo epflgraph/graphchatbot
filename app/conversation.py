@@ -88,16 +88,19 @@ def wrap_nlp(conversation_id, query, results):
 
     answer = chain({'input': f"Query: {query}\nResults: {str(input_results)}"})['text']
 
+    # Merge nodesets and sort by descending `Title` length to minimise string replacement issues
+    all_nodes = [node for result in results for node in result['nodeset']]
+    all_nodes = sorted(all_nodes, key=lambda node: len(node['Title']), reverse=True)
+
     # Create formatted answer with placeholders to replace names with links
     formatted_answer = answer
     formatting_dict = {}
     i = 0
-    for result in results:
-        for node in result['nodeset']:
-            formatted_answer = formatted_answer.replace(node['Title'], f'%{i}$')
-            formatted_answer = formatted_answer.replace(node['Title'].lower(), f'%{i}$')
-            formatting_dict[i] = node
-            i += 1
+    for node in all_nodes:
+        formatted_answer = formatted_answer.replace(node['Title'], f'%{i}$')
+        formatted_answer = formatted_answer.replace(node['Title'].lower(), f'%{i}$')
+        formatting_dict[i] = node
+        i += 1
 
     return {
         'message': answer,
