@@ -58,9 +58,9 @@ def get_chain(type, memory_key):
     if memory_key not in chains[type]:
         chains[type][memory_key] = create_chain(type, memory_key)
 
-    # Roll memory, keep only last n messages
-    n = 10
-    chains[type][memory_key].memory.chat_memory.messages = chains[type][memory_key].memory.chat_memory.messages[:n]
+    # # Roll memory, keep only last n messages
+    # n = 10
+    # chains[type][memory_key].memory.chat_memory.messages = chains[type][memory_key].memory.chat_memory.messages[:n]
 
     return chains[type][memory_key]
 
