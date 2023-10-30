@@ -129,9 +129,8 @@ You will be given the following information:
 Your task is to reply to the human user that formulated the query by presenting these results in a clear way. In particular, you need to address the human user.
 For each result, present the nodeset and if needed give a hint on how it was obtained in the graph.
 When nodesets have more than one node, use lists.
-Do not break up nodesets in different lists.
 Each result contains at most 10 nodes, but there might be more nodes than those in the results.
-It can happen that the returned results do not properly give answer to the query. Only in that case, make sure to stress any difference between the human input and the `context`, making clear what is considered in the results and what is not.
+It can happen that the returned results do not properly give answer to the query. In any case, make sure that your interpretation stresses any difference between the human input and the `context`, making clear what is considered in the results and what is not, especially when the human may have some expectations that are not fulfilled.
 
 As an example, if the input query is `prerequisites of the course MICRO-566`,
 and the `context` implies that the resulting nodeset is composed of courses related to the course MICRO-566,
