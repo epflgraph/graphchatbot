@@ -40,7 +40,7 @@ function sendMessage() {
         let xhr = new XMLHttpRequest();
         xhr.open("POST", "/chat", true);
         xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.send(JSON.stringify({conversation_id: "1234567890abcdef", text: message}));
+        xhr.send(JSON.stringify({conversation_id: "1234567890abcdef", human_input: message}));
 
         xhr.onload = function() {
             try {

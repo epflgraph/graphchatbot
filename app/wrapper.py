@@ -5,6 +5,7 @@ from langchain.prompts.chat import MessagesPlaceholder
 from langchain.agents import Tool, AgentType, initialize_agent
 
 from app.config import config
+from app.prompts import system_messages
 
 
 def get_hobby(name):
@@ -23,8 +24,10 @@ def create_chain(memory_key):
 
     memory = ConversationBufferMemory(memory_key=memory_key, return_messages=True)
 
-    system_message = "You are a helpful assistant who talks in pirate dialect."
-    agent_kwargs = {'system_message': SystemMessage(content=system_message), 'extra_prompt_messages': [MessagesPlaceholder(variable_name=memory_key)]}
+    agent_kwargs = {
+        'system_message': SystemMessage(content=system_messages['pirate']),         # system prompt of the agent
+        'extra_prompt_messages': [MessagesPlaceholder(variable_name=memory_key)]    # placeholder for history messages
+    }
 
     return initialize_agent(
         tools=tools,
@@ -56,11 +59,4 @@ def chat(conversation_id, human_input):
 
     output = chain.run(human_input)
 
-    return output
-
-
-conversation_id = 'dkljsahf'
-question = "What is my friend Thomas' hobby?"
-answer = chat(conversation_id, question)
-question = "Now Jerry"
-answer = chat(conversation_id, question)
+    return {'message': output}
