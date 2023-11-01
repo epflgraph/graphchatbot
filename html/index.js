@@ -9,23 +9,26 @@ function appendMessage(className, message) {
     chatContainer.scrollTop = chatContainer.scrollHeight;  // Auto scroll to bottom
 }
 
-function processResponseElem(elem) {
+function processResponseElem(elem, print_nodeset) {
     // Extract response fields
     let nodeset = elem["nodeset"];
     let context = elem["context"];
     let context_message = elem["context_message"].trim();
 
-    // Convert object to string
-    let message = nodeset.map((node) => `[${node['NodeType']}] ${node['Title']} (${node['NodeKey']})`).join('\n');
-
+    // Print context message
     if (context_message !== '') {
         appendMessage('context-message', context_message);
     }
 
-    if (message !== '') {
-        appendMessage('bot-message', message);
-    } else {
-        appendMessage('bot-message', "<No results>");
+    if (print_nodeset) {
+        // Convert object to string
+        let message = nodeset.map((node) => `[${node['NodeType']}] ${node['Title']} (${node['NodeKey']})`).join('\n');
+
+        if (message !== '') {
+            appendMessage('bot-message', message);
+        } else {
+            appendMessage('bot-message', "<No results>");
+        }
     }
 }
 
@@ -48,18 +51,21 @@ function sendMessage() {
                 console.log(response);
 
                 if (response.hasOwnProperty('error_code')) {
-                    appendMessage('error-message', `ERROR: ${response['error_code']}`)
+                    appendMessage('error-message', `ERROR: ${response['error_code']}`);
                 }
 
-                if (response.hasOwnProperty('message')) {
-                    appendMessage('bot-message', response['message'])
+                if (response.hasOwnProperty('results') && response['results'].length > 0) {
+                    if (response.hasOwnProperty('message')) {
+                        response['results'].forEach((elem) => processResponseElem(elem, false));
+                        appendMessage('bot-message', response['message']);
+                    } else {
+                        response['results'].forEach((elem) => processResponseElem(elem, true));
+                    }
                 } else {
-                    if (response.hasOwnProperty('results')) {
-                        if (response['results'].length > 0) {
-                            response['results'].forEach(processResponseElem);
-                        } else {
-                            appendMessage('error-message', "ERROR: Something went wrong");
-                        }
+                    if (response.hasOwnProperty('message')) {
+                        appendMessage('bot-message', response['message']);
+                    } else {
+                        appendMessage('error-message', "ERROR: Something went wrong");
                     }
                 }
             } catch (error) {
