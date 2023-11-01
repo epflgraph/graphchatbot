@@ -1,9 +1,30 @@
-function appendMessage(className, message) {
+function appendMessage(className, message, dict={}) {
     const chatContainer = document.getElementById('chat-container');
     const messageElem = document.createElement('div');
 
     messageElem.className = `message ${className}`;
-    messageElem.innerText = message;
+    // messageElem.innerText = message;
+
+    const pieces = message.split(/(%[^%$]+\$)/g);
+
+    for (const piece of pieces) {
+        if (piece.startsWith('%') && piece.endsWith('$')) {
+            // Create an anchor element for the hyperlink
+            const link = document.createElement('a');
+            const id = piece.slice(1, -1);  // remove % and $
+            const nodeType = dict[id]['NodeType'].toLowerCase();
+            const nodeKey = dict[id]['NodeKey'];
+            link.href = `https://graphsearch.epfl.ch/${nodeType}/${nodeKey}`;
+            link.innerText = dict[id]['Title'];
+            link.target = 'blank_';
+            messageElem.appendChild(link);
+        } else {
+            // Use a div to preserve text formatting and newlines
+            const span = document.createElement('span');
+            span.innerText = piece;
+            messageElem.appendChild(span);
+        }
+    }
 
     chatContainer.appendChild(messageElem);
     chatContainer.scrollTop = chatContainer.scrollHeight;  // Auto scroll to bottom
@@ -55,7 +76,11 @@ function sendMessage() {
                 }
 
                 if (response.hasOwnProperty('results') && response['results'].length > 0) {
-                    if (response.hasOwnProperty('message')) {
+                    if (response.hasOwnProperty('formatted_message') && response.hasOwnProperty('formatting_dict')) {
+                        response['results'].forEach((elem) => processResponseElem(elem, false));
+                        appendMessage('bot-message', response['formatted_message'], response['formatting_dict']);
+                    }
+                    else if (response.hasOwnProperty('message')) {
                         response['results'].forEach((elem) => processResponseElem(elem, false));
                         appendMessage('bot-message', response['message']);
                     } else {
