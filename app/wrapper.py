@@ -13,9 +13,6 @@ from app.tools import ask_graph, graph_answers
 # CHAINS                                                       #
 ################################################################
 
-import langchain
-langchain.debug = True
-
 
 def create_chain(memory_key):
     chat_llm = ChatOpenAI(temperature=0, openai_api_key=config['openai']['api_key'])
@@ -36,7 +33,6 @@ def create_chain(memory_key):
         memory=memory,
         agent_kwargs=agent_kwargs,
         verbose=True,
-        debug=True,
         max_execution_time=30
     )
 
