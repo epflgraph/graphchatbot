@@ -1,3 +1,5 @@
+import time
+
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.schema import SystemMessage
@@ -12,6 +14,10 @@ from app.tools import ask_graph, graph_answers
 ################################################################
 # CHAINS                                                       #
 ################################################################
+
+# Initialise object to store chains
+chains = {}
+last_interactions = {}
 
 
 def create_chain(memory_key):
@@ -38,15 +44,24 @@ def create_chain(memory_key):
 
 
 def get_chain(memory_key):
+    # Clear memory if more than 5 minutes have passed
+    if memory_key not in last_interactions:
+        last_interactions[memory_key] = time.time()
+
+    last = last_interactions[memory_key]
+    now = time.time()
+    if memory_key in chains and now - last >= 300:
+        print("Killing chain")
+        del chains[memory_key]
+
+    last_interactions[memory_key] = now
+
     # Create new chain if it does not exist already
     if memory_key not in chains:
         chains[memory_key] = create_chain(memory_key)
 
     return chains[memory_key]
 
-
-# Initialise object to store chains
-chains = {}
 
 ################################################################
 # MAIN                                                         #
