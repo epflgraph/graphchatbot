@@ -56,7 +56,23 @@ def create_chain():
 graph_answers = {}
 
 
+def obfuscate_results(results):
+    # Keep only `NodeType` and `NodeKey` in nodesets
+    return [
+        {
+            'nodeset': [{'NodeType': node['NodeType'], 'NodeKey': node['NodeKey']} for node in result['nodeset']],
+            'context': result['context']
+        }
+        for result in results
+    ]
+
+
 def ask_graph(human_input: str) -> dict:
+    # Check if result is cached
+    if human_input in graph_answers:
+        print(f"Found cached result for input {human_input}")
+        return obfuscate_results(graph_answers[human_input])
+
     chain = create_chain()
 
     # Iterate trying to produce a result as long as there are retries left
@@ -145,15 +161,7 @@ def ask_graph(human_input: str) -> dict:
         graph_answers[human_input] = results
 
         # Obfuscate returned nodeset, send back to LLM only `NodeType` and `NodeKey`
-        restricted_results = [
-            {
-                'nodeset': [{'NodeType': node['NodeType'], 'NodeKey': node['NodeKey']} for node in result['nodeset']],
-                'context': result['context']
-            }
-            for result in results
-        ]
-
-        return restricted_results
+        return obfuscate_results(results)
 
     print(f"Giving up after not getting a result after {max_retries} retries.")
     return {'error_code': ec.ERR_TOO_MANY_RETRIES}
