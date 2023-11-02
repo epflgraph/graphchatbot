@@ -144,10 +144,10 @@ def ask_graph(human_input: str) -> dict:
         # Make results available outside the tool
         graph_answers[human_input] = results
 
-        # Return only node types and titles
+        # Obfuscate returned nodeset, send back to LLM only `NodeType` and `NodeKey`
         restricted_results = [
             {
-                'nodeset': [{'NodeType': node['NodeType'], 'Title': node['Title']} for node in result['nodeset']],
+                'nodeset': [{'NodeType': node['NodeType'], 'NodeKey': node['NodeKey']} for node in result['nodeset']],
                 'context': result['context']
             }
             for result in results
