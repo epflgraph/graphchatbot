@@ -4,12 +4,13 @@ from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.schema import SystemMessage
 from langchain.prompts.chat import MessagesPlaceholder
-from langchain.agents import AgentType, initialize_agent
+from langchain.agents import initialize_agent
 from langchain.tools import StructuredTool
 
 from app.config import config
 from app.prompts import system_messages
-from app.tools import ask_graph, graph_answers, last_set
+from app.agents import CUSTOM_OPENAI_FUNCTIONS
+from app.tools import ask_graph
 
 ################################################################
 # CHAINS                                                       #
@@ -35,10 +36,10 @@ def create_chain(memory_key):
     return initialize_agent(
         tools=tools,
         llm=chat_llm,
-        agent=AgentType.OPENAI_FUNCTIONS,
+        agent=CUSTOM_OPENAI_FUNCTIONS,
         memory=memory,
         agent_kwargs=agent_kwargs,
-        verbose=True,
+        verbose=False,
         max_execution_time=30
     )
 
@@ -84,18 +85,24 @@ def encode_node_titles(message, results):
 
 
 def chat(conversation_id, human_input):
-    chain = get_chain(conversation_id)
+    print("[WRAPPER]", f"Received chat request for input `{human_input}`")
 
+    chain = get_chain(conversation_id)
     message = chain.run(human_input)
 
+    print("[WRAPPER]", f"Got response message from agent executor")
+
     # Fetch results obtained in the tool
-    # TODO: Fix this as it is not scalable, especially for concurrent users.
-    #       Maybe throw conversation_id into the mix?
-    #       Alternatively, create a custom Agent that extends the one we use now but also stores the results.
-    results = graph_answers.get(last_set['last'], [])
+    if chain.agent.results_list:
+        print("[WRAPPER]", "Successfully found results")
+        results = chain.agent.results_list[-1]
+    else:
+        print("[WRAPPER]", "Could not find results from tool, defaulting to [].")
+        results = []
 
     # Replace node titles with placeholders so they can become links
     formatted_message, formatting_dict = encode_node_titles(message, results)
+    print("[WRAPPER]", f"Formatted message with placeholders for hyperlinks")
 
     return {
         'results': results,

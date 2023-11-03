@@ -52,9 +52,8 @@ def create_chain():
 # MAIN                                                         #
 ################################################################
 
-# Object to store full object to be recovered later
+# Object to store full object to be recovered by the wrapper
 graph_answers = {}
-last_set = {}
 
 
 def obfuscate_results(results):
@@ -69,9 +68,11 @@ def obfuscate_results(results):
 
 
 def ask_graph(human_input: str) -> dict:
+    print("[TOOL]", f"Called ask graph tool with input `{human_input}`")
+
     # Check if result is cached
     if human_input in graph_answers:
-        print(f"Found cached result for input {human_input}")
+        print("[TOOL]", f"Found cached result for input `{human_input}`, returning right away without calling LLM.")
         return obfuscate_results(graph_answers[human_input])
 
     chain = create_chain()
@@ -84,8 +85,9 @@ def ask_graph(human_input: str) -> dict:
         retries_left -= 1
 
         # Ask LLM to generate instructions for input text
-        print(input)
+        print("[TOOL]", f"Calling LLM for instructions for input `{input}`")
         instructions_str = chain({'input': input})['text']
+        print("[TOOL] Got the following instructions")
         print(instructions_str)
 
         # Parse instructions from str to list of dict
@@ -95,24 +97,24 @@ def ask_graph(human_input: str) -> dict:
             # If this fails, the LLM did not even return a syntactically correct set of instructions
             # The typical case for this is when the input is something like "dlifhaslkjfn"
             # We do not even retry and just return the error code and the message for display
-            print('Error parsing instructions')
+            print("[TOOL]", "Error parsing instructions")
             traceback.print_exc()
             return {'error_code': ec.ERR_CANNOT_PARSE_INSTRUCTIONS, 'message': instructions_str}
 
         # --- If we reach this point, the instructions are syntactically correct ---
-        print('Instructions parsed')
+        print("[TOOL]", "Instructions parsed")
 
         # Check instructions and return error object on failure
         ok, error = check_instructions(instructions)
 
         # If the instructions are not ok, build a new input text and retry
         if not ok:
-            print(f"Error {error['code']}")
+            print("[TOOL]", f"Error {error['code']}")
             input = build_retry_message(error)
             continue
 
         # --- If we reach this point, the instructions are syntactic and semantically correct ---
-        print('Instructions checked')
+        print("[TOOL]", "Instructions checked")
 
         # We follow the instructions to get the nodesets that answer the prompt
         try:
@@ -121,12 +123,12 @@ def ask_graph(human_input: str) -> dict:
             # If this fails, some instruction failed in its execution
             # An example for this is when we run an "All" instruction with some unsupported field
             # We do retry with a generic retry message
-            print('Error following instructions')
+            print("[TOOL]", "Error following instructions")
             input = build_retry_message()
             continue
 
         # --- If we reach this point, we successfully obtained a list of nodesets by following the instructions ---
-        print('Nodesets obtained')
+        print("[TOOL]", "Nodesets obtained")
 
         # We build context dictionaries and context messages based on instructions
         # (e.g. "showing People related to the Concept Urbanism")
@@ -141,12 +143,12 @@ def ask_graph(human_input: str) -> dict:
                 context_messages = [context_messages]
 
         except Exception as e:
-            print('Error building context')
+            print("[TOOL]", "Error building context")
             traceback.print_exc()
             return {'error_code': ec.ERR_CANNOT_BUILD_CONTEXT}
 
         # --- If we reach this point, we successfully created the contexts for the returned nodesets ---
-        print('Contexts obtained')
+        print("[TOOL]", "Contexts obtained")
 
         # Generate results
         results = [
@@ -159,11 +161,11 @@ def ask_graph(human_input: str) -> dict:
         ]
 
         # Make results available outside the tool
+        print("[TOOL]", "Storing results for access outside the tool")
         graph_answers[human_input] = results
-        last_set['last'] = human_input
 
         # Obfuscate returned nodeset, send back to LLM only `NodeType` and `NodeKey`
         return obfuscate_results(results)
 
-    print(f"Giving up after not getting a result after {max_retries} retries.")
+    print("[TOOL]", f"Giving up after not getting a result after {max_retries} retries.")
     return {'error_code': ec.ERR_TOO_MANY_RETRIES}
