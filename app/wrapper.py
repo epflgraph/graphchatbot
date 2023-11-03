@@ -9,7 +9,7 @@ from langchain.tools import StructuredTool
 
 from app.config import config
 from app.prompts import system_messages
-from app.tools import ask_graph, graph_answers
+from app.tools import ask_graph, graph_answers, last_set
 
 ################################################################
 # CHAINS                                                       #
@@ -89,7 +89,10 @@ def chat(conversation_id, human_input):
     message = chain.run(human_input)
 
     # Fetch results obtained in the tool
-    results = graph_answers.get(human_input, [])
+    # TODO: Fix this as it is not scalable, especially for concurrent users.
+    #       Maybe throw conversation_id into the mix?
+    #       Alternatively, create a custom Agent that extends the one we use now but also stores the results.
+    results = graph_answers.get(last_set['last'], [])
 
     # Replace node titles with placeholders so they can become links
     formatted_message, formatting_dict = encode_node_titles(message, results)

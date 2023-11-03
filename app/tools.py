@@ -54,6 +54,7 @@ def create_chain():
 
 # Object to store full object to be recovered later
 graph_answers = {}
+last_set = {}
 
 
 def obfuscate_results(results):
@@ -159,6 +160,7 @@ def ask_graph(human_input: str) -> dict:
 
         # Make results available outside the tool
         graph_answers[human_input] = results
+        last_set['last'] = human_input
 
         # Obfuscate returned nodeset, send back to LLM only `NodeType` and `NodeKey`
         return obfuscate_results(results)
