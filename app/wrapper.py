@@ -88,6 +88,8 @@ def chat(conversation_id, human_input):
     print("[WRAPPER]", f"Received chat request for input `{human_input}`")
 
     chain = get_chain(conversation_id)
+    print("[WRAPPER]", f"Got chain for conversation `{conversation_id}`")
+
     message = chain.run(human_input)
 
     print("[WRAPPER]", f"Got response message from agent executor")
