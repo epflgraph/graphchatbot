@@ -56,15 +56,15 @@ def create_chain():
 graph_answers = {}
 
 
-def obfuscate_results(results):
-    # Keep only `NodeType` and `NodeKey` in nodesets
-    return [
-        {
-            'nodeset': [{'NodeType': node['NodeType'], 'NodeKey': node['NodeKey']} for node in result['nodeset']],
-            'context': result['context']
-        }
-        for result in results
-    ]
+def obfuscate_result(result):
+    # # Keep only `NodeType` and `NodeKey` in nodeset
+    # return {
+    #     'nodeset': [{'NodeType': node['NodeType'], 'NodeKey': node['NodeKey']} for node in result['nodeset']],
+    #     'context': result['context']
+    # }
+
+    # TODO obfuscate in a sensible way that the LLM can cope with
+    return result
 
 
 def ask_graph(human_input: str) -> dict:
@@ -73,7 +73,7 @@ def ask_graph(human_input: str) -> dict:
     # Check if result is cached
     if human_input in graph_answers:
         print("[TOOL]", f"Found cached result for input `{human_input}`, returning right away without calling LLM.")
-        return obfuscate_results(graph_answers[human_input])
+        return obfuscate_result(graph_answers[human_input])
 
     chain = create_chain()
 
@@ -116,9 +116,9 @@ def ask_graph(human_input: str) -> dict:
         # --- If we reach this point, the instructions are syntactic and semantically correct ---
         print("[TOOL]", "Instructions checked")
 
-        # We follow the instructions to get the nodesets that answer the prompt
+        # We follow the instructions to get the nodeset that answers the prompt
         try:
-            nodesets = follow_instructions(instructions)
+            nodeset = follow_instructions(instructions)
         except Exception as e:
             # If this fails, some instruction failed in its execution
             # An example for this is when we run an "All" instruction with some unsupported field
@@ -127,45 +127,35 @@ def ask_graph(human_input: str) -> dict:
             input = build_retry_message()
             continue
 
-        # --- If we reach this point, we successfully obtained a list of nodesets by following the instructions ---
-        print("[TOOL]", "Nodesets obtained")
+        # --- If we reach this point, we successfully obtained a nodeset by following the instructions ---
+        print("[TOOL]", "Nodeset obtained")
 
-        # We build context dictionaries and context messages based on instructions
-        # (e.g. "showing People related to the Concept Urbanism")
+        # We build a context dictionary and a context message based on the instructions
+        # (e.g. "Showing People related to the Concept Urbanism")
         try:
-            contexts = build_context(instructions)
-            context_messages = build_context_message(instructions)
-
-            if not isinstance(contexts, list):
-                contexts = [contexts]
-
-            if not isinstance(context_messages, list):
-                context_messages = [context_messages]
+            context = build_context(instructions)
+            context_message = build_context_message(instructions)
 
         except Exception as e:
             print("[TOOL]", "Error building context")
             traceback.print_exc()
             return {'error_code': ec.ERR_CANNOT_BUILD_CONTEXT}
 
-        # --- If we reach this point, we successfully created the contexts for the returned nodesets ---
-        print("[TOOL]", "Contexts obtained")
+        # --- If we reach this point, we successfully created the context for the returned nodeset ---
+        print("[TOOL]", "Context obtained")
 
-        # Generate results
-        results = [
-            {
-                'nodeset': nodeset[:10],
-                'context': context,
-                'context_message': context_message
-            }
-            for nodeset, context, context_message in zip(nodesets, contexts, context_messages)
-        ]
+        result = {
+            'nodeset': nodeset[:10],
+            'context': context,
+            'context_message': context_message,
+        }
 
-        # Make results available outside the tool
-        print("[TOOL]", "Storing results for access outside the tool")
-        graph_answers[human_input] = results
+        # Make result available outside the tool
+        graph_answers[human_input] = result
+        print("[TOOL]", "Stored result for access outside the tool")
 
         # Obfuscate returned nodeset, send back to LLM only `NodeType` and `NodeKey`
-        return obfuscate_results(results)
+        return obfuscate_result(result)
 
     print("[TOOL]", f"Giving up after not getting a result after {max_retries} retries.")
     return {'error_code': ec.ERR_TOO_MANY_RETRIES}

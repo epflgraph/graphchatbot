@@ -85,8 +85,6 @@ def check_instructions(instructions):
         source = instruction['source']
         lhs = instruction['lhs']
         operator = instruction['operator']
-        actual_params = instruction['params']
-        actual_param_count = len(actual_params)
 
         # Check lhs is not duplicate
         if lhs in seen_lhss:
@@ -97,7 +95,9 @@ def check_instructions(instructions):
             return False, {'code': ec.ERR_INVALID_OPERATOR, 'instruction': source}
 
         # Check parameter count
-        target_params = supported_operators[operator] if operator not in return_operators else supported_operators[operator] * (actual_param_count // 2)
+        actual_params = instruction['params']
+        actual_param_count = len(actual_params)
+        target_params = supported_operators[operator]
         target_param_count = len(target_params)
 
         if actual_param_count != target_param_count:
@@ -149,21 +149,20 @@ def check_instructions(instructions):
 
         # Check return has the correct node types
         if operator in return_operators:
-            nodeset_names = actual_params[::2]
-            claimed_node_types = actual_params[1::2]
-            for nodeset_name, claimed_node_type in zip(nodeset_names, claimed_node_types):
-                true_node_type = seen_lhss[nodeset_name]
-                if true_node_type != claimed_node_type:
-                    error = {
-                        'code': ec.ERR_RETURN_WRONG_NODE_TYPE,
-                        'instruction': source,
-                        'nodeset_name': nodeset_name,
-                        'claimed_node_type': claimed_node_type,
-                        'true_node_type': true_node_type
-                    }
-                    return False, error
+            [nodeset_name, claimed_node_type] = actual_params
+            true_node_type = seen_lhss[nodeset_name]
 
-        # Infer node type
+            if true_node_type != claimed_node_type:
+                error = {
+                    'code': ec.ERR_RETURN_WRONG_NODE_TYPE,
+                    'instruction': source,
+                    'nodeset_name': nodeset_name,
+                    'claimed_node_type': claimed_node_type,
+                    'true_node_type': true_node_type
+                }
+                return False, error
+
+        # Infer node type to store for later reference
         if operator in retrieval_operators:
             node_type = actual_params[0]
         elif operator in navigation_operators:
@@ -197,6 +196,7 @@ def check_instructions(instructions):
 
 def follow_instructions(instructions):
     nodesets = {}
+    lhs = None
     for instruction in instructions:
         lhs = instruction['lhs']
         operator = instruction['operator']
@@ -244,12 +244,13 @@ def follow_instructions(instructions):
             nodesets[lhs] = take_difference(nodesets[left_nodeset_name], nodesets[right_nodeset_name])
 
         elif operator == 'Return':
-            return [nodesets[nodeset_name] for nodeset_name in params[::2]]
+            [nodeset_name, node_type] = params
+            return nodesets[nodeset_name]
 
-    # Fallback: If no return operation, return nodeset referenced last
-    nodeset = nodesets[lhs]
+    # --- If we reach this point, we failed to return a nodeset from a Return operation ---
 
-    return [nodeset]
+    # Fallback: If no return operation, return nodeset referenced last or empty nodeset
+    return nodesets[lhs] if lhs is not None else []
 
 
 def find_instruction_index(instructions, lhs):
@@ -335,14 +336,13 @@ def build_context(instructions, i=-1):
         return {'operation': 'difference', 'left_child': build_context(instructions, left_j), 'right_child': build_context(instructions, right_j)}
 
     elif operator == 'Return':
-        contexts = []
-        for nodeset_name in params[::2]:
-            j = find_instruction_index(instructions, nodeset_name)
-            contexts.append(build_context(instructions, j))
+        [nodeset_name, node_type] = params
 
-        return contexts
+        j = find_instruction_index(instructions, nodeset_name)
 
-    return []
+        return build_context(instructions, j)
+
+    return {}
 
 
 def build_retry_message(error=None):
@@ -384,7 +384,6 @@ def build_retry_message(error=None):
     elif code == ec.ERR_UNUSED_LHS:
         msg = f"""The instruction "{instruction}" defines a nodeset that is never used to build the returned nodesets."""
     elif code == ec.ERR_RETURN_WRONG_NODE_TYPE:
-        print(error)
         msg = f"""The instruction "{instruction}" returns nodeset {error['nodeset_name']} claiming that its nodes are of type {error['claimed_node_type']}, but they are actually of type {error['true_node_type']}."""
     else:
         msg = f"""The instruction "{instruction}" is not correct."""
@@ -497,15 +496,13 @@ def build_context_message_step(instructions, i):
         return f"the nodes in {build_context_message_step(instructions, left_j)} not in {build_context_message_step(instructions, right_j)}"
 
     elif operator == 'Return':
-        context_messages = []
-        for nodeset_name in params[::2]:
-            j = find_instruction_index(instructions, nodeset_name)
-            context_message = f"Showing {build_context_message_step(instructions, j)}"
-            context_messages.append(context_message)
+        [nodeset_name, node_type] = params
 
-        return context_messages
+        j = find_instruction_index(instructions, nodeset_name)
 
-    return []
+        return f"Showing {build_context_message_step(instructions, j)}"
+
+    return ""
 
 
 def build_context_message(instructions):

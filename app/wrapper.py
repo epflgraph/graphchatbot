@@ -1,4 +1,5 @@
 import time
+import re
 
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
@@ -76,8 +77,17 @@ def encode_node_titles(message, results):
     i = 0
     for result in results:
         for node in result['nodeset']:
-            needle = f"{node['NodeType']} {node['NodeKey']}"
-            formatted_message = formatted_message.replace(needle, f'%{i}$')
+            # Match Markdown links like [Image processing II](Course/MICRO-512)
+            pattern = (
+                    r"\[.*?\]"
+                    + r"\("
+                    + re.escape(node["NodeType"])
+                    + r"/"
+                    + re.escape(node["NodeKey"])
+                    + r"\)"
+            )
+
+            formatted_message = re.sub(pattern, f'%{i}$', formatted_message)
             formatting_dict[i] = node
             i += 1
 
@@ -95,9 +105,9 @@ def chat(conversation_id, human_input):
     print("[WRAPPER]", f"Got response message from agent executor")
 
     # Fetch results obtained in the tool
-    if chain.agent.results_list:
+    if chain.agent.results:
         print("[WRAPPER]", "Successfully found results")
-        results = chain.agent.results_list[-1]
+        results = chain.agent.results
     else:
         print("[WRAPPER]", "Could not find results from tool, defaulting to [].")
         results = []

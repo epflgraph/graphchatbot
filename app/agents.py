@@ -10,7 +10,7 @@ class CustomOpenAIFunctionsAgent(OpenAIFunctionsAgent):
     Custom agent inheriting from langchain's OpenAIFunctionsAgent.
     It keeps the same functionality but also stores the results of the function calls.
     """
-    results_list = []
+    results = []
 
     def plan(
         self,
@@ -20,15 +20,15 @@ class CustomOpenAIFunctionsAgent(OpenAIFunctionsAgent):
     ):
         if intermediate_steps:
             # Store results from last function call
-            agent_action, results = intermediate_steps[-1]
+            agent_action, result = intermediate_steps[-1]   # can't use this result as it's obfuscated
 
             human_input = agent_action.tool_input['human_input']
-            results = graph_answers[human_input]
+            result = graph_answers[human_input]
 
-            self.results_list.append(results)
+            self.results.append(result)
         else:
             # First interaction, clear results_list
-            self.results_list = []
+            self.results = []
 
         # Call super function to actually plan
         agent_decision = super().plan(intermediate_steps, *args, **kwargs)
