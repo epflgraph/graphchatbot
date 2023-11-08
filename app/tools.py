@@ -157,5 +157,14 @@ def ask_graph(human_input: str) -> dict:
         # Obfuscate returned nodeset, send back to LLM only `NodeType` and `NodeKey`
         return obfuscate_result(result)
 
+    # Give up after failing all retries
+    # We still keep the failed result, to avoid failing all retries again in case we get the same input
     print("[TOOL]", f"Giving up after not getting a result after {max_retries} retries.")
-    return {'error_code': ec.ERR_TOO_MANY_RETRIES}
+
+    result = {'error_code': ec.ERR_TOO_MANY_RETRIES}
+
+    # Make result available outside the tool
+    graph_answers[human_input] = result
+    print("[TOOL]", "Stored failed result for access outside the tool")
+
+    return result
