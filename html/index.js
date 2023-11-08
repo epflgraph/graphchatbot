@@ -31,17 +31,23 @@ function appendMessage(className, message, dict={}) {
 }
 
 function processResponseElem(elem, print_nodeset) {
-    // Extract response fields
-    let nodeset = elem["nodeset"];
-    let context = elem["context"];
-    let context_message = elem["context_message"].trim();
-
-    // Print context message
-    if (context_message !== '') {
-        appendMessage('context-message', context_message);
+    // Print error if any
+    if (elem.hasOwnProperty('error_code')) {
+        appendMessage('error-message', `ERROR: ${elem['error_code']}`);
     }
 
-    if (print_nodeset) {
+    // Print context message
+    if (elem.hasOwnProperty('context_message')) {
+        let context_message = elem["context_message"].trim();
+        if (context_message !== "") {
+            appendMessage('context-message', context_message);
+        }
+    }
+
+    // Print nodeset if needed
+    if (print_nodeset && elem.hasOwnProperty('nodeset')) {
+        let nodeset = elem["nodeset"];
+
         // Convert object to string
         let message = nodeset.map((node) => `[${node['NodeType']}] ${node['Title']} (${node['NodeKey']})`).join('\n');
 

@@ -76,6 +76,9 @@ def encode_node_titles(message, results):
     formatting_dict = {}
     i = 0
     for result in results:
+        if 'nodeset' not in result:
+            continue
+
         for node in result['nodeset']:
             # Match Markdown links like [Image processing II](Course/MICRO-512)
             pattern = (

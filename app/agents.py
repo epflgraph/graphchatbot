@@ -23,7 +23,8 @@ class CustomOpenAIFunctionsAgent(OpenAIFunctionsAgent):
             agent_action, result = intermediate_steps[-1]   # can't use this result as it's obfuscated
 
             human_input = agent_action.tool_input['human_input']
-            result = graph_answers[human_input]
+            if human_input in graph_answers:
+                result = graph_answers[human_input]
 
             self.results.append(result)
         else:
