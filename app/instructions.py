@@ -245,12 +245,15 @@ def follow_instructions(instructions):
 
         elif operator == 'Return':
             [nodeset_name, node_type] = params
-            return nodesets[nodeset_name]
+            return nodesets, nodesets[nodeset_name]
 
     # --- If we reach this point, we failed to return a nodeset from a Return operation ---
 
     # Fallback: If no return operation, return nodeset referenced last or empty nodeset
-    return nodesets[lhs] if lhs is not None else []
+    if lhs is None:
+        return nodesets, []
+    else:
+        return nodesets, nodesets[lhs]
 
 
 def find_instruction_index(instructions, lhs):
@@ -261,16 +264,22 @@ def find_instruction_index(instructions, lhs):
     return None
 
 
-def build_context(instructions, i=-1):
+def build_context(instructions, nodesets, i=-1):
     if i is None:
         return {}
 
+    lhs = instructions[i]['lhs']
     operator = instructions[i]['operator']
     params = instructions[i]['params']
 
     if operator == 'Search':
         [node_type, name] = params
-        return {'operation': 'search', 'node_type': node_type, 'name': name}
+
+        if nodesets[lhs]:
+            name = nodesets[lhs][0]['Title']
+            return {'operation': 'search', 'node_type': node_type, 'name': name, 'found': True}
+        else:
+            return {'operation': 'search', 'node_type': node_type, 'name': name, 'found': False}
 
     elif operator == 'All':
         [node_type, field, value] = params
@@ -281,35 +290,35 @@ def build_context(instructions, i=-1):
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return {'operation': 'neighborhood', 'node_type': node_type, 'child': build_context(instructions, j)}
+        return {'operation': 'neighborhood', 'node_type': node_type, 'child': build_context(instructions, nodesets, j)}
 
     elif operator == 'Filter':
         [nodeset_name, field, value] = params
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return {'operation': 'filter', 'field': field, 'value': value, 'child': build_context(instructions, j)}
+        return {'operation': 'filter', 'field': field, 'value': value, 'child': build_context(instructions, nodesets, j)}
 
     elif operator == 'FilterRange':
         [nodeset_name, field, min_value, max_value] = params
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return {'operation': 'filter_range', 'field': field, 'min_value': min_value, 'max_value': max_value, 'child': build_context(instructions, j)}
+        return {'operation': 'filter_range', 'field': field, 'min_value': min_value, 'max_value': max_value, 'child': build_context(instructions, nodesets, j)}
 
     elif operator == 'Sort':
         [nodeset_name, field, order] = params
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return {'operation': 'sort', 'field': field, 'order': order, 'child': build_context(instructions, j)}
+        return {'operation': 'sort', 'field': field, 'order': order, 'child': build_context(instructions, nodesets, j)}
 
     elif operator == 'Limit':
         [nodeset_name, n] = params
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return {'operation': 'limit', 'n': int(n), 'child': build_context(instructions, j)}
+        return {'operation': 'limit', 'n': int(n), 'child': build_context(instructions, nodesets, j)}
 
     elif operator == 'Intersection':
         [left_nodeset_name, right_nodeset_name] = params
@@ -317,7 +326,7 @@ def build_context(instructions, i=-1):
         left_j = find_instruction_index(instructions, left_nodeset_name)
         right_j = find_instruction_index(instructions, right_nodeset_name)
 
-        return {'operation': 'intersection', 'left_child': build_context(instructions, left_j), 'right_child': build_context(instructions, right_j)}
+        return {'operation': 'intersection', 'left_child': build_context(instructions, nodesets, left_j), 'right_child': build_context(instructions, nodesets, right_j)}
 
     elif operator == 'Union':
         [left_nodeset_name, right_nodeset_name] = params
@@ -325,7 +334,7 @@ def build_context(instructions, i=-1):
         left_j = find_instruction_index(instructions, left_nodeset_name)
         right_j = find_instruction_index(instructions, right_nodeset_name)
 
-        return {'operation': 'union', 'left_child': build_context(instructions, left_j), 'right_child': build_context(instructions, right_j)}
+        return {'operation': 'union', 'left_child': build_context(instructions, nodesets, left_j), 'right_child': build_context(instructions, nodesets, right_j)}
 
     elif operator == 'Difference':
         [left_nodeset_name, right_nodeset_name] = params
@@ -333,14 +342,14 @@ def build_context(instructions, i=-1):
         left_j = find_instruction_index(instructions, left_nodeset_name)
         right_j = find_instruction_index(instructions, right_nodeset_name)
 
-        return {'operation': 'difference', 'left_child': build_context(instructions, left_j), 'right_child': build_context(instructions, right_j)}
+        return {'operation': 'difference', 'left_child': build_context(instructions, nodesets, left_j), 'right_child': build_context(instructions, nodesets, right_j)}
 
     elif operator == 'Return':
         [nodeset_name, node_type] = params
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return build_context(instructions, j)
+        return build_context(instructions, nodesets, j)
 
     return {}
 
@@ -421,16 +430,22 @@ def pluralise(node_type):
         return f"{node_type}s"
 
 
-def build_context_message_step(instructions, i):
+def build_context_message_step(instructions, nodesets, i):
     if i is None:
         return ''
 
+    lhs = instructions[i]['lhs']
     operator = instructions[i]['operator']
     params = instructions[i]['params']
 
     if operator == 'Search':
         [node_type, name] = params
-        return f"the {emojify(node_type)} {node_type} \"{name}\""
+
+        if nodesets[lhs]:
+            name = nodesets[lhs][0]['Title']
+            return f"the {emojify(node_type)} {node_type} \"{name}\""
+        else:
+            return f"the (not found) {emojify(node_type)} {node_type} \"{name}\""
 
     elif operator == 'All':
         [node_type, field, value] = params
@@ -441,35 +456,35 @@ def build_context_message_step(instructions, i):
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return f"{emojify(node_type)} {pluralise(node_type)} related to {build_context_message_step(instructions, j)}"
+        return f"{emojify(node_type)} {pluralise(node_type)} related to {build_context_message_step(instructions, nodesets, j)}"
 
     elif operator == 'Filter':
         [nodeset_name, field, value] = params
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return f"{build_context_message_step(instructions, j)}, filtered by {field}={value}"
+        return f"{build_context_message_step(instructions, nodesets, j)}, filtered by {field}={value}"
 
     elif operator == 'FilterRange':
         [nodeset_name, field, min_value, max_value] = params
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return f"{build_context_message_step(instructions, j)}, filtered by {field} between {min_value} and {max_value}"
+        return f"{build_context_message_step(instructions, nodesets, j)}, filtered by {field} between {min_value} and {max_value}"
 
     elif operator == 'Sort':
         [nodeset_name, field, order] = params
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return f"{build_context_message_step(instructions, j)}, sorted by {field} ({order})"
+        return f"{build_context_message_step(instructions, nodesets, j)}, sorted by {field} ({order})"
 
     elif operator == 'Limit':
         [nodeset_name, n] = params
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return f"at most {n} {build_context_message_step(instructions, j)}"
+        return f"at most {n} {build_context_message_step(instructions, nodesets, j)}"
 
     elif operator == 'Intersection':
         [left_nodeset_name, right_nodeset_name] = params
@@ -477,7 +492,7 @@ def build_context_message_step(instructions, i):
         left_j = find_instruction_index(instructions, left_nodeset_name)
         right_j = find_instruction_index(instructions, right_nodeset_name)
 
-        return f"the intersection of {build_context_message_step(instructions, left_j)} and {build_context_message_step(instructions, right_j)}"
+        return f"the intersection of {build_context_message_step(instructions, nodesets, left_j)} and {build_context_message_step(instructions, nodesets, right_j)}"
 
     elif operator == 'Union':
         [left_nodeset_name, right_nodeset_name] = params
@@ -485,7 +500,7 @@ def build_context_message_step(instructions, i):
         left_j = find_instruction_index(instructions, left_nodeset_name)
         right_j = find_instruction_index(instructions, right_nodeset_name)
 
-        return f"the union of {build_context_message_step(instructions, left_j)} and {build_context_message_step(instructions, right_j)}"
+        return f"the union of {build_context_message_step(instructions, nodesets, left_j)} and {build_context_message_step(instructions, nodesets, right_j)}"
 
     elif operator == 'Difference':
         [left_nodeset_name, right_nodeset_name] = params
@@ -493,17 +508,17 @@ def build_context_message_step(instructions, i):
         left_j = find_instruction_index(instructions, left_nodeset_name)
         right_j = find_instruction_index(instructions, right_nodeset_name)
 
-        return f"the nodes in {build_context_message_step(instructions, left_j)} not in {build_context_message_step(instructions, right_j)}"
+        return f"the nodes in {build_context_message_step(instructions, nodesets, left_j)} not in {build_context_message_step(instructions, nodesets, right_j)}"
 
     elif operator == 'Return':
         [nodeset_name, node_type] = params
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return f"Showing {build_context_message_step(instructions, j)}"
+        return f"Showing {build_context_message_step(instructions, nodesets, j)}"
 
     return ""
 
 
-def build_context_message(instructions):
-    return build_context_message_step(instructions, -1)
+def build_context_message(instructions, nodesets):
+    return build_context_message_step(instructions, nodesets, -1)

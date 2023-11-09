@@ -64,7 +64,7 @@ def obfuscate_result(result):
     # }
 
     # TODO obfuscate in a sensible way that the LLM can cope with
-    return result
+    return {key: result[key] for key in result if key != 'nodesets'}
 
 
 def ask_graph(human_input: str) -> dict:
@@ -118,7 +118,7 @@ def ask_graph(human_input: str) -> dict:
 
         # We follow the instructions to get the nodeset that answers the prompt
         try:
-            nodeset = follow_instructions(instructions)
+            nodesets, returned_nodeset = follow_instructions(instructions)
         except Exception as e:
             # If this fails, some instruction failed in its execution
             # An example for this is when we run an "All" instruction with some unsupported field
@@ -128,13 +128,13 @@ def ask_graph(human_input: str) -> dict:
             continue
 
         # --- If we reach this point, we successfully obtained a nodeset by following the instructions ---
-        print("[TOOL]", "Nodeset obtained")
+        print("[TOOL]", f"Nodeset obtained ({len(returned_nodeset)} nodes)")
 
         # We build a context dictionary and a context message based on the instructions
         # (e.g. "Showing People related to the Concept Urbanism")
         try:
-            context = build_context(instructions)
-            context_message = build_context_message(instructions)
+            context = build_context(instructions, nodesets)
+            context_message = build_context_message(instructions, nodesets)
 
         except Exception as e:
             print("[TOOL]", "Error building context")
@@ -145,7 +145,8 @@ def ask_graph(human_input: str) -> dict:
         print("[TOOL]", "Context obtained")
 
         result = {
-            'nodeset': nodeset[:10],
+            'nodeset': returned_nodeset[:10],
+            'nodesets': nodesets,
             'context': context,
             'context_message': context_message,
         }

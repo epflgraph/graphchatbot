@@ -71,36 +71,69 @@ def get_chain(memory_key):
 
 
 def encode_node_titles(message, results):
+    # Flatten nodes involved in the query
+    returned_nodes = []
+    all_nodes = []
+    for result in results:
+        if 'nodeset' in result:
+            returned_nodes.extend(result['nodeset'])
+
+        if 'nodesets' in result:
+            for nodeset_name in result['nodesets']:
+                nodeset = result['nodesets'][nodeset_name][:10]  # the LLM has seen at most 10 nodes from each nodeset
+                all_nodes.extend(nodeset)
+
+    # Remove duplicates
+    returned_nodes = {(node['NodeType'], node['NodeKey']): node for node in returned_nodes}.values()
+    all_nodes = {(node['NodeType'], node['NodeKey']): node for node in all_nodes}.values()
+
     # Create formatted answer with placeholders to replace names with links
     formatted_message = message
     formatting_dict = {}
     i = 0
-    for result in results:
-        if 'nodeset' not in result:
-            continue
+    for node in all_nodes:
+        # Match Markdown links like [Image processing II](Course/MICRO-512)
+        pattern = (
+                r"\[.*?\]"
+                + r"\("
+                + re.escape(node['NodeType'])
+                + r"/"
+                + re.escape(node['NodeKey'])
+                + r"\)"
+        )
+        formatted_message, n_replacements = re.subn(pattern, f'%{i}$', formatted_message)
 
-        for node in result['nodeset']:
-            # Match Markdown links like [Image processing II](Course/MICRO-512)
-            pattern = (
-                    r"\[.*?\]"
-                    + r"\("
-                    + re.escape(node["NodeType"])
-                    + r"/"
-                    + re.escape(node["NodeKey"])
-                    + r"\)"
-            )
-
-            formatted_message, n_replacements = re.subn(pattern, f'%{i}$', formatted_message)
-
-            # Fallback when results are not Markdown links
-            if n_replacements == 0:
-                if node['Title'] in formatted_message:
-                    formatted_message = formatted_message.replace(node['Title'], f'%{i}$')
-                else:
-                    formatted_message = formatted_message.replace(node['Title'].lower(), f'%{i}$')
-
+        # If we have replaced something, we're done
+        if n_replacements > 0:
             formatting_dict[i] = node
             i += 1
+            continue
+
+        # If the node is not a returned node, we're done
+        if node not in returned_nodes:
+            continue
+
+        # --- If we reach this, we haven't replaced Markdown links and the node is a returned one ---
+
+        # We try to match only the node `Title`
+        pattern = re.escape(node['Title'])
+        formatted_message, n_replacements = re.subn(pattern, f'%{i}$', formatted_message)
+
+        # If we have replaced something, we're done
+        if n_replacements > 0:
+            formatting_dict[i] = node
+            i += 1
+            continue
+
+        # We try to match the node `Title` in lowercase as a last resource
+        pattern = re.escape(node['Title'].lower())
+        formatted_message, n_replacements = re.subn(pattern, f'%{i}$', formatted_message)
+
+        # If we have replaced something, we're done
+        if n_replacements > 0:
+            formatting_dict[i] = node
+            i += 1
+            continue
 
     return formatted_message, formatting_dict
 
