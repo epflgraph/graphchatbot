@@ -31,6 +31,8 @@ class CustomOpenAIFunctionsAgent(OpenAIFunctionsAgent):
             # First interaction, clear results_list
             self.results = []
 
+        print("[AGENT]", f"Planning what to do next")
+
         # Call super function to actually plan
         agent_decision = super().plan(intermediate_steps, *args, **kwargs)
 
