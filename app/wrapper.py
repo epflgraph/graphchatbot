@@ -90,7 +90,15 @@ def encode_node_titles(message, results):
                     + r"\)"
             )
 
-            formatted_message = re.sub(pattern, f'%{i}$', formatted_message)
+            formatted_message, n_replacements = re.subn(pattern, f'%{i}$', formatted_message)
+
+            # Fallback when results are not Markdown links
+            if n_replacements == 0:
+                if node['Title'] in formatted_message:
+                    formatted_message = formatted_message.replace(node['Title'], f'%{i}$')
+                else:
+                    formatted_message = formatted_message.replace(node['Title'].lower(), f'%{i}$')
+
             formatting_dict[i] = node
             i += 1
 
