@@ -45,6 +45,19 @@ def create_chain(memory_key):
     )
 
 
+def delete_chain(memory_key=None):
+    if memory_key is None:
+        memory_keys = list(chains.keys())
+        print(memory_keys)
+        for memory_key in memory_keys:
+            del chains[memory_key]
+            del last_interactions[memory_key]
+
+    elif memory_key in chains:
+        del chains[memory_key]
+        del last_interactions[memory_key]
+
+
 def get_chain(memory_key):
     # Clear memory if more than 5 minutes have passed
     if memory_key not in last_interactions:
@@ -54,7 +67,7 @@ def get_chain(memory_key):
     now = time.time()
     if memory_key in chains and now - last >= 300:
         print("Killing chain")
-        del chains[memory_key]
+        delete_chain(memory_key)
 
     last_interactions[memory_key] = now
 

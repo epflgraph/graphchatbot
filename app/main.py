@@ -4,7 +4,10 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional
 
-from app.wrapper import chat as wrapper_chat
+from app.wrapper import (
+    chat as wrapper_chat,
+    delete_chain,
+)
 import app.error_codes as ec
 
 app = FastAPI()
@@ -48,6 +51,7 @@ async def chat(input: ChatInput, response: Response):
 
 @app.get('/')
 async def index():
+    delete_chain()
     return FileResponse('../html/index.html')
 
 
