@@ -277,48 +277,47 @@ def build_context(instructions, nodesets, i=-1):
 
         if nodesets[lhs]:
             name = nodesets[lhs][0]['Title']
-            return {'operation': 'search', 'node_type': node_type, 'name': name, 'found': True}
-        else:
-            return {'operation': 'search', 'node_type': node_type, 'name': name, 'found': False}
+
+        return {'operation': 'search', 'node_type': node_type, 'node_count': len(nodesets[lhs]), 'name': name}
 
     elif operator == 'All':
         [node_type, field, value] = params
-        return {'operation': 'all', 'node_type': node_type, 'field': field, 'value': value}
+        return {'operation': 'all', 'node_type': node_type, 'node_count': len(nodesets[lhs]), 'field': field, 'value': value}
 
     elif operator == 'Neighborhood':
         [nodeset_name, node_type] = params
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return {'operation': 'neighborhood', 'node_type': node_type, 'child': build_context(instructions, nodesets, j)}
+        return {'operation': 'neighborhood', 'node_type': node_type, 'node_count': len(nodesets[lhs]), 'child': build_context(instructions, nodesets, j)}
 
     elif operator == 'Filter':
         [nodeset_name, field, value] = params
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return {'operation': 'filter', 'field': field, 'value': value, 'child': build_context(instructions, nodesets, j)}
+        return {'operation': 'filter', 'node_count': len(nodesets[lhs]), 'field': field, 'value': value, 'child': build_context(instructions, nodesets, j)}
 
     elif operator == 'FilterRange':
         [nodeset_name, field, min_value, max_value] = params
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return {'operation': 'filter_range', 'field': field, 'min_value': min_value, 'max_value': max_value, 'child': build_context(instructions, nodesets, j)}
+        return {'operation': 'filter_range', 'node_count': len(nodesets[lhs]), 'field': field, 'min_value': min_value, 'max_value': max_value, 'child': build_context(instructions, nodesets, j)}
 
     elif operator == 'Sort':
         [nodeset_name, field, order] = params
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return {'operation': 'sort', 'field': field, 'order': order, 'child': build_context(instructions, nodesets, j)}
+        return {'operation': 'sort', 'node_count': len(nodesets[lhs]), 'field': field, 'order': order, 'child': build_context(instructions, nodesets, j)}
 
     elif operator == 'Limit':
         [nodeset_name, n] = params
 
         j = find_instruction_index(instructions, nodeset_name)
 
-        return {'operation': 'limit', 'n': int(n), 'child': build_context(instructions, nodesets, j)}
+        return {'operation': 'limit', 'node_count': len(nodesets[lhs]), 'n': int(n), 'child': build_context(instructions, nodesets, j)}
 
     elif operator == 'Intersection':
         [left_nodeset_name, right_nodeset_name] = params
@@ -326,7 +325,7 @@ def build_context(instructions, nodesets, i=-1):
         left_j = find_instruction_index(instructions, left_nodeset_name)
         right_j = find_instruction_index(instructions, right_nodeset_name)
 
-        return {'operation': 'intersection', 'left_child': build_context(instructions, nodesets, left_j), 'right_child': build_context(instructions, nodesets, right_j)}
+        return {'operation': 'intersection', 'node_count': len(nodesets[lhs]), 'left_child': build_context(instructions, nodesets, left_j), 'right_child': build_context(instructions, nodesets, right_j)}
 
     elif operator == 'Union':
         [left_nodeset_name, right_nodeset_name] = params
@@ -334,7 +333,7 @@ def build_context(instructions, nodesets, i=-1):
         left_j = find_instruction_index(instructions, left_nodeset_name)
         right_j = find_instruction_index(instructions, right_nodeset_name)
 
-        return {'operation': 'union', 'left_child': build_context(instructions, nodesets, left_j), 'right_child': build_context(instructions, nodesets, right_j)}
+        return {'operation': 'union', 'node_count': len(nodesets[lhs]), 'left_child': build_context(instructions, nodesets, left_j), 'right_child': build_context(instructions, nodesets, right_j)}
 
     elif operator == 'Difference':
         [left_nodeset_name, right_nodeset_name] = params
@@ -342,7 +341,7 @@ def build_context(instructions, nodesets, i=-1):
         left_j = find_instruction_index(instructions, left_nodeset_name)
         right_j = find_instruction_index(instructions, right_nodeset_name)
 
-        return {'operation': 'difference', 'left_child': build_context(instructions, nodesets, left_j), 'right_child': build_context(instructions, nodesets, right_j)}
+        return {'operation': 'difference', 'node_count': len(nodesets[lhs]), 'left_child': build_context(instructions, nodesets, left_j), 'right_child': build_context(instructions, nodesets, right_j)}
 
     elif operator == 'Return':
         [nodeset_name, node_type] = params
