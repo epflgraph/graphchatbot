@@ -149,6 +149,8 @@ def ask_graph(human_input: str) -> dict:
             'nodesets': nodesets,
             'context': context,
             'context_message': context_message,
+            'instructions': instructions,
+            'instructions_str': instructions_str,
         }
 
         # Make result available outside the tool
@@ -162,7 +164,11 @@ def ask_graph(human_input: str) -> dict:
     # We still keep the failed result, to avoid failing all retries again in case we get the same input
     print("[TOOL]", f"Giving up after not getting a result after {max_retries} retries.")
 
-    result = {'error_code': ec.ERR_TOO_MANY_RETRIES}
+    result = {
+        'error_code': ec.ERR_TOO_MANY_RETRIES,
+        'instructions': instructions or [],
+        'instructions_str': instructions_str,
+    }
 
     # Make result available outside the tool
     graph_answers[human_input] = result

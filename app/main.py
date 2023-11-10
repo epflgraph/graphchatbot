@@ -22,6 +22,8 @@ class ChatOutput(BaseModel):
     message: Optional[str] = None
     formatted_message: Optional[str] = None
     formatting_dict: Optional[dict] = None
+    instructions: list = []
+    instructions_str: str = ""
     tokens: Optional[int] = None
     price: Optional[float] = None
 
