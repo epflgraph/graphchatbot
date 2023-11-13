@@ -24,6 +24,7 @@ dependencies = [
     "openai",
     "elasticsearch",
     "mysql-connector-python",
+    "db-cache-manager",
 ]
 
 [tool.setuptools]

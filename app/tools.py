@@ -12,6 +12,7 @@ from langchain.prompts import (
 
 from app.config import config
 import app.error_codes as ec
+import app.interfaces.cache as cache
 from app.prompts import system_messages
 from app.instructions import (
     parse_instructions,
@@ -81,14 +82,26 @@ def ask_graph(human_input: str) -> dict:
     max_retries = 3
     retries_left = max_retries
     input = human_input
+    use_persistent_cache = True
     while retries_left > 0:
         retries_left -= 1
 
+        # Fetch instructions from persistent cache
+        if use_persistent_cache:
+            print("[TOOL]", f"Trying to fetch instructions from persistent cache for input `{input}`")
+            instructions_str = cache.get(input)
+            print("[TOOL] Got the following instructions")
+            print(instructions_str)
+            use_persistent_cache = False    # we only try to fetch from persistent cache the first time
+        else:
+            instructions_str = None
+
         # Ask LLM to generate instructions for input text
-        print("[TOOL]", f"Calling LLM for instructions for input `{input}`")
-        instructions_str = chain({'input': input})['text']
-        print("[TOOL] Got the following instructions")
-        print(instructions_str)
+        if instructions_str is None:
+            print("[TOOL]", f"Calling LLM for instructions for input `{input}`")
+            instructions_str = chain({'input': input})['text']
+            print("[TOOL] Got the following instructions")
+            print(instructions_str)
 
         # Parse instructions from str to list of dict
         try:
@@ -156,6 +169,10 @@ def ask_graph(human_input: str) -> dict:
         # Make result available outside the tool
         graph_answers[human_input] = result
         print("[TOOL]", "Stored result for access outside the tool")
+
+        # Store instructions in persistent cache
+        cache.set(human_input, instructions_str)
+        print("[TOOL]", "Stored instructions in persistent cache")
 
         # Obfuscate returned nodeset, send back to LLM only `NodeType` and `NodeKey`
         return obfuscate_result(result)
