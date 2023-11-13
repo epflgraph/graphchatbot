@@ -48,7 +48,6 @@ def create_chain(memory_key):
 def delete_chain(memory_key=None):
     if memory_key is None:
         memory_keys = list(chains.keys())
-        print(memory_keys)
         for memory_key in memory_keys:
             del chains[memory_key]
             del last_interactions[memory_key]
