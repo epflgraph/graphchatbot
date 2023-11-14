@@ -15,7 +15,11 @@ function appendMessage(className, message, dict={}) {
             const nodeType = dict[id]['NodeType'].toLowerCase();
             const nodeKey = dict[id]['NodeKey'];
             link.href = `https://graphsearch.epfl.ch/${nodeType}/${nodeKey}`;
-            link.innerText = dict[id]['Title'];
+            if (dict[id].hasOwnProperty('LinkText')) {
+                link.innerText = dict[id]['LinkText'];
+            } else {
+                link.innerText = dict[id]['Title'];
+            }
             link.target = 'blank_';
             messageElem.appendChild(link);
         } else {

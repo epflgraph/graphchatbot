@@ -106,19 +106,36 @@ def encode_node_titles(message, results):
     for node in all_nodes:
         # Match Markdown links like [Image processing II](Course/MICRO-512)
         pattern = (
-                r"\[.*?\]"
+                r"\[(.*?)\]"
                 + r"\("
                 + re.escape(node['NodeType'])
                 + r"/"
                 + re.escape(node['NodeKey'])
                 + r"\)"
         )
-        formatted_message, n_replacements = re.subn(pattern, f'%{i}$', formatted_message)
+        matches = re.findall(pattern, formatted_message)
+
+        n_replacements = 0
+        for match in matches:
+            pattern = (
+                    r"\["
+                    + re.escape(match)
+                    + r"\]"
+                    + r"\("
+                    + re.escape(node['NodeType'])
+                    + r"/"
+                    + re.escape(node['NodeKey'])
+                    + r"\)"
+            )
+            formatted_message, n_match_replacements = re.subn(pattern, f'%{i}$', formatted_message)
+
+            if n_match_replacements > 0:
+                formatting_dict[i] = {**node, 'LinkText': match}
+                n_replacements += n_match_replacements
+                i += 1
 
         # If we have replaced something, we're done
         if n_replacements > 0:
-            formatting_dict[i] = node
-            i += 1
             continue
 
         # If the node is not a returned node, we're done
@@ -146,6 +163,10 @@ def encode_node_titles(message, results):
             formatting_dict[i] = node
             i += 1
             continue
+
+    # Finally, remove any remaining (most likely malformed) Markdown links
+    pattern = r"\[(.*?)\]\(.*?\)"
+    formatted_message = re.sub(pattern, r'\1', formatted_message)
 
     return formatted_message, formatting_dict
 
