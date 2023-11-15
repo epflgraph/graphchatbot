@@ -11,7 +11,7 @@ from langchain.tools import StructuredTool
 from app.config import config
 from app.prompts import system_messages
 from app.agents import CUSTOM_OPENAI_FUNCTIONS
-from app.tools import ask_graph
+from app.tools import ask_graph, search_news
 
 ################################################################
 # CHAINS                                                       #
@@ -25,7 +25,10 @@ last_interactions = {}
 def create_chain(memory_key):
     chat_llm = ChatOpenAI(temperature=0, openai_api_key=config['openai']['api_key'])
 
-    tools = [StructuredTool.from_function(name='Ask_EPFL_Graph', func=ask_graph, description="useful to ask the knowledge graph of EPFL in natural language")]
+    tools = [
+        StructuredTool.from_function(name='Ask_EPFL_Graph', func=ask_graph, description="useful to ask the knowledge graph of EPFL in natural language"),
+        StructuredTool.from_function(name='Search_EPFL_News', func=search_news, description="Useful to fetch news articles from EPFL. Use sparingly and only when literally news are requested.")
+    ]
 
     memory = ConversationBufferMemory(memory_key=memory_key, return_messages=True)
 

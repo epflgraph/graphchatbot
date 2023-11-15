@@ -1,3 +1,39 @@
+function parseLinks(text) {
+    const markdownLinkRegex = /(\[.*\])(\(.*\))/gm;
+    const subpieces = text.split(markdownLinkRegex);
+
+    let elems = [];
+    for (const subpiece of subpieces) {
+        if (subpiece.startsWith('(') && subpiece.endsWith(')')) {
+            // Skip URLs of Markdown links
+            continue;
+        }
+
+        const index = subpieces.indexOf(subpiece);
+
+        let nextSubpiece = "";
+        if (index + 1 < subpieces.length) {
+            nextSubpiece = subpieces[index + 1];
+        }
+
+        if (subpiece.startsWith('[') && subpiece.endsWith(']') && nextSubpiece) {
+            // This subpiece is the link text of a markdown link
+            let link = document.createElement('a');
+            link.href = nextSubpiece.slice(1, -1);
+            link.innerText = subpiece.slice(1, -1);
+            link.target = 'blank_';
+            elems.push(link);
+        } else {
+            // This segment is regular text
+            const span = document.createElement('span');
+            span.innerText = subpiece;
+            elems.push(span);
+        }
+    }
+
+    return elems;
+}
+
 function appendMessage(className, message, dict={}) {
     const chatContainer = document.getElementById('chat-container');
     const messageElem = document.createElement('div');
@@ -23,10 +59,10 @@ function appendMessage(className, message, dict={}) {
             link.target = 'blank_';
             messageElem.appendChild(link);
         } else {
-            // Use a div to preserve text formatting and newlines
-            const span = document.createElement('span');
-            span.innerText = piece;
-            messageElem.appendChild(span);
+            const elems = parseLinks(piece);
+            for (elem of elems) {
+                messageElem.appendChild(elem);
+            }
         }
     }
 

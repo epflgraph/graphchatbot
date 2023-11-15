@@ -1,3 +1,5 @@
+import requests
+
 import traceback
 
 from langchain.chat_models import ChatOpenAI
@@ -192,3 +194,35 @@ def ask_graph(human_input: str) -> dict:
     print("[TOOL]", "Stored failed result for access outside the tool")
 
     return result
+
+################################################################
+# NEWS                                                         #
+################################################################
+
+
+def search_news(query: str) -> dict:
+    print("[NEWS]", f"Called search news tool with input `{query}`")
+
+    endpoint_base_url = "https://search-backend.epfl.ch/api/cse"
+    path_params = {
+        'hl': 'en',
+        'siteSearch': 'actu.epfl.ch/news',
+        'siteSearchFilter': 'i',
+        'q': query,
+    }
+    path_params_str = '&'.join([f'{k}={v}' for k, v in path_params.items()])
+
+    endpoint_full_url = f'{endpoint_base_url}?{path_params_str}'
+
+    items = requests.get(endpoint_full_url).json()['items']
+    print("[NEWS]", f"Got {len(items)} news articles")
+
+    news = [
+        {
+            key: item[key]
+            for key in ['title', 'link', 'snippet']
+        }
+        for item in items
+    ]
+
+    return news

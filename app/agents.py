@@ -19,14 +19,15 @@ class CustomOpenAIFunctionsAgent(OpenAIFunctionsAgent):
         **kwargs,
     ):
         if intermediate_steps:
-            # Store results from last function call
             agent_action, result = intermediate_steps[-1]   # can't use this result as it's obfuscated
 
-            human_input = agent_action.tool_input['human_input']
-            if human_input in graph_answers:
-                result = graph_answers[human_input]
+            # Store results from last function call
+            if agent_action.tool == 'Ask_EPFL_Graph':
+                human_input = agent_action.tool_input['human_input']
+                if human_input in graph_answers:
+                    result = graph_answers[human_input]
 
-            self.results.append(result)
+                self.results.append(result)
         else:
             # First interaction, clear results_list
             self.results = []
@@ -37,7 +38,7 @@ class CustomOpenAIFunctionsAgent(OpenAIFunctionsAgent):
         agent_decision = super().plan(intermediate_steps, *args, **kwargs)
 
         if isinstance(agent_decision, AgentAction):
-            print("[AGENT]", f"Chose to use tool `{agent_decision.tool}` with input `{agent_decision.tool_input['human_input']}`")
+            print("[AGENT]", f"Chose to use tool `{agent_decision.tool}` with input `{agent_decision.tool_input}`")
         elif isinstance(agent_decision, AgentFinish):
             print("[AGENT]", f"Chose to finish execution")
         else:
