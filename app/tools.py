@@ -62,14 +62,11 @@ graph_answers = {}
 
 
 def obfuscate_result(result):
-    # # Keep only `NodeType` and `NodeKey` in nodeset
-    # return {
-    #     'nodeset': [{'NodeType': node['NodeType'], 'NodeKey': node['NodeKey']} for node in result['nodeset']],
-    #     'context': result['context']
-    # }
-
-    # TODO obfuscate in a sensible way that the LLM can cope with
-    return {key: result[key] for key in result if key != 'nodesets'}
+    return {
+        'nodeset': result['nodeset'],
+        'context': result['context'],
+        'context_message': result['context_message'],
+    }
 
 
 def ask_graph(human_input: str) -> dict:
