@@ -1,10 +1,10 @@
 from datetime import datetime
 
-from app.data import get_prompt_examples
+from app.data import get_examples
 
 
 def build_examples_str():
-    examples = get_prompt_examples()
+    examples = get_examples('prompt')
 
     examples_list = []
     for example in examples:
