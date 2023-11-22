@@ -21,18 +21,24 @@ def parse_instructions(instructions_str):
 
     parsed_instructions = []
     for instruction in instructions:
-        if 'Return' in instruction:
-            lhs = None
-            rhs = instruction
-        else:
-            if '=' not in instruction:
-                continue
-
-            # Split LHS and RHS
-            pieces = instruction.split('=')
+        if '=' in instruction:
+            # If there is an equal sign, split into LHS and RHS
+            pieces = instruction.split('=', maxsplit=1)
             pieces = [piece.strip() for piece in pieces]
             [lhs, rhs] = pieces
 
+            # Fallback to recover from a malformed Return operation with LHS
+            if 'Return' in instruction:
+                lhs = None
+        else:
+            # If there is no equal sign, parse only if the instruction is a Return
+            if 'Return' in instruction:
+                lhs = None
+                rhs = instruction
+            else:
+                continue
+
+        # If no parentheses, ignore instruction
         if '(' not in rhs or ')' not in rhs:
             continue
 
