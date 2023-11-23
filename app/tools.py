@@ -1,0 +1,252 @@
+import random
+import hashlib
+import requests
+
+import traceback
+
+from langchain.chat_models import ChatOpenAI
+from langchain.chains import LLMChain
+from langchain.memory import ConversationBufferMemory
+from langchain.prompts import (
+    ChatPromptTemplate,
+    MessagesPlaceholder,
+    SystemMessagePromptTemplate,
+    HumanMessagePromptTemplate,
+)
+
+from app.config import config
+import app.error_codes as ec
+import app.interfaces.cache as cache
+from app.prompts import system_messages
+from app.instructions import (
+    parse_instructions,
+    check_instructions,
+    follow_instructions,
+    build_context,
+    build_context_message,
+    build_retry_message,
+)
+
+################################################################
+# CHAINS                                                       #
+################################################################
+
+
+def create_chain():
+    chat = ChatOpenAI(
+        temperature=0,
+        openai_api_key=config['openai']['api_key'],
+        request_timeout=10,
+    )
+    memory = ConversationBufferMemory(memory_key='memory', return_messages=True)
+    prompt = ChatPromptTemplate(messages=[
+            SystemMessagePromptTemplate.from_template(system_messages['instructions']),
+            MessagesPlaceholder(variable_name='memory'),
+            HumanMessagePromptTemplate.from_template("{input}")
+    ])
+
+    return LLMChain(
+        llm=chat,
+        prompt=prompt,
+        verbose=False,
+        memory=memory,
+    )
+
+
+################################################################
+# MAIN                                                         #
+################################################################
+
+# Object to store full object to be recovered by the wrapper
+graph_answers = {}
+
+
+def obfuscate_result(result):
+    return {
+        'nodeset': result['nodeset'],
+        'context': result['context'],
+        'context_message': result['context_message'],
+    }
+
+
+def ask_graph(human_input: str) -> dict:
+    print("[TOOL]", f"Called ask graph tool with input `{human_input}`")
+
+    # Check if result is cached
+    if human_input in graph_answers:
+        print("[TOOL]", f"Found cached result for input `{human_input}`, returning right away without calling LLM.")
+        return obfuscate_result(graph_answers[human_input])
+
+    chain = create_chain()
+
+    # Iterate trying to produce a result as long as there are retries left
+    max_retries = 3
+    retries_left = max_retries
+    input = human_input
+    use_persistent_cache = True
+    while retries_left > 0:
+        retries_left -= 1
+
+        # Fetch instructions from persistent cache
+        if use_persistent_cache:
+            print("[TOOL]", f"Trying to fetch instructions from persistent cache for input `{input}`")
+            instructions_str = cache.get(input)
+            print("[TOOL] Got the following instructions")
+            print(instructions_str)
+            use_persistent_cache = False    # we only try to fetch from persistent cache the first time
+        else:
+            instructions_str = None
+
+        # Ask LLM to generate instructions for input text
+        if instructions_str is None:
+            print("[TOOL]", f"Calling LLM for instructions for input `{input}`")
+            instructions_str = chain({'input': input})['text']
+            print("[TOOL] Got the following instructions")
+            print(instructions_str)
+
+        # Parse instructions from str to list of dict
+        try:
+            instructions = parse_instructions(instructions_str)
+        except Exception as e:
+            # If this fails, the LLM did not even return a syntactically correct set of instructions
+            # The typical case for this is when the input is something like "dlifhaslkjfn"
+            # We do not even retry and just return the error code and the message for display
+            print("[TOOL]", "Error parsing instructions")
+            traceback.print_exc()
+            return {'error_code': ec.ERR_CANNOT_PARSE_INSTRUCTIONS, 'message': instructions_str}
+
+        # --- If we reach this point, the instructions are syntactically correct ---
+        print("[TOOL]", "Instructions parsed")
+
+        # Check instructions and return error object on failure
+        ok, error = check_instructions(instructions)
+
+        # If the instructions are not ok, build a new input text and retry
+        if not ok:
+            print("[TOOL]", f"Error {error['code']}")
+            input = build_retry_message(error)
+            continue
+
+        # --- If we reach this point, the instructions are syntactic and semantically correct ---
+        print("[TOOL]", "Instructions checked")
+
+        # We follow the instructions to get the nodeset that answers the prompt
+        try:
+            nodesets, returned_nodeset = follow_instructions(instructions)
+        except Exception as e:
+            # If this fails, some instruction failed in its execution
+            # An example for this is when we run an "All" instruction with some unsupported field
+            # We do retry with a generic retry message
+            print("[TOOL]", "Error following instructions")
+            input = build_retry_message()
+            continue
+
+        # --- If we reach this point, we successfully obtained a nodeset by following the instructions ---
+        print("[TOOL]", f"Nodeset obtained ({len(returned_nodeset)} nodes)")
+
+        # We build a context dictionary and a context message based on the instructions
+        # (e.g. "Showing People related to the Concept Urbanism")
+        try:
+            context = build_context(instructions, nodesets)
+            context_message = build_context_message(instructions, nodesets)
+
+        except Exception as e:
+            print("[TOOL]", "Error building context")
+            traceback.print_exc()
+            return {'error_code': ec.ERR_CANNOT_BUILD_CONTEXT}
+
+        # --- If we reach this point, we successfully created the context for the returned nodeset ---
+        print("[TOOL]", "Context obtained")
+
+        result = {
+            'nodeset': returned_nodeset[:10],
+            'nodesets': nodesets,
+            'context': context,
+            'context_message': context_message,
+            'instructions': instructions,
+            'instructions_str': instructions_str,
+        }
+
+        # Make result available outside the tool
+        graph_answers[human_input] = result
+        print("[TOOL]", "Stored result for access outside the tool")
+
+        # Store instructions in persistent cache
+        cache.set(human_input, instructions_str)
+        print("[TOOL]", "Stored instructions in persistent cache")
+
+        # Obfuscate returned nodeset, send back to LLM only `NodeType` and `NodeKey`
+        return obfuscate_result(result)
+
+    # Give up after failing all retries
+    # We still keep the failed result, to avoid failing all retries again in case we get the same input
+    print("[TOOL]", f"Giving up after not getting a result after {max_retries} retries.")
+
+    result = {
+        'error_code': ec.ERR_TOO_MANY_RETRIES,
+        'instructions': instructions or [],
+        'instructions_str': instructions_str,
+    }
+
+    # Make result available outside the tool
+    graph_answers[human_input] = result
+    print("[TOOL]", "Stored failed result for access outside the tool")
+
+    return result
+
+################################################################
+# COLOR                                                        #
+################################################################
+
+
+def find_color(query: str) -> str:
+    print("[COLOR]", f"Called find color tool with input `{query}`")
+
+    md5_hash = hashlib.md5(query.encode('utf-8')).hexdigest()
+    seed = int(md5_hash, 16)
+
+    random.seed(seed)
+    number = random.randint(0, 256 ** 3 - 1)
+    color_hex_code = str(hex(number))[2:]
+
+    print("[COLOR]", f"Found color hex code `{color_hex_code}`")
+
+    url = f'https://www.thecolorapi.com/id?hex={color_hex_code}'
+    color_name = requests.get(url).json()['name']['value']
+
+    print("[COLOR]", f"Found color name `{color_name}`")
+
+    return color_name
+
+
+################################################################
+# NEWS                                                         #
+################################################################
+
+
+def search_news(query: str) -> dict:
+    print("[NEWS]", f"Called search news tool with input `{query}`")
+
+    endpoint_base_url = "https://search-backend.epfl.ch/api/cse"
+    path_params = {
+        'hl': 'en',
+        'siteSearch': 'actu.epfl.ch/news',
+        'siteSearchFilter': 'i',
+        'q': query,
+    }
+    path_params_str = '&'.join([f'{k}={v}' for k, v in path_params.items()])
+
+    endpoint_full_url = f'{endpoint_base_url}?{path_params_str}'
+
+    items = requests.get(endpoint_full_url).json()['items']
+    print("[NEWS]", f"Got {len(items)} news articles")
+
+    news = [
+        {
+            key: item[key]
+            for key in ['title', 'link', 'snippet']
+        }
+        for item in items
+    ]
+
+    return news

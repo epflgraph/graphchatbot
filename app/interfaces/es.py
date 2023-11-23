@@ -97,8 +97,15 @@ def search_nodes(node_type, text):
         }
     }
 
+    # Try to match only Title field
     res = es.search(index='graph_full_piper', source=['NodeKey', 'NodeType', 'Title'], query=query)
     results = [hit['_source'] for hit in res['hits']['hits']]
+
+    # Fallback try to match Content field instead
+    if not results:
+        query['function_score']['query']['bool']['must'][0]['multi_match']['fields'] = ['Content']
+        res = es.search(index='graph_full_piper', source=['NodeKey', 'NodeType', 'Title'], query=query)
+        results = [hit['_source'] for hit in res['hits']['hits']]
 
     return results
 

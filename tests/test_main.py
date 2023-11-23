@@ -1,62 +1,45 @@
-import random
-
-from app.data import get_prompt_examples, get_test_examples
-from app.conversation import get_chain
-from app.instructions import (
-    parse_instructions,
-    follow_instructions,
-    build_context,
-)
+from app.tools import ask_graph, graph_answers
+from app.data import get_examples
 
 
-def test_instructions():
-    # Check generation of instructions on a randomly sampled set of test examples
-    examples = get_test_examples()
-    examples = random.sample(examples, 3)
+def test_ask_graph():
+    examples = get_examples('prompt') + get_examples('test')
 
     for example in examples:
-        # Use list index as conversation id
-        conversation_id = str(examples.index(example))
-        chain = get_chain('instructions', conversation_id)
+        # Check obfuscated result returned by the function
+        obfuscated_result = ask_graph(example['query'])
 
-        # Run chain with human message
-        instructions_str = chain({'input': example['query']})['text']
-        instructions = instructions_str.split('\n')
+        assert 'nodeset' in obfuscated_result
+        assert isinstance(obfuscated_result['nodeset'], list)
+        assert len(obfuscated_result['nodeset']) > 0
 
-        # Check if returned instructions match the expected ones
-        assert instructions == example['instructions']
+        assert 'context' in obfuscated_result
+        assert isinstance(obfuscated_result['context'], dict)
+        assert len(obfuscated_result['context']) > 0
 
+        # Check full result stored on the side
+        assert example['query'] in graph_answers
 
-def test_examples():
-    examples = get_prompt_examples() + get_test_examples()
+        full_result = graph_answers[example['query']]
 
-    for example in examples:
-        # Parse instructions
-        instructions_str = '\n'.join(example['instructions'])
-        instructions = parse_instructions(instructions_str)
+        assert 'nodeset' in full_result
+        assert isinstance(full_result['nodeset'], list)
+        assert len(full_result['nodeset']) > 0
 
-        ################
+        assert 'nodesets' in full_result
+        assert isinstance(full_result['nodesets'], dict)
+        assert len(full_result['nodesets']) > 0
 
-        # Follow instructions
-        nodesets = follow_instructions(instructions)
+        assert 'instructions_str' in full_result
+        assert isinstance(full_result['instructions_str'], str)
+        assert len(full_result['instructions_str']) > 0
+        print(full_result['instructions_str'].split('\n'))
+        print(example['instructions'])
+        assert full_result['instructions_str'].split('\n') == example['instructions']
 
-        # Check nodesets is a list
-        assert isinstance(nodesets, list)
-
-        # Check there is at least one nodeset
-        assert len(nodesets) > 0
-
-        # Check the first nodeset is a list
-        assert isinstance(nodesets[0], list)
-
-        # Check the first nodeset is not empty
-        assert len(nodesets[0]) > 0
-
-        ################
-
-        # Build context
-        contexts = build_context(instructions)
-
-        # Check contexts are the same as expected
-        print(contexts)
-        assert contexts == example['contexts']
+        assert 'context' in full_result
+        assert isinstance(full_result['context'], dict)
+        assert len(full_result['context']) > 0
+        print(full_result['context'])
+        print(example['context'])
+        assert full_result['context'] == example['context']
