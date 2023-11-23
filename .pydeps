@@ -1,0 +1,11 @@
+[pydeps]
+exclude =
+    requests
+    fastapi
+    pydantic
+    langchain
+    mysql
+    elasticsearch
+    db_cache_manager
+
+rankdir = RL
