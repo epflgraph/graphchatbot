@@ -238,7 +238,8 @@ def search_news(query: str) -> dict:
 
     endpoint_full_url = f'{endpoint_base_url}?{path_params_str}'
 
-    items = requests.get(endpoint_full_url).json()['items']
+    response = requests.get(endpoint_full_url).json()
+    items = response.get('items', [])
     print("[NEWS]", f"Got {len(items)} news articles")
 
     news = [
