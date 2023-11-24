@@ -16,7 +16,7 @@ from langchain.prompts import (
 
 from app.config import config
 import app.error_codes as ec
-import app.interfaces.cache as cache
+from app.interfaces.db import db_manager
 from app.prompts import system_messages
 from app.instructions import (
     parse_instructions,
@@ -90,7 +90,7 @@ def ask_graph(human_input: str) -> dict:
         # Fetch instructions from persistent cache
         if use_persistent_cache:
             print("[TOOL]", f"Trying to fetch instructions from persistent cache for input `{input}`")
-            instructions_str = cache.get(input)
+            instructions_str = db_manager.get(input)
             print("[TOOL] Got the following instructions")
             print(instructions_str)
             use_persistent_cache = False    # we only try to fetch from persistent cache the first time
@@ -172,7 +172,7 @@ def ask_graph(human_input: str) -> dict:
         print("[TOOL]", "Stored result for access outside the tool")
 
         # Store instructions in persistent cache
-        cache.set(human_input, instructions_str)
+        db_manager.set(human_input, instructions_str)
         print("[TOOL]", "Stored instructions in persistent cache")
 
         # Obfuscate returned nodeset, send back to LLM only `NodeType` and `NodeKey`

@@ -1,4 +1,4 @@
-from app.interfaces.db import execute_query
+from app.interfaces.db import db_manager
 from app.interfaces.es import get_nodeset, search_node_contents
 
 
@@ -150,9 +150,9 @@ def filter_node_ids(node_type, key, value, filter_ids=None):
     query += f"""WHERE {conditions_str}"""
 
     if query_params:
-        results = execute_query(query, query_params)
+        results = db_manager.db.execute_query(query, query_params)
     else:
-        results = execute_query(query)
+        results = db_manager.db.execute_query(query)
 
     node_ids = [str(r) for r, in results]
 
@@ -197,7 +197,7 @@ def get_neighborhood(nodeset, node_type):
     if order_field is not None:
         query += f"""ORDER BY {order_field} DESC"""
 
-    results = execute_query(query, ids)
+    results = db_manager.db.execute_query(query, ids)
     neighbor_ids = [r for r, in results]
 
     # Remove duplicates while keeping order
@@ -281,7 +281,7 @@ def sort(nodeset, key, order):
         ORDER BY {key_field} {key_order}
     """
 
-    results = execute_query(query, ids)
+    results = db_manager.db.execute_query(query, ids)
     sorted_ids = [str(r) for r, in results]
 
     # Filter nodeset, keep only ids found above
