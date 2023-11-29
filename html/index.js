@@ -1,5 +1,5 @@
 function parseLinks(text) {
-    const markdownLinkRegex = /(\[.*\])(\(.*\))/gm;
+    const markdownLinkRegex = /(\[.*?\])(\(.*?\))/gm;
     const subpieces = text.split(markdownLinkRegex);
 
     let elems = [];
