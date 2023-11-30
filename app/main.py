@@ -49,9 +49,23 @@ async def chat(input: ChatInput, response: Response):
 ################################################################
 
 
+class ResetInput(BaseModel):
+    conversation_id: str
+
+
+@app.post('/reset')
+async def reset(input: ResetInput):
+    conversation_id = input.conversation_id
+
+    delete_chain(conversation_id)
+
+    return {'ok': True}
+
+################################################################
+
+
 @app.get('/')
 async def index():
-    delete_chain()
     return FileResponse('../html/index.html')
 
 
