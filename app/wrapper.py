@@ -51,12 +51,14 @@ def create_chain(memory_key):
 
 def delete_chain(memory_key=None):
     if memory_key is None:
+        print("[WRAPPER] Killing all chains")
         memory_keys = list(chains.keys())
         for memory_key in memory_keys:
             del chains[memory_key]
             del last_interactions[memory_key]
 
     elif memory_key in chains:
+        print(f"[WRAPPER] Killing chain {memory_key}")
         del chains[memory_key]
         del last_interactions[memory_key]
 
@@ -69,7 +71,7 @@ def get_chain(memory_key):
     last = last_interactions[memory_key]
     now = time.time()
     if memory_key in chains and now - last >= 300:
-        print("Killing chain")
+        print(f"[WRAPPER] Killing chain {memory_key}")
         delete_chain(memory_key)
 
     last_interactions[memory_key] = now
