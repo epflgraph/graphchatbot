@@ -1,5 +1,5 @@
-from app.interfaces.es import search_nodes
 from app.nodes import (
+    search_node,
     get_all_nodes_and_filter,
     get_neighborhood,
     filter,
@@ -209,9 +209,7 @@ def follow_instructions(instructions):
         params = instruction['params']
 
         if operator == 'Search':
-            nodeset = search_nodes(*params)
-            nodeset = nodeset[:1]
-            nodesets[lhs] = nodeset
+            nodesets[lhs] = search_node(*params)
 
         elif operator == 'All':
             [node_type, field, value] = params

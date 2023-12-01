@@ -1,5 +1,5 @@
 from app.interfaces.db import db_manager
-from app.interfaces.es import get_nodeset, search_node_contents
+from app.interfaces.es import search_nodes, get_nodeset, search_node_contents
 
 
 def drop_duplicates(nodeset):
@@ -160,6 +160,11 @@ def filter_node_ids(node_type, key, value, filter_ids=None):
 
 
 ################################################################
+
+
+def search_node(node_type, text):
+    nodeset = search_nodes(node_type, text)
+    return nodeset[:1]
 
 
 def get_all_nodes_and_filter(node_type, key, value):
