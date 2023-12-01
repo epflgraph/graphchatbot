@@ -1,4 +1,5 @@
-from app.tools import ask_graph, graph_answers
+from app.tools import ask_graph
+from app.tools.graph import graph_answers
 from app.data import get_examples
 
 

@@ -2,7 +2,7 @@ from langchain.agents.openai_functions_agent.base import OpenAIFunctionsAgent
 from langchain.agents.loading import AGENT_TO_CLASS
 from langchain.schema import AgentAction, AgentFinish
 
-from app.tools import graph_answers
+from app.tools.graph import graph_answers
 
 
 class CustomOpenAIFunctionsAgent(OpenAIFunctionsAgent):
@@ -32,7 +32,7 @@ class CustomOpenAIFunctionsAgent(OpenAIFunctionsAgent):
             # First interaction, clear results_list
             self.results = []
 
-        print("[AGENT]", f"Planning what to do next")
+        print("[AGENT]", "Planning what to do next")
 
         # Call super function to actually plan
         agent_decision = super().plan(intermediate_steps, *args, **kwargs)
@@ -40,7 +40,7 @@ class CustomOpenAIFunctionsAgent(OpenAIFunctionsAgent):
         if isinstance(agent_decision, AgentAction):
             print("[AGENT]", f"Chose to use tool `{agent_decision.tool}` with input `{agent_decision.tool_input}`")
         elif isinstance(agent_decision, AgentFinish):
-            print("[AGENT]", f"Chose to finish execution")
+            print("[AGENT]", "Chose to finish execution")
         else:
             # Unreachable
             raise ValueError(f"Agent planned a {agent_decision}, only AgentAction or AgentFinish are supported.")

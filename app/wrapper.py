@@ -158,7 +158,6 @@ def encode_node_titles(message, results):
         if n_replacements > 0:
             formatting_dict[i] = node
             i += 1
-            continue
 
         # We try to match the node `Title` in lowercase as a last resource
         pattern = re.escape(node['Title'].lower())
@@ -185,7 +184,7 @@ def chat(conversation_id, human_input):
 
     message = chain.run(human_input)
 
-    print("[WRAPPER]", f"Got response message from agent executor")
+    print("[WRAPPER]", "Got response message from agent executor")
 
     # Fetch results obtained in the tool
     if chain.agent.results:
@@ -197,7 +196,7 @@ def chat(conversation_id, human_input):
 
     # Replace node titles with placeholders so they can become links
     formatted_message, formatting_dict = encode_node_titles(message, results)
-    print("[WRAPPER]", f"Formatted message with placeholders for hyperlinks")
+    print("[WRAPPER]", "Formatted message with placeholders for hyperlinks")
 
     return {
         'results': results,
