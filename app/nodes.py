@@ -177,7 +177,7 @@ def get_all_nodes_and_filter(node_type, key, value):
     return nodeset
 
 
-def get_neighborhood(nodeset, node_type):
+def get_neighborhood(nodeset, node_type, return_order=False):
     if len(nodeset) == 0:
         return []
 
@@ -192,7 +192,7 @@ def get_neighborhood(nodeset, node_type):
     # Extract ids from nodeset
     ids = [node['NodeKey'] for node in nodeset]
 
-    # Run query
+    # Build and run query
     query = f"""
         SELECT DISTINCT {target_id_field}
         FROM graphsearch.{table_name}
@@ -211,6 +211,24 @@ def get_neighborhood(nodeset, node_type):
     # Get nodes from ids
     nodes = get_nodeset(neighbor_ids, target_node_type)
     nodes = drop_duplicates(nodes)
+
+    # Return order field if required
+    if return_order:
+        query = f"""
+            SELECT {target_id_field}, MAX({order_field})
+            FROM graphsearch.{table_name}
+            WHERE {source_id_field} IN ({', '.join(['%s'] * len(ids))})
+            AND {target_id_field} IN ({', '.join(['%s'] * len(neighbor_ids))})
+            GROUP BY {target_id_field}
+        """
+
+        results = db_manager.db.execute_query(query, ids + neighbor_ids)
+
+        for node in nodes:
+            node['Order'] = 0
+            for node_id, order_value in results:
+                if node['NodeKey'] == node_id:
+                    node['Order'] = order_value
 
     return nodes
 
