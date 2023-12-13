@@ -1,5 +1,3 @@
-import mysql.connector
-
 from db_cache_manager.db import DBCachingManagerBase
 
 from app.config import config
@@ -108,13 +106,4 @@ class ChatbotDBCachingManager(DBCachingManagerBase):
 
 
 db_manager = ChatbotDBCachingManager()
-
-################################################################
-
-
-db = mysql.connector.connect(
-    host=config['database']['host'],
-    port=config['database']['port'],
-    user=config['database']['user'],
-    password=config['database']['password'],
-)
+db = db_manager.db

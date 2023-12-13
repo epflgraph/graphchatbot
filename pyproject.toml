@@ -23,7 +23,6 @@ dependencies = [
     "langchain",
     "openai",
     "elasticsearch-interface",
-    "mysql-connector-python",
     "db-cache-manager",
 ]
 
