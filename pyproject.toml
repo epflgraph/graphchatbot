@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "graphchatbot"
-version = "0.0.1"
+version = "0.1.0"
 authors = [
   { name="Aitor Pérez", email="aitor.perez@epfl.ch" }
 ]
@@ -22,7 +22,7 @@ dependencies = [
     "requests",
     "langchain",
     "openai",
-    "elasticsearch",
+    "elasticsearch-interface",
     "mysql-connector-python",
     "db-cache-manager",
 ]

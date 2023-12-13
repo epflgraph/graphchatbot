@@ -1,5 +1,5 @@
+from app.interfaces.es import es
 from app.interfaces.db import db_manager
-from app.interfaces.es import search_nodes, get_nodeset, search_node_contents
 
 
 def drop_duplicates(nodeset):
@@ -163,7 +163,7 @@ def filter_node_ids(node_type, key, value, filter_ids=None):
 
 
 def search_node(node_type, text):
-    nodeset = search_nodes(node_type, text)
+    nodeset = es.search_nodes(text, node_type)
     return nodeset[:1]
 
 
@@ -172,7 +172,7 @@ def get_all_nodes_and_filter(node_type, key, value):
     node_ids = filter_node_ids(node_type, key, value)
 
     # Get nodeset from ids
-    nodeset = get_nodeset(node_ids, node_type)
+    nodeset = es.get_nodeset(node_ids, node_type)
 
     return nodeset
 
@@ -209,7 +209,7 @@ def get_neighborhood(nodeset, node_type, return_order=False):
     neighbor_ids = list(dict.fromkeys(neighbor_ids))
 
     # Get nodes from ids
-    nodes = get_nodeset(neighbor_ids, target_node_type)
+    nodes = es.get_nodeset(neighbor_ids, target_node_type)
     nodes = drop_duplicates(nodes)
 
     # Return order field if required
@@ -265,7 +265,7 @@ def filter(nodeset, key, value):
         filtered_ids = filter_node_ids(node_type, key, value, filter_ids=ids)
     except Exception as e:
         # If the above does not work as expected, just search both key and value on the Content field in elasticsearch
-        nodeset = search_node_contents(value, node_type, filter_ids=ids)
+        nodeset = es.search_node_contents(value, node_type, filter_ids=ids)
         filtered_ids = [node['NodeKey'] for node in nodeset]
 
     # Filter nodeset, keep only ids found above
