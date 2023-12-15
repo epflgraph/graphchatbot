@@ -16,15 +16,12 @@ app = FastAPI()
 class ChatInput(BaseModel):
     conversation_id: str
     human_input: str
-    return_nlp: Optional[bool] = True
 
 
 class ChatOutput(BaseModel):
+    message: Optional[str] = None
     results: Optional[list] = None
     error_code: Optional[str] = None
-    message: Optional[str] = None
-    formatted_message: Optional[str] = None
-    formatting_dict: Optional[dict] = None
     instructions: list = []
     instructions_str: str = ""
     tokens: Optional[int] = None

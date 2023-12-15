@@ -1,5 +1,4 @@
 import time
-import re
 
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
@@ -88,95 +87,6 @@ def get_chain(memory_key):
 # MAIN                                                         #
 ################################################################
 
-
-def encode_node_titles(message, results):
-    # Flatten nodes involved in the query
-    returned_nodes = []
-    all_nodes = []
-    for result in results:
-        if 'nodeset' in result:
-            returned_nodes.extend(result['nodeset'])
-
-        if 'nodesets' in result:
-            for nodeset_name in result['nodesets']:
-                nodeset = result['nodesets'][nodeset_name][:10]  # the LLM has seen at most 10 nodes from each nodeset
-                all_nodes.extend(nodeset)
-
-    # Remove duplicates
-    returned_nodes = {(node['NodeType'], node['NodeKey']): node for node in returned_nodes}.values()
-    all_nodes = {(node['NodeType'], node['NodeKey']): node for node in all_nodes}.values()
-
-    # Create formatted answer with placeholders to replace names with links
-    formatted_message = message
-    formatting_dict = {}
-    i = 0
-    for node in all_nodes:
-        # Match Markdown links like [Image processing II](Course/MICRO-512)
-        pattern = (
-                r"\[(.*?)\]"
-                + r"\("
-                + re.escape(node['NodeType'])
-                + r"/"
-                + re.escape(node['NodeKey'])
-                + r"\)"
-        )
-        matches = re.findall(pattern, formatted_message)
-
-        n_replacements = 0
-        for match in matches:
-            pattern = (
-                    r"\["
-                    + re.escape(match)
-                    + r"\]"
-                    + r"\("
-                    + re.escape(node['NodeType'])
-                    + r"/"
-                    + re.escape(node['NodeKey'])
-                    + r"\)"
-            )
-            formatted_message, n_match_replacements = re.subn(pattern, f'%{i}$', formatted_message)
-
-            if n_match_replacements > 0:
-                formatting_dict[i] = {**node, 'LinkText': match}
-                n_replacements += n_match_replacements
-                i += 1
-
-        # If we have replaced something, we're done
-        if n_replacements > 0:
-            continue
-
-        # If the node is not a returned node, we're done
-        if node not in returned_nodes:
-            continue
-
-        # --- If we reach this, we haven't replaced Markdown links and the node is a returned one ---
-
-        # We try to match only the node `Title`
-        pattern = re.escape(node['Title'])
-        formatted_message, n_replacements = re.subn(pattern, f'%{i}$', formatted_message)
-
-        # If we have replaced something, we're done
-        if n_replacements > 0:
-            formatting_dict[i] = node
-            i += 1
-
-        # We try to match the node `Title` in lowercase as a last resource
-        pattern = re.escape(node['Title'].lower())
-        formatted_message, n_replacements = re.subn(pattern, f'%{i}$', formatted_message)
-
-        # If we have replaced something, we're done
-        if n_replacements > 0:
-            formatting_dict[i] = node
-            i += 1
-            continue
-
-    # Finally, remove any remaining (most likely malformed) Markdown links
-    pattern = r"\[(.*?)\]\(.*?\)"
-    formatted_message = re.sub(pattern, r'\1', formatted_message)
-
-    return formatted_message, formatting_dict
-
-
 def chat(conversation_id, human_input):
     print("[WRAPPER]", f"Received chat request for input `{human_input}`")
 
@@ -195,13 +105,7 @@ def chat(conversation_id, human_input):
         print("[WRAPPER]", "Could not find results from tool, defaulting to [].")
         results = []
 
-    # Replace node titles with placeholders so they can become links
-    formatted_message, formatting_dict = encode_node_titles(message, results)
-    print("[WRAPPER]", "Formatted message with placeholders for hyperlinks")
-
     return {
         'results': results,
         'message': message,
-        'formatted_message': formatted_message,
-        'formatting_dict': formatting_dict,
     }
