@@ -58,6 +58,14 @@ graph_answers = {}
 
 
 def obfuscate_result(result):
+    # If error, keep full result
+    if 'error_code' in result:
+        return result
+
+    # Build link for each node
+    for node in result['nodeset']:
+        node['Link'] = f"https://graphsearch.epfl.ch/{node['NodeType'].lower()}/{node['NodeKey']}"
+
     return {
         'nodeset': result['nodeset'],
         'context': result['context'],
