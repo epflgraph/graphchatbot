@@ -1,9 +1,17 @@
+"""
+This module defines the system prompts for the different LLMs involved in the chatbot.
+"""
+
 from datetime import datetime
 
 from app.data import get_examples
 
 
 def build_examples_str():
+    """
+    Fetches the examples in `data/prompt_examples.jsonl` and concatenates them into a string, each separated by two new lines.
+    """
+
     examples = get_examples('prompt')
 
     examples_list = []

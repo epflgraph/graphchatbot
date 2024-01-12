@@ -4,8 +4,8 @@ exclude =
     fastapi
     pydantic
     langchain
-    mysql
-    elasticsearch
+    pandas
     db_cache_manager
+    elasticsearch_interface
 
 rankdir = RL

@@ -1,3 +1,8 @@
+"""
+This module handles the interaction with the wrapper agent of the chatbot.
+More specifically, it handles the management of langchain chains (creation, retrieval, deletion) and provides an entry point to interact with them.
+"""
+
 import time
 
 from langchain.chat_models import ChatOpenAI
@@ -22,6 +27,16 @@ last_interactions = {}
 
 
 def create_chain(memory_key):
+    """
+    Creates a wrapper agent chain with a given memory key to keep track of message history.
+
+    Args:
+        memory_key (str): Memory key identifier to uniquely identify the conversation.
+
+    Returns:
+        AgentExecutor: Langchain agent executor with all available tools to use, with memory to build a conversation after subsequent messages.
+    """
+
     chat_llm = ChatOpenAI(temperature=0, openai_api_key=config['openai']['api_key'])
 
     tools = [
@@ -50,6 +65,13 @@ def create_chain(memory_key):
 
 
 def delete_chain(memory_key=None):
+    """
+    Deletes the wrapper agent chain with a given memory key.
+
+    Args:
+        memory_key (str): Memory key identifier to uniquely identify the conversation to be deleted. If None, all chains are deleted.
+    """
+
     if memory_key is None:
         print("[WRAPPER] Killing all chains")
         memory_keys = list(chains.keys())
@@ -64,6 +86,16 @@ def delete_chain(memory_key=None):
 
 
 def get_chain(memory_key):
+    """
+    Retrieves the wrapper agent chain with a given memory key.
+
+    Args:
+        memory_key (str): Memory key identifier to uniquely identify the conversation to be retrieved.
+
+    Returns:
+        AgentExecutor: Langchain agent executor identified by the memory key. If there is none, then one is created and returned.
+    """
+
     # Clear memory if more than 5 minutes have passed
     if memory_key not in last_interactions:
         last_interactions[memory_key] = time.time()
@@ -88,6 +120,19 @@ def get_chain(memory_key):
 ################################################################
 
 def chat(conversation_id, human_input):
+    """
+    Sends a new message to the chatbot in the context of a given conversation.
+
+    Args:
+        conversation_id (str): ID of a conversation. Subsequent calls to the same conversation will keep the message history.
+        If no conversation is found for the given ID, a new one will be created.
+        human_input (str): Message written by the user to be sent to the chatbot.
+
+    Returns:
+        dict: Dictionary with keys `message` and `results`, containing the answer of the chatbot to the user's message and information about the
+        returned nodes if applicable, respectively.
+    """
+
     print("[WRAPPER]", f"Received chat request for input `{human_input}`")
 
     chain = get_chain(conversation_id)
@@ -106,6 +151,6 @@ def chat(conversation_id, human_input):
         results = []
 
     return {
-        'results': results,
         'message': message,
+        'results': results,
     }

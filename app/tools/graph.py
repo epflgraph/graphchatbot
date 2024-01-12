@@ -1,3 +1,26 @@
+"""
+This module contains the tool to search in the EPFL Graph in natural language, as well as handling the management of its associated langchain chain.
+The tool receives a query in natural language (e.g. `publications in astrophysics`), and uses an LLM to generate a list of instructions
+in a specific syntax (e.g. "
+A = Search(Concept, Astrophysics)
+B = Neighborhood(A, Publication)
+Return(B, Publication)
+"),
+which are then followed deterministically on the graph to obtain a nodeset, which is then returned.
+
+There are several reasons why this approach was chosen:
+* The LLM does not need to have access to the graph.
+* No need to set up a RAG system to retrieve the most likely nodes for the LLM to see.
+* Fewer tokens are exchanged, which leads to less latency, cost and energy usage.
+* Data privacy. The only information sent to the LLM is the user input, nothing else.
+* Results can be cached, since we assume the same query will always give rise to the same set of instructions,
+regardless of whether the data has changed.
+* Certain very complicated or sensitive queries can be artificially cached if needed, again regardless of whether the data has changed.
+* Sometimes we can recover from a wrong set of instructions and ask again thanks to the strict syntax.
+* Protection against hallucinations. If the LLM hallucinates, either the instructions are invalid, and we return no nodes, or the instructions
+produce a wrong nodeset. Even in that case, we can explain how it was constructed, and we are sure that the data comes from the graph.
+"""
+
 import traceback
 
 from langchain.chat_models import ChatOpenAI

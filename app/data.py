@@ -1,3 +1,7 @@
+"""
+This module contains utils to read data from the examples in the `data` folder.
+"""
+
 import json
 
 

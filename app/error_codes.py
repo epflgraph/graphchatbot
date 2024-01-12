@@ -1,3 +1,7 @@
+"""
+This module contains the error code constants throughout the application.
+"""
+
 ################################################################
 # ERROR CODES                                                  #
 ################################################################

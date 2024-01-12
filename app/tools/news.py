@@ -1,3 +1,7 @@
+"""
+This module contains the tool to search for news in actu.epfl.ch.
+"""
+
 import requests
 
 

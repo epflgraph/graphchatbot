@@ -1,3 +1,7 @@
+"""
+This module contains the dummy tool to return the favourite color of a person.
+"""
+
 import random
 import hashlib
 import requests

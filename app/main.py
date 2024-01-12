@@ -1,3 +1,8 @@
+"""
+This module creates the FastAPI application that constitutes the entry point of the chatbot.
+It defines the input and output models and creates the endpoints.
+"""
+
 from fastapi import FastAPI, Response
 from fastapi.responses import FileResponse
 
@@ -30,6 +35,17 @@ class ChatOutput(BaseModel):
 
 @app.post('/chat', response_model=ChatOutput, response_model_exclude_unset=True)
 async def chat(input: ChatInput, response: Response):
+    """
+    Sends a new message to the chatbot in the context of a given conversation. This is the main endpoint to interact with the chatbot.
+
+    Args:
+        input (ChatInput): Input object containing the conversation_id and the new piece of human_input. This is the payload of the request.
+        response (Response): Actual response object provided by FastAPI. Do not provide this parameter, as it is handled automatically by FastAPI.
+
+    Returns:
+        ChatOutput: Output object containing either an error_code, if there was a problem, or a message and a results object, if everything was fine.
+    """
+
     conversation_id = input.conversation_id
     human_input = input.human_input
 
@@ -52,6 +68,16 @@ class ResetInput(BaseModel):
 
 @app.post('/reset')
 async def reset(input: ResetInput):
+    """
+    Resets the conversation with a given conversation_id. The next message sent to that conversation will start a fresh interaction with the chatbot.
+
+    Args:
+        input (ChatInput): Input object containing the conversation_id to be reset.
+
+    Returns:
+        dict: Dictionary containing whether everything went well.
+    """
+
     conversation_id = input.conversation_id
 
     delete_chain(conversation_id)
@@ -63,14 +89,26 @@ async def reset(input: ResetInput):
 
 @app.get('/')
 async def index():
+    """
+    Serves the HTML file for the chatbot's frontend.
+    """
+
     return FileResponse('../html/index.html')
 
 
 @app.get('/index.css')
 async def index_css():
+    """
+    Serves the CSS file for the chatbot's frontend.
+    """
+
     return FileResponse('../html/index.css')
 
 
 @app.get('/index.js')
 async def index_js():
+    """
+    Serves the JS file for the chatbot's frontend.
+    """
+
     return FileResponse('../html/index.js')

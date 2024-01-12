@@ -1,3 +1,10 @@
+"""
+This module defines a child class of the database's caching manager abstract base class.
+This allows for two things:
+* Easy caching mechanism for the EPFL Graph LLM tool (through db_manager).
+* Access to the database through the interface DB class (through db_manager.db).
+"""
+
 from db_cache_manager.db import DBCachingManagerBase
 
 from app.config import config

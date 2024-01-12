@@ -1,3 +1,7 @@
+"""
+This module contains the tool to search for exercises in EXOSET using its API.
+"""
+
 import requests
 
 import pandas as pd

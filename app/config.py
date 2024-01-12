@@ -1,3 +1,7 @@
+"""
+This module reads the config file and stores its contents in a `config` variable that can be imported throughout the application.
+"""
+
 import os
 from configparser import ConfigParser
 
