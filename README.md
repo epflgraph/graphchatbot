@@ -47,7 +47,7 @@ Here is a simplified outline of how it works, together with an example:
 This strategy offers some benefits over other approaches that would expose the content of the graph to the LLM:
 * No need to set up (and maintain) a RAG system to retrieve the most likely nodes for the LLM to see.
 * Fewer tokens are exchanged, which leads to less latency, cost and energy usage.
-* Data privacy. The only information sent to the LLM is the user input, nothing else.
+* Data privacy. The only information sent to the LLM in the tool is the user input, nothing else.
 * Robust against changes in data. The instructions are the same regardless of whether the data has changed.
 * Results can be cached, since we assume the same query will always give rise to the same set of instructions,
 regardless of whether the data has changed.
