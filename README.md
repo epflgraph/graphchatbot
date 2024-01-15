@@ -13,7 +13,7 @@ Through the `/chat` endpoint, the user can engage in a conversation with an agen
 The chatbot is instructed to steer away from any discussion not appropriate or not concerning EPFL. However, since it uses LLMs, it can be affected by their [known issues](https://en.wikipedia.org/wiki/Large_language_model#Wider_impact), such as hallucinations, biases or other issues.
 
 ## EPFL Graph tool
-A lot of effort has been put in making the chatbot less prone to hallucinations or biases when retrieving information from the EPFL Graph. To that end, the actual content of the graph has been protected from the LLM, and hence approaches like RAG have been discarded. Instead, we leverage the known structure of the graph to generate a complex query with the LLM that is later checked and followed away from it, and only a list of obfuscated results are returned to the agent.
+A lot of effort has been put in making the chatbot less susceptible to hallucinations or biases when retrieving information from the EPFL Graph. To that end, the actual content of the graph has been protected from the LLM, and hence approaches like RAG have been discarded. Instead, we leverage the known structure of the graph to generate a complex query with the LLM that is later checked and followed away from it, and only a list of obfuscated results are returned to the agent.
 
 ### Outline
 Here is a simplified outline of how it works, together with an example:
