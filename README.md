@@ -27,11 +27,17 @@ Here is a simplified outline of how it works, together with an example:
    ```
 4. The tool then validates thoroughly these instructions and, in case there are no issues, executes them on the graph to retrieve a nodeset, e.g.
    ```
-   [{'NodeKey': 111111, 'NodeType': 'Person', 'Title': 'Patrick Jermann'}, {'NodeKey': 222222, 'NodeType': 'Person', 'Title': 'Pierre Dillenbourg'}]
+   [
+     {'NodeKey': 111111, 'NodeType': 'Person', 'Title': 'Patrick Jermann'},
+     {'NodeKey': 222222, 'NodeType': 'Person', 'Title': 'Pierre Dillenbourg'}
+   ]
    ```
 5. The tool now does two things. It first stores this nodeset as is somewhere accessible from the function that calls the agent. Second, it obfuscates the nodeset however needed and returns it to the agent. This typically involves keeping only the first 10 nodes, but can also mean replacing people's names with placeholders, e.g.
    ```
-   [{'NodeKey': 111111, 'NodeType': 'Person', 'Title': 'John Doe'}, {'NodeKey': 222222, 'NodeType': 'Person', 'Title': 'Richard Roe'}]
+   [
+     {'NodeKey': 111111, 'NodeType': 'Person', 'Title': 'John Doe'},
+     {'NodeKey': 222222, 'NodeType': 'Person', 'Title': 'Richard Roe'}
+   ]
    ```
 6. The agent receives the obfuscated nodeset and prepares an answer based on it (e.g. "The teachers of the course CS-411 are John Doe and Richard Roe.").
 7. The function who called the agent, and has access to the unobfuscated nodeset, restores the names into the answer message (e.g. "The teachers of the course CS-411 are Patrick Jermann and Pierre Dillenbourg").
