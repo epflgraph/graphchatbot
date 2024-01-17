@@ -87,7 +87,7 @@ def obfuscate_result(result):
 
     # Build link for each node
     for node in result['nodeset']:
-        node['Link'] = f"https://graphsearch.epfl.ch/{node['NodeType'].lower()}/{node['NodeKey']}"
+        node['Link'] = f"{config['graphsearch']['base_url']}/{node['NodeType'].lower()}/{node['NodeKey']}"
 
     return {
         'nodeset': result['nodeset'],
