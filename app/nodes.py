@@ -173,21 +173,26 @@ def filter_node_ids(node_type, key, value, filter_ids=None):
 ################################################################
 
 
-def search_node(node_type, text):
+def search_node(node_type, text, n=1, return_scores=False, search_title=True):
     """
-    Retrieves (from elasticsearch) the node of the given type that better matches the given text.
+    Retrieves (from elasticsearch) the node(s) of the given type that better match(es) the given text.
     Corresponds to the `Search` operator in the instructions.
 
     Args:
-        node_type (str): The type of the node (e.g. `Concept`, `Person`).
+        node_type (str): The type of the node(s) (e.g. `Concept`, `Person`).
         text (str): The piece of text to search for in the node text fields.
+        n (int): The number of nodes to return.
+        return_scores (bool): Whether to include the elasticsearch scores in the results.
+        search_title (bool): Whether to search in the Title field, otherwise searches in the Content field.
 
     Returns:
-        dict: A dictionary with the node `NodeKey`, `NodeType` and `Title`.
+        list: A list of n dictionaries, each representing a node, with the keys `NodeKey`, `NodeType` and `Title`.
     """
 
-    nodeset = es.search_nodes(text, node_type)
-    return nodeset[:1]
+    if search_title:
+        return es.search_nodes(text, node_type, n, return_scores)
+    else:
+        return es.search_node_contents(text, node_type, n, return_scores)
 
 
 def get_all_nodes_and_filter(node_type, key, value):
@@ -254,6 +259,9 @@ def get_neighborhood(nodeset, node_type, return_order=False):
 
     results = db_manager.db.execute_query(query, ids)
     neighbor_ids = [r for r, in results]
+
+    if len(neighbor_ids) == 0:
+        return []
 
     # Remove duplicates while keeping order
     neighbor_ids = list(dict.fromkeys(neighbor_ids))
