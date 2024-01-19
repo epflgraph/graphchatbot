@@ -103,7 +103,6 @@ def get_chain(memory_key):
     last = last_interactions[memory_key]
     now = time.time()
     if memory_key in chains and now - last >= 300:
-        print(f"[WRAPPER] Killing chain {memory_key}")
         delete_chain(memory_key)
 
     last_interactions[memory_key] = now
