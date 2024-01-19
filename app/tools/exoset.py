@@ -13,6 +13,16 @@ API_URL = f"https://test-exoset.epfl.ch/graphapi"
 
 cache = {}
 
+# Set multiprocessing start method as 'spawn'. Currently, this is the default on MacOS, but 'fork' is the default on other POSIX systems,
+# which leads to issues as it clashes with FastAPI/uvicorn. Starting child processes with 'fork' behaves as the OS fork operation,
+# i.e. cloning the current process with the same memory state (e.g. variables), while starting them with 'spawn' creates a fresh python process
+# with an empty memory space, which is slightly slower but avoids these issues.
+# For more info check https://docs.python.org/3/library/multiprocessing.html#contexts-and-start-methods
+try:
+    multiprocessing.set_start_method('spawn')
+except RuntimeError:
+    pass
+
 
 def fetch_concept_exercises(node):
     exercises = requests.post(API_URL, params={'concept': node['Title']}).json()
@@ -75,6 +85,8 @@ def search_exercises(concept: str) -> list:
     all_exercises['score'] = all_exercises['coef'] * all_exercises['score']
     all_exercises = all_exercises.groupby(by=['title', 'url']).aggregate(score=('score', 'sum')).reset_index()
     all_exercises = all_exercises.sort_values(by='score', ascending=False).reset_index(drop=True)
+
+    print("[EXOSET]", f"Found {len(all_exercises)} among all concepts")
 
     # Return only the first n exercises to the LLM, otherwise we use a lot of tokens (+cost and +latency)
     # which are not going to be used in the LLM's final output anyway.
