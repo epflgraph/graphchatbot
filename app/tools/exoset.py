@@ -9,7 +9,8 @@ import pandas as pd
 
 from app.nodes import search_node, get_neighborhood
 
-API_URL = f"https://test-exoset.epfl.ch/graphapi"
+API_URL = f"https://exoset.epfl.ch/graphapi/"
+TEST_API_URL = f"https://test-exoset.epfl.ch/graphapi"
 
 cache = {}
 
@@ -25,12 +26,28 @@ except RuntimeError:
 
 
 def fetch_concept_exercises(node):
-    exercises = requests.post(API_URL, params={'concept': node['Title']}).json()
+    # Trying PROD API
+    try:
+        exercises = requests.post(API_URL, params={'concept': node['Title']}).json()
+        exercises = pd.DataFrame(exercises)
+        exercises['coef'] = node['Score']
 
-    exercises = pd.DataFrame(exercises)
-    exercises['coef'] = node['Score']
+        return exercises
+    except Exception:
+        print("[EXOSET]", "The request to EXOSET PROD API failed. Trying EXOSET TEST API...")
 
-    return exercises
+    # Fallback to TEST API
+    try:
+        exercises = requests.post(TEST_API_URL, params={'concept': node['Title']}).json()
+        exercises = pd.DataFrame(exercises)
+        exercises['coef'] = node['Score']
+
+        return exercises
+    except Exception:
+        print("[EXOSET]", "The request to EXOSET TEST API failed. Returning no exercises.")
+
+    # Everything failed, return empty
+    return pd.DataFrame([])
 
 
 def fetch_all_exercises(nodeset):
