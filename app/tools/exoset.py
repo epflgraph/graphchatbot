@@ -9,7 +9,7 @@ import pandas as pd
 
 from app.nodes import search_node, get_neighborhood
 
-API_URL = f"https://exoset.epfl.ch/graphapi/"
+API_URL = f"https://exoset.epfl.ch/graphapi"
 TEST_API_URL = f"https://test-exoset.epfl.ch/graphapi"
 
 cache = {}
