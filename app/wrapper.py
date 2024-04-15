@@ -60,7 +60,8 @@ def create_chain(memory_key):
         memory=memory,
         agent_kwargs=agent_kwargs,
         verbose=False,
-        max_execution_time=30
+        max_execution_time=30,
+        early_stopping_method='generate',
     )
 
 
