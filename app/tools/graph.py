@@ -185,8 +185,15 @@ def ask_graph(human_input: str) -> dict:
         # --- If we reach this point, we successfully created the context for the returned nodeset ---
         print("[TOOL]", "Context obtained")
 
+        # Only a subset of nodes is returned, depending on the node type
+        try:
+            node_type = returned_nodeset[0]['NodeType']
+            n_nodes = 10 if node_type in ['Concept', 'Person'] else 5
+        except Exception:
+            n_nodes = 5
+
         result = {
-            'nodeset': returned_nodeset[:10],
+            'nodeset': returned_nodeset[:n_nodes],
             'nodesets': nodesets,
             'context': context,
             'context_message': context_message,
