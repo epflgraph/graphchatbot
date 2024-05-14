@@ -41,7 +41,7 @@ def create_chain(memory_key):
 
     tools = [
         StructuredTool.from_function(name='Ask_EPFL_Graph', func=ask_graph, description="Useful to ask the knowledge graph of EPFL in natural language"),
-        StructuredTool.from_function(name='Search_EXOSET_Exercises', func=search_exercises, description="Useful to find references to exercises in EXOSET, the exercises database of EPFL, that are related to a given concept."),
+        StructuredTool.from_function(name='Search_EXOSET_Exercises', func=search_exercises, description="Useful to find references to exercises in EXOSET, the exercises database of EPFL, that are related to a given concept. Always provide the language spoken by the user"),
         StructuredTool.from_function(name='Find_Person_Favourite_Color', func=find_color, description="Useful to find somebody's favourite color. Use sparingly and only when literally someone's favourite color is requested."),
         StructuredTool.from_function(name='Search_EPFL_News', func=search_news, description="Useful to fetch news articles from EPFL. Use sparingly and only when literally news are requested."),
     ]
