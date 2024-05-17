@@ -112,8 +112,6 @@ def search_exercises(concept_in_english: str, language_spoken_by_user: str = 'en
         | (all_exercises['langue_file'] == language_spoken_by_user)
     ]
 
-    print(all_exercises)
-
     # Compute the final score as (score + 2 * ontology_score) * coef
     # We double the ontology score as we deem it more important than the regular score
     all_exercises['coef'] = all_exercises['coef'] / all_exercises['coef'].max()
@@ -125,8 +123,6 @@ def search_exercises(concept_in_english: str, language_spoken_by_user: str = 'en
     all_exercises = all_exercises.sort_values(by='score', ascending=False).reset_index(drop=True)
 
     print("[EXOSET]", f"Found {len(all_exercises)} exercises among all concepts")
-
-    print(all_exercises)
 
     # Return only the first n exercises to the LLM, otherwise we use a lot of tokens (+cost and +latency)
     # which are not going to be used in the LLM's final output anyway.
