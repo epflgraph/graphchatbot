@@ -23,7 +23,7 @@ produce a wrong nodeset. Even in that case, we can explain how it was constructe
 
 import traceback
 
-from langchain.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 from langchain.chains import LLMChain
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import (
