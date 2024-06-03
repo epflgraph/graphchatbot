@@ -28,12 +28,7 @@ class ChatbotDBCachingManager(DBCachingManagerBase):
         schema: Name of the database schema
         """
         super().__init__(
-            db_config={
-              'host': config['database']['host'],
-              'port': config['database']['port'],
-              'user': config['database']['user'],
-              'pass': config['database']['password'],
-            },
+            db_config=config['database'],
             cache_table='exact_cache',
             most_similar_table='closest_match_cache',
             schema='chatbot',
