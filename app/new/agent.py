@@ -17,6 +17,7 @@ from langgraph.prebuilt.tool_node import str_output
 
 from app.config import config
 from app.prompts import system_messages
+from app.tools import search_news, search_exercises
 
 
 agent_results = {}
@@ -60,31 +61,31 @@ def create_agent():
     # Tools                                                        #
     ################################################################
 
-    # tools = [
-    #     StructuredTool.from_function(name='Ask_EPFL_Graph', func=ask_graph, description="Useful to ask the knowledge graph of EPFL in natural language"),
-    #     StructuredTool.from_function(name='Search_EXOSET_Exercises', func=search_exercises, description="Useful to find references to exercises in EXOSET, the exercises database of EPFL, that are related to a given concept. Always provide the language spoken by the user"),
-    #     StructuredTool.from_function(name='Find_Person_Favourite_Color', func=find_color, description="Useful to find somebody's favourite color. Use sparingly and only when literally someone's favourite color is requested."),
-    #     StructuredTool.from_function(name='Search_EPFL_News', func=search_news, description="Useful to fetch news articles from EPFL. Use sparingly and only when literally news are requested."),
-    # ]
+    tools = [
+        # StructuredTool.from_function(name='Ask_EPFL_Graph', func=ask_graph, description="Useful to ask the knowledge graph of EPFL in natural language"),
+        StructuredTool.from_function(name='Search_EXOSET_Exercises', func=search_exercises, description="Useful to find references to exercises in EXOSET, the exercises database of EPFL, that are related to a given concept. Always provide the language spoken by the user"),
+        # StructuredTool.from_function(name='Find_Person_Favourite_Color', func=find_color, description="Useful to find somebody's favourite color. Use sparingly and only when literally someone's favourite color is requested."),
+        StructuredTool.from_function(name='Search_EPFL_News', func=search_news, description="Useful to fetch news articles from EPFL. Use sparingly and only when literally news are requested."),
+    ]
 
-    def search_nodes(query: str, limit: int = 5, offset: int = 0):
-        """Searches the nodes in the knowledge graph that are closest to the query.
-        Returns at most `limit` nodes and skips the first `offset`nodes."""
-
-        results = {
-            'nodeset': [
-                {'id': '123456', 'type': 'person', 'name': "Perico de los Palotes", 'url': 'https://graphsearch.epfl.ch/person/123456', 'secret': 'hahahaha'},
-                {'id': '658789', 'type': 'concept', 'name': "Perico", 'url': 'https://graphsearch.epfl.ch/concept/658789', 'secret': '1234567890'},
-                {'id': 'dlsaj29r', 'type': 'lecture', 'name': "The Architectural Style of Le Perroquet", 'url': 'https://graphsearch.epfl.ch/lecture/dlsaj29r', 'secret': 'aaa'},
-                {'id': 'dkalfj99', 'type': 'course', 'name': "Bird breeding", 'url': 'https://graphsearch.epfl.ch/course/dkalfj99', 'secret': '.-.-.'},
-            ],
-            'operation': """Nodes related to the Concept "Parrot".""",
-            'total_node_count': 234
-        }
-
-        return results
-
-    tools = [StructuredTool.from_function(search_nodes)]
+    # def search_nodes(query: str, limit: int = 5, offset: int = 0):
+    #     """Searches the nodes in the knowledge graph that are closest to the query.
+    #     Returns at most `limit` nodes and skips the first `offset`nodes."""
+    #
+    #     results = {
+    #         'nodeset': [
+    #             {'id': '123456', 'type': 'person', 'name': "Perico de los Palotes", 'url': 'https://graphsearch.epfl.ch/person/123456', 'secret': 'hahahaha'},
+    #             {'id': '658789', 'type': 'concept', 'name': "Perico", 'url': 'https://graphsearch.epfl.ch/concept/658789', 'secret': '1234567890'},
+    #             {'id': 'dlsaj29r', 'type': 'lecture', 'name': "The Architectural Style of Le Perroquet", 'url': 'https://graphsearch.epfl.ch/lecture/dlsaj29r', 'secret': 'aaa'},
+    #             {'id': 'dkalfj99', 'type': 'course', 'name': "Bird breeding", 'url': 'https://graphsearch.epfl.ch/course/dkalfj99', 'secret': '.-.-.'},
+    #         ],
+    #         'operation': """Nodes related to the Concept "Parrot".""",
+    #         'total_node_count': 234
+    #     }
+    #
+    #     return results
+    #
+    # tools = [StructuredTool.from_function(search_nodes)]
 
     ################################################################
     # Memory                                                       #
@@ -150,8 +151,8 @@ def create_agent():
             append_results(config['configurable']['thread_id'], response)
 
             # Obfuscate result - TODO Do this elsewhere by calling a function
-            for node in response['nodeset']:
-                del node['secret']
+            # for node in response['nodeset']:
+            #     del node['secret']
 
             # Store ToolMessage in a list to be returned
             new_state['messages'].append(ToolMessage(content=str_output(response), name=tool_call['name'], tool_call_id=tool_call['id']))

@@ -3,7 +3,7 @@ This module handles the interaction with the wrapper agent of the chatbot.
 More specifically, it handles the management of langchain chains (creation, retrieval, deletion) and provides an entry point to interact with them.
 """
 
-from app.new_agent import create_agent, get_results, clear_results
+from app.new.agent import create_agent, get_results, clear_results
 
 # Create agent
 agent = create_agent()
@@ -59,8 +59,18 @@ def chat(conversation_id, prompt):
 
 
 if __name__ == '__main__':
-    prompt = "What nodes are there related to parrots?"
-    print(chat('1234', prompt))
+    conversation_id = '1234'
 
-    prompt = "And lectures about architecture?"
-    print(chat('1234', prompt))
+    prompt = "Hey, I'm Aitor! Are there any news on the new president from EPFL?"
+    print(chat(conversation_id, prompt)['message'])
+
+    prompt = "What about exercises on differential equations?"
+    print(chat(conversation_id, prompt)['message'])
+
+    prompt = "Did I tell you my name?"
+    print(chat(conversation_id, prompt)['message'])
+
+    conversation_id = '123456'
+
+    prompt = "Did I tell you my name?"
+    print(chat(conversation_id, prompt)['message'])
