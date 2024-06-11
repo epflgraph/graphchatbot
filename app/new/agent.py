@@ -123,7 +123,7 @@ def create_agent():
     model = model.bind_tools(tools)
 
     # Add system prompt to the model chain
-    model = (lambda messages: [SystemMessage(content=system_messages['agent'])] + messages) | model
+    model = (lambda messages: [SystemMessage(content=system_prompt)] + messages) | model
 
     # Instantiate ToolExecutor that will be used in the 'tools' state
     tool_executor = ToolExecutor(tools)
