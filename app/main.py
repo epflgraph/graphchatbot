@@ -10,9 +10,10 @@ from pydantic import BaseModel
 from typing import Optional
 
 from app.wrapper import (
-    chat as wrapper_chat,
+    chat as old_wrapper_chat,
     delete_chain,
 )
+from app.new.wrapper import send_message
 import app.error_codes as ec
 
 app = FastAPI()
@@ -33,8 +34,8 @@ class ChatOutput(BaseModel):
     price: Optional[float] = None
 
 
-@app.post('/chat', response_model=ChatOutput, response_model_exclude_unset=True)
-async def chat(input: ChatInput, response: Response):
+@app.post('/old_chat', response_model=ChatOutput, response_model_exclude_unset=True)
+async def old_chat(input: ChatInput, response: Response):
     """
     Sends a new message to the chatbot in the context of a given conversation. This is the main endpoint to interact with the chatbot.
 
@@ -55,9 +56,36 @@ async def chat(input: ChatInput, response: Response):
         return ChatOutput(error_code=ec.ERR_INPUT_TOO_LONG)
 
     # Main call to generate results
-    conversation_result = wrapper_chat(conversation_id, human_input)
+    conversation_result = old_wrapper_chat(conversation_id, human_input)
 
     return conversation_result
+
+
+@app.post('/chat', response_model=ChatOutput, response_model_exclude_unset=True)
+async def chat(input: ChatInput, response: Response):
+    """
+    Sends a new message to the chatbot in the context of a given conversation. This is the main endpoint to interact with the chatbot.
+
+    Args:
+        input (ChatInput): Input object containing the conversation_id and the new piece of human_input. This is the payload of the request.
+        response (Response): Actual response object provided by FastAPI. Do not provide this parameter, as it is handled automatically by FastAPI.
+
+    Returns:
+        ChatOutput: Output object containing either an error_code, if there was a problem, or a message and a results object, if everything was fine.
+    """
+
+    conversation_id = input.conversation_id
+    prompt = input.human_input
+
+    # Ensure text not too long
+    if len(prompt) > 1000:
+        response.status_code = 500  # Internal server error
+        return ChatOutput(error_code=ec.ERR_INPUT_TOO_LONG)
+
+    # Main call to generate results
+    output = send_message(conversation_id, prompt)
+
+    return output
 
 ################################################################
 

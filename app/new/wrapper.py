@@ -13,7 +13,7 @@ agent = create_agent()
 ################################################################
 
 
-def chat(conversation_id, prompt):
+def send_message(conversation_id, prompt):
     """
     Sends a new message to the chatbot in the context of a given conversation.
 
@@ -62,15 +62,15 @@ if __name__ == '__main__':
     conversation_id = '1234'
 
     prompt = "Hey, I'm Aitor! Are there any news on the new president from EPFL?"
-    print(chat(conversation_id, prompt)['message'])
+    print(send_message(conversation_id, prompt)['message'])
 
     prompt = "What about exercises on differential equations?"
-    print(chat(conversation_id, prompt)['message'])
+    print(send_message(conversation_id, prompt)['message'])
 
     prompt = "Did I tell you my name?"
-    print(chat(conversation_id, prompt)['message'])
+    print(send_message(conversation_id, prompt)['message'])
 
     conversation_id = '123456'
 
     prompt = "Did I tell you my name?"
-    print(chat(conversation_id, prompt)['message'])
+    print(send_message(conversation_id, prompt)['message'])
