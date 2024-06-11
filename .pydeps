@@ -4,6 +4,9 @@ exclude =
     fastapi
     pydantic
     langchain
+    langchain_core
+    langchain_openai
+    langgraph
     pandas
     db_cache_manager
     elasticsearch_interface
