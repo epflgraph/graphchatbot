@@ -49,7 +49,7 @@ def create_chain(memory_key):
     memory = ConversationBufferMemory(memory_key=memory_key, return_messages=True)
 
     agent_kwargs = {
-        'system_message': SystemMessage(content=system_messages['wrapper']),        # system prompt of the agent
+        'system_message': SystemMessage(content=system_prompt),        # system prompt of the agent
         'extra_prompt_messages': [MessagesPlaceholder(variable_name=memory_key)]    # placeholder for history messages
     }
 
