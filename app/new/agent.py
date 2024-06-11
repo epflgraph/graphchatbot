@@ -1,3 +1,9 @@
+"""
+This module creates and manages the agent that serves all chat requests.
+It is created as a LangGraph StateGraph with custom functions on their nodes and edges.
+It also provides the entry point function to interact with it.
+"""
+
 from typing import Annotated, Sequence, TypedDict
 
 from langchain_core.messages import (
@@ -22,6 +28,8 @@ from app.tools import search_news, search_exercises
 
 agent_results = {}
 
+################################################################
+
 
 def append_results(thread_id, results):
     agent_results.setdefault(thread_id, [])
@@ -34,6 +42,9 @@ def get_results(thread_id):
 
 def clear_results(thread_id):
     agent_results[thread_id] = []
+
+
+################################################################
 
 
 def create_agent():
@@ -200,16 +211,69 @@ def create_agent():
 
 ################################################################
 
-if __name__ == '__main__':
-    agent = create_agent()
+def send_message(conversation_id, prompt):
+    """
+    Sends a new message to the chatbot in the context of a given conversation.
 
+    Args:
+        conversation_id (str): ID of a conversation. Subsequent calls to the same conversation will keep the message history.
+        If no conversation is found for the given ID, a new one will be created.
+        prompt (str): Message written by the user to be sent to the chatbot.
+
+    Returns:
+        dict: Dictionary with keys `message` and `results`, containing the answer of the chatbot to the user's message and information about the
+        returned nodes if applicable, respectively.
+    """
+
+    print("[WRAPPER]", f"Received chat request for conversation `{conversation_id}` with input `{prompt}`")
+
+    # Reset tools results
+    clear_results(conversation_id)
+
+    # Invoke model with given prompt and conversation_id
+    agent_output = agent.invoke(
+        input={'messages': [('human', prompt)]},
+        config={'configurable': {'thread_id': conversation_id}}
+    )
+
+    # Extract response message
+    message = agent_output['messages'][-1].content
+
+    # Log the response message
+    display_message = message.replace('\n', ' ')
+    if len(display_message) <= 100:
+        print("[WRAPPER]", f"Got response message `{display_message}` from agent executor")
+    else:
+        print("[WRAPPER]", f"Got response message `{display_message[:100]}...` from agent executor")
+
+    # Fetch results obtained in the tools
+    results = get_results(conversation_id)
+    print("[WRAPPER]", f"Found {len(results)} results from the tools")
+
+    return {
+        'message': message,
+        'results': results,
+    }
+
+
+################################################################
+
+# Create agent
+agent = create_agent()
+
+if __name__ == '__main__':
     conversation_id = '1234'
 
-    memory_config = {'configurable': {'thread_id': conversation_id}}
-    agent_input = {'messages': [('human', "What nodes are there related to parrots?")]}
-    agent_output = agent.invoke(agent_input, memory_config)
+    prompt = "Hey, I'm Aitor! Are there any news on the new president from EPFL?"
+    print(send_message(conversation_id, prompt)['message'])
 
-    print(agent_output)
-    print(agent_output['messages'][-1].content)
+    prompt = "What about exercises on differential equations?"
+    print(send_message(conversation_id, prompt)['message'])
 
-    print(agent_results[conversation_id])
+    prompt = "Did I tell you my name?"
+    print(send_message(conversation_id, prompt)['message'])
+
+    conversation_id = '123456'
+
+    prompt = "Did I tell you my name?"
+    print(send_message(conversation_id, prompt)['message'])
