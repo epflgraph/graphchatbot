@@ -5,7 +5,7 @@ More specifically, it handles the management of langchain chains (creation, retr
 
 import time
 
-from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.schema import SystemMessage
 from langchain.prompts.chat import MessagesPlaceholder
