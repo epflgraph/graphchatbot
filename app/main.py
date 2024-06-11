@@ -2,21 +2,55 @@
 This module creates the FastAPI application that constitutes the entry point of the chatbot.
 It defines the input and output models and creates the endpoints.
 """
+from contextlib import asynccontextmanager
+from typing import Optional
+
+from pydantic import BaseModel
 
 from fastapi import FastAPI, Response
 from fastapi.responses import FileResponse
-
-from pydantic import BaseModel
-from typing import Optional
 
 from app.old.wrapper import (
     chat as old_wrapper_chat,
     delete_chain,
 )
-from app.new.wrapper import send_message
+from app.new.agent import create_agent, send_message
 import app.error_codes as ec
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    This function has three parts:
+      * Before startup: Logic executed right before starting the API. Here we initialise the agent chain.
+      * Yield: This is the standard way of passing the execution to the FastAPI app, so it can normally boot and serve requests.
+      * After shutdown: Logic executed right after shutting down the API. Here we might want to free some memory, do some cleanup, etc.
+    """
+
+    ################################################################
+    # Before startup                                               #
+    ################################################################
+
+    print("Creating the agent chain...")
+    create_agent()
+
+    ################################################################
+    # Yield execution to API                                       #
+    ################################################################
+    yield
+
+    ################################################################
+    # After shutdown                                               #
+    ################################################################
+    pass
+
+
+app = FastAPI(
+    title="EPFL Graph Chatbot",
+    description="API that serves the EPFL Graph chatbot",
+    version="1.0.0",
+    lifespan=lifespan
+)
 
 
 class ChatInput(BaseModel):

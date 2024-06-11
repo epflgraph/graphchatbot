@@ -25,7 +25,7 @@ from app.config import config
 from app.new.prompt import system_prompt
 from app.tools import search_news, search_exercises
 
-
+agent = None
 agent_results = {}
 
 ################################################################
@@ -203,10 +203,9 @@ def create_agent():
     workflow.add_edge(start_key='tools', end_key='agent')
 
     # Compile the StateGraph into a Langchain Runnable, so it can be invoked, streamed, batched and run asynchronously
+    global agent
     agent = workflow.compile(checkpointer=memory, debug=False)
     agent.step_timeout = 60
-
-    return agent
 
 
 ################################################################
@@ -254,26 +253,3 @@ def send_message(conversation_id, prompt):
         'message': message,
         'results': results,
     }
-
-
-################################################################
-
-# Create agent
-agent = create_agent()
-
-if __name__ == '__main__':
-    conversation_id = '1234'
-
-    prompt = "Hey, I'm Aitor! Are there any news on the new president from EPFL?"
-    print(send_message(conversation_id, prompt)['message'])
-
-    prompt = "What about exercises on differential equations?"
-    print(send_message(conversation_id, prompt)['message'])
-
-    prompt = "Did I tell you my name?"
-    print(send_message(conversation_id, prompt)['message'])
-
-    conversation_id = '123456'
-
-    prompt = "Did I tell you my name?"
-    print(send_message(conversation_id, prompt)['message'])
