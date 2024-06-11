@@ -23,7 +23,7 @@ produce a wrong nodeset. Even in that case, we can explain how it was constructe
 
 import traceback
 
-from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.chains import LLMChain
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import (
@@ -36,7 +36,7 @@ from langchain.prompts import (
 from app.config import config
 import app.error_codes as ec
 from app.interfaces.db import db_manager
-from app.prompts import system_messages
+from app.tools.instructions_prompt import system_prompt
 from app.instructions import (
     parse_instructions,
     check_instructions,
@@ -59,7 +59,7 @@ def create_chain():
     )
     memory = ConversationBufferMemory(memory_key='memory', return_messages=True)
     prompt = ChatPromptTemplate(messages=[
-            SystemMessagePromptTemplate.from_template(system_messages['instructions']),
+            SystemMessagePromptTemplate.from_template(system_prompt),
             MessagesPlaceholder(variable_name='memory'),
             HumanMessagePromptTemplate.from_template("{input}")
     ])
