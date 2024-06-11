@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional
 
-from app.wrapper import (
+from app.old.wrapper import (
     chat as old_wrapper_chat,
     delete_chain,
 )

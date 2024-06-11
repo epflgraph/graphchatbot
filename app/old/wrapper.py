@@ -14,7 +14,7 @@ from langchain.tools import StructuredTool
 
 from app.config import config
 from app.prompts import system_messages
-from app.agents import CUSTOM_OPENAI_FUNCTIONS
+from app.old.agents import CUSTOM_OPENAI_FUNCTIONS
 from app.tools import ask_graph, search_exercises, find_color, search_news
 
 ################################################################
