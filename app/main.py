@@ -2,6 +2,7 @@
 This module creates the FastAPI application that constitutes the entry point of the chatbot.
 It defines the input and output models and creates the endpoints.
 """
+
 from contextlib import asynccontextmanager
 from typing import Optional
 
