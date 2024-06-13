@@ -58,15 +58,15 @@ def search_nodes(query: str, node_type: list | str = None) -> list:
     Search nodes from the EPFL Graph that best match the given `query` and return them along with their related nodes of the given `node_type`.
     """
 
-    print('[TOOL]', f"Called `search_graph` tool with query=`{query}` and node_type=`{node_type}`")
+    print('[GRAPH]', f"Called `search_graph` tool with query=`{query}` and node_type=`{node_type}`")
 
     # Search nodes matching the given query
-    nodes = search(query, limit=3)
-    print('[TOOL]', f"Got {len(nodes)} nodes from elasticsearch with {[len(node['links']) for node in nodes]} links")
+    nodes = search(query, node_type=None, limit=3, return_links=True, return_scores=False)
+    print('[GRAPH]', f"Got {len(nodes)} nodes from elasticsearch with {[len(node['links']) for node in nodes]} links")
 
     # Build a nodes object by renaming, cleaning and filtering some fields
     nodes = clean_nodes(nodes, node_type)
-    print('[TOOL]', f"Kept {len(nodes)} nodes after cleanup with {[len(node['links']) for node in nodes]} links")
+    print('[GRAPH]', f"Kept {len(nodes)} nodes after cleanup with {[len(node['links']) for node in nodes]} links")
 
     return nodes
 

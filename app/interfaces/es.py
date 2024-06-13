@@ -9,7 +9,7 @@ from app.config import config
 es = ES(config['elasticsearch'], config['elasticsearch']['index'])
 
 
-def search(text, node_type=None, limit=10, return_scores=False):
+def search(text, node_type=None, limit=10, return_links=False, return_scores=False):
     ################################################################
     # Build filter clause                                          #
     ################################################################
@@ -115,15 +115,11 @@ def search(text, node_type=None, limit=10, return_scores=False):
     # Build fields                                                 #
     ################################################################
 
-    node_fields = [
-        "doc_type",
-        "doc_id",
-        "name",
-        "short_description",
-    ]
+    node_fields = ["doc_type", "doc_id", "name", "short_description"]
 
-    link_fields = {
-        'common': ["link_type", "link_id", "link_name", "link_rank"],
+    link_fields = ["link_type", "link_id", "link_name", "link_rank"]
+
+    type_specific_fields = {
         'course': ["latest_academic_year"],
         'lecture': ["video_duration"],
         'mooc': ["level", "domain", "language", "platform"],
@@ -135,7 +131,11 @@ def search(text, node_type=None, limit=10, return_scores=False):
         'startup': []
     }
 
-    fields = node_fields + [f"links.{type_field}" for _, type_fields in link_fields.items() for type_field in type_fields]
+    fields = node_fields + [type_field for _, type_fields in type_specific_fields.items() for type_field in type_fields]
+
+    if return_links:
+        fields += [f"links.{link_field}" for link_field in link_fields]
+        fields += [f"links.{type_field}" for _, type_fields in type_specific_fields.items() for type_field in type_fields]
 
     ################################################################
     # Run search                                                   #
