@@ -9,7 +9,7 @@ from app.config import config
 es = ES(config['elasticsearch'], config['elasticsearch']['index'])
 
 
-def search(text, node_type=None, limit=10):
+def search(text, node_type=None, limit=10, return_scores=False):
     ################################################################
     # Build filter clause                                          #
     ################################################################
@@ -143,6 +143,9 @@ def search(text, node_type=None, limit=10):
 
     response = es.client.search(index=es.index, query=query, source_includes=fields, size=limit)
     hits = response['hits']['hits']
-    hits = [hit['_source'] for hit in hits]
+    if return_scores:
+        hits = [{**hit['_source'], 'score': hit['_score']} for hit in hits]
+    else:
+        hits = [hit['_source'] for hit in hits]
 
     return hits
