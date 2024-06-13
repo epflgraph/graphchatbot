@@ -7,7 +7,7 @@ import requests
 
 import pandas as pd
 
-from app.nodes import search_node
+from app.interfaces.es import search
 
 API_URL = f"https://exoset.epfl.ch/graphapi"
 TEST_API_URL = f"https://test-exoset.epfl.ch/graphapi"
@@ -28,10 +28,10 @@ except RuntimeError:
 def fetch_concept_exercises(node):
     # Trying PROD API
     try:
-        exercises = requests.post(API_URL, params={'concept': node['Title']}).json()
+        exercises = requests.post(API_URL, params={'concept': node['name']['en']}).json()
         exercises = pd.DataFrame(exercises)
-        exercises['concept_id'] = node['NodeKey']
-        exercises['coef'] = node['Score']
+        exercises['concept_id'] = node['doc_id']
+        exercises['coef'] = node['score']
 
         return exercises
     except Exception:
@@ -39,10 +39,10 @@ def fetch_concept_exercises(node):
 
     # Fallback to TEST API
     try:
-        exercises = requests.post(TEST_API_URL, params={'concept': node['Title']}).json()
+        exercises = requests.post(TEST_API_URL, params={'concept': node['name']['en']}).json()
         exercises = pd.DataFrame(exercises)
-        exercises['concept_id'] = node['NodeKey']
-        exercises['coef'] = node['Score']
+        exercises['concept_id'] = node['doc_id']
+        exercises['coef'] = node['score']
 
         return exercises
     except Exception:
@@ -52,40 +52,37 @@ def fetch_concept_exercises(node):
     return pd.DataFrame([])
 
 
-def fetch_all_exercises(nodeset):
+def fetch_all_exercises(nodes):
     with multiprocessing.Pool() as pool:
-        results = pool.map(fetch_concept_exercises, nodeset)
+        results = pool.map(fetch_concept_exercises, nodes)
 
     return results
 
 
-def search_exercises(concept_in_english: str, language_spoken_by_user: str = 'en') -> list:
-    print("[EXOSET]", f"Called search EXOSET tool with input `{concept_in_english}` and language `{language_spoken_by_user}`")
+def search_exercises(query: str, language: str = 'en') -> list:
+    """
+    Search exercises from EPFL's EXOSET database that best match the given `query`, which should be in English.
+    The parameter `language` will prioritise exercises in that language, if available.
+    """
+
+    print("[EXOSET]", f"Called search EXOSET tool with input `{query}` and language `{language}`")
 
     # Standardise language parameter
-    if language_spoken_by_user.lower() in ['fr', 'french', 'français']:
-        language_spoken_by_user = 'FR'
+    if language.lower() in ['fr', 'french', 'français']:
+        language = 'FR'
     else:
-        language_spoken_by_user = 'EN'
-
-    # Max number of exercises to be returned
-    n = 5
+        language = 'EN'
 
     # Check if result is cached
-    if concept_in_english in cache:
-        return cache[concept_in_english]
+    if query in cache:
+        return cache[query]
 
-    # Get nodeset of one node with the first match
-    nodeset = search_node('Concept', concept_in_english, n=50, return_scores=True, search_title=True)
+    nodes = search(query, node_type='Concept', limit=50, return_links=False, return_scores=True)
 
-    # Fallback: Search node Content instead of Title
-    if len(nodeset) == 0:
-        nodeset = search_node('Concept', concept_in_english, n=50, return_scores=True, search_title=False)
+    print("[EXOSET]", f"Got {len(nodes)} concepts to query for exercises: {[node['name']['en'] for node in nodes]}")
 
-    print("[EXOSET]", f"Got {len(nodeset)} concepts to query for exercises: {[node['Title'] for node in nodeset]}")
-
-    if len(nodeset) == 0:
-        print("[EXOSET]", f"No exercises found, returning empty list")
+    if len(nodes) == 0:
+        print("[EXOSET]", f"No concepts found, returning empty list")
         return []
 
     # Send requests in parallel to EXOSET's API to obtain exercises for every found concept.
@@ -93,7 +90,7 @@ def search_exercises(concept_in_english: str, language_spoken_by_user: str = 'en
     # which is the elasticsearch score of each matched concept.
     # This coefficient will be used to ponderate exercises,
     # so that exercises coming from worse matches see their score decreased.
-    all_exercises = fetch_all_exercises(nodeset)
+    all_exercises = fetch_all_exercises(nodes)
     all_exercises = pd.concat(all_exercises)
 
     # Return empty if no exercises found for any of the neighbours
@@ -109,7 +106,7 @@ def search_exercises(concept_in_english: str, language_spoken_by_user: str = 'en
     )
     all_exercises = all_exercises[
         (all_exercises['count'] == 1)
-        | (all_exercises['langue_file'] == language_spoken_by_user)
+        | (all_exercises['langue_file'] == language)
     ]
 
     # Compute the final score as (score + 2 * ontology_score) * coef
@@ -124,14 +121,10 @@ def search_exercises(concept_in_english: str, language_spoken_by_user: str = 'en
 
     print("[EXOSET]", f"Found {len(all_exercises)} exercises among all concepts")
 
-    # Return only the first n exercises to the LLM, otherwise we use a lot of tokens (+cost and +latency)
-    # which are not going to be used in the LLM's final output anyway.
-    all_exercises = all_exercises[:n]
-
     # Convert DataFrame to list
     all_exercises = all_exercises.to_dict(orient='records')
 
     # Store result in cache
-    cache[concept_in_english] = all_exercises
+    cache[query] = all_exercises
 
     return all_exercises

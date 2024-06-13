@@ -75,8 +75,8 @@ def create_agent():
 
     tools = [
         StructuredTool.from_function(name='search_nodes', func=search_nodes),
-        StructuredTool.from_function(name='search_exercises', func=search_exercises, description="Useful to find references to exercises in EXOSET, the exercises database of EPFL, that are related to a given concept. Always provide the language spoken by the user"),
-        StructuredTool.from_function(name='search_news', func=search_news, description="Useful to fetch news articles from EPFL. Use sparingly and only when literally news are requested."),
+        StructuredTool.from_function(name='search_exercises', func=search_exercises),
+        StructuredTool.from_function(name='search_news', func=search_news),
     ]
 
     ################################################################
