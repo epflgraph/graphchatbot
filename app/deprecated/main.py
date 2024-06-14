@@ -3,7 +3,6 @@ This module creates the FastAPI application that constitutes the entry point of 
 It defines the input and output models and creates the endpoints.
 """
 
-from contextlib import asynccontextmanager
 from typing import Optional
 
 from pydantic import BaseModel
@@ -11,40 +10,17 @@ from pydantic import BaseModel
 from fastapi import FastAPI, Response
 from fastapi.responses import FileResponse
 
-from app.agent import create_agent, send_message
+from app.deprecated.wrapper import (
+    chat as old_wrapper_chat,
+    delete_chain,
+)
 import app.error_codes as ec
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """
-    This function has three parts:
-      * Before startup: Logic executed right before starting the API. Here we initialise the agent chain.
-      * Yield: This is the standard way of passing the execution to the FastAPI app, so it can normally boot and serve requests.
-      * After shutdown: Logic executed right after shutting down the API. Here we might want to free some memory, do some cleanup, etc.
-    """
-
-    ################################################################
-    # Before startup                                               #
-    ################################################################
-    create_agent()
-
-    ################################################################
-    # Yield execution to API                                       #
-    ################################################################
-    yield
-
-    ################################################################
-    # After shutdown                                               #
-    ################################################################
-    pass
 
 
 app = FastAPI(
     title="EPFL Graph Chatbot",
     description="API that serves the EPFL Graph chatbot",
-    version="1.0.0",
-    lifespan=lifespan
+    version="0.1.0",
 )
 
 
@@ -77,17 +53,17 @@ async def chat(input: ChatInput, response: Response):
     """
 
     conversation_id = input.conversation_id
-    prompt = input.human_input
+    human_input = input.human_input
 
     # Ensure text not too long
-    if len(prompt) > 1000:
+    if len(human_input) > 1000:
         response.status_code = 500  # Internal server error
         return ChatOutput(error_code=ec.ERR_INPUT_TOO_LONG)
 
     # Main call to generate results
-    output = send_message(conversation_id, prompt)
+    conversation_result = old_wrapper_chat(conversation_id, human_input)
 
-    return output
+    return conversation_result
 
 ################################################################
 
@@ -108,9 +84,11 @@ async def reset(input: ResetInput):
         dict: Dictionary containing whether everything went well.
     """
 
-    # TODO do it
+    conversation_id = input.conversation_id
 
-    return {'ok': False}
+    delete_chain(conversation_id)
+
+    return {'ok': True}
 
 ################################################################
 

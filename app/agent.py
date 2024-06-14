@@ -22,9 +22,8 @@ from langgraph.prebuilt.tool_executor import ToolExecutor, ToolInvocation
 from langgraph.prebuilt.tool_node import str_output
 
 from app.config import config
-from app.new.prompt import system_prompt
-from app.tools import search_news, search_exercises
-from app.new.graph import search_nodes
+from app.prompt import system_prompt
+from app.tools import search_nodes, search_news, search_exercises
 
 agent = None
 agent_results = {}

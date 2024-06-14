@@ -20,7 +20,7 @@ from langchain.agents.openai_functions_agent.base import OpenAIFunctionsAgent
 from langchain.agents.loading import AGENT_TO_CLASS
 from langchain.schema import AgentAction, AgentFinish
 
-from app.tools.graph import graph_answers
+from app.deprecated.tools.graph import graph_answers
 
 
 class CustomOpenAIFunctionsAgent(OpenAIFunctionsAgent):
