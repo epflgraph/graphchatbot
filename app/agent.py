@@ -16,6 +16,7 @@ from langchain.tools import StructuredTool
 from langchain_openai import ChatOpenAI
 
 from langgraph.checkpoint import MemorySaver
+from langgraph.checkpoint.base import empty_checkpoint
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt.tool_executor import ToolExecutor, ToolInvocation
@@ -190,7 +191,7 @@ def create_agent():
 
 ################################################################
 
-def send_message(conversation_id, prompt):
+def send_message(conversation_id: str, prompt: str) -> dict:
     """
     Sends a new message to the chatbot in the context of a given conversation.
 
@@ -212,7 +213,8 @@ def send_message(conversation_id, prompt):
     # Invoke model with given prompt and conversation_id
     agent_output = agent.invoke(
         input={'messages': [('human', prompt)]},
-        config={'configurable': {'thread_id': conversation_id}}
+        config={'configurable': {'thread_id': conversation_id}},
+        debug=False
     )
 
     # Extract response message
@@ -233,3 +235,18 @@ def send_message(conversation_id, prompt):
         'message': message,
         'results': results,
     }
+
+
+def clear_conversation(conversation_id: str) -> bool:
+    checkpoint = empty_checkpoint()
+    agent.checkpointer.put(config={'configurable': {'thread_id': conversation_id}}, checkpoint=checkpoint, metadata={})
+
+    return True
+
+
+if __name__ == '__main__':
+    create_agent()
+
+    print(send_message('1234', "Show me lectures about the Fourier transform")['message'])
+
+    print(send_message('1234', "Now exercises")['message'])

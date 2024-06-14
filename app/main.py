@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from fastapi import FastAPI, Response
 from fastapi.responses import FileResponse
 
-from app.agent import create_agent, send_message
+from app.agent import create_agent, send_message, clear_conversation
 import app.error_codes as ec
 
 
@@ -108,9 +108,9 @@ async def reset(input: ResetInput):
         dict: Dictionary containing whether everything went well.
     """
 
-    # TODO do it
-
-    return {'ok': False}
+    return {
+        'ok': clear_conversation(input.conversation_id)
+    }
 
 ################################################################
 
