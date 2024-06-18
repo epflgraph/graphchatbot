@@ -58,6 +58,22 @@ def clean_nodes(nodes, node_type):
 # Timestamp functions                                          #
 ################################################################
 
+def get_timestamp_pairs(nodes):
+    # Crawl the nodes and store the pairs (concept/category, lecture for which we need the timestamps)
+    pairs = []
+    for node in nodes:
+        if node['type'] in ['Concept', 'Category']:
+            for link in node['links']:
+                if link['type'] == 'Lecture':
+                    pairs.append((node['type'], node['id'], link['id']))
+        elif node['type'] == 'Lecture':
+            for link in node['links']:
+                if link['type'] in ['Concept', 'Category']:
+                    pairs.append((link['type'], link['id'], node['id']))
+
+    return pairs
+
+
 def get_timestamps(pairs):
     columns = ['node_type', 'node_id', 'lecture_id', 'timestamp_s']
 
@@ -78,6 +94,47 @@ def get_timestamps(pairs):
     return timestamps
 
 
+def update_with_timestamps(nodes, timestamps, top_concept_or_category):
+    # Iterate over nodes to add timestamp field and update the url
+    for node in nodes:
+        if node['type'] in ['Concept', 'Category']:
+            for link in node['links']:
+                if link['type'] == 'Lecture':
+                    try:
+                        timestamp_sec = timestamps.loc[
+                            (timestamps['node_type'] == node['type'])
+                            & (timestamps['node_id'] == node['id'])
+                            & (timestamps['lecture_id'] == link['id']),
+                            'timestamp_s',
+                        ].iloc[0]
+                        timestamp_sec = int(timestamp_sec)
+                        td = timedelta(seconds=timestamp_sec)
+                        link[f"best_timestamp_for_{to_snake_case(node['name_en'])}"] = str(td)
+                        link['url'] += f'?t={timestamp_sec}'
+                    except (IndexError, TypeError):
+                        pass
+        elif node['type'] == 'Lecture':
+            top_type = top_concept_or_category['doc_type']
+            top_id = top_concept_or_category['doc_id']
+            if (top_type, top_id) in [(link['type'], link['id']) for link in node['links']]:
+                try:
+                    timestamp_sec = timestamps.loc[
+                        (timestamps['node_type'] == top_type)
+                        & (timestamps['node_id'] == top_id)
+                        & (timestamps['lecture_id'] == node['id']),
+                        'timestamp_s',
+                    ].iloc[0]
+                    timestamp_sec = int(timestamp_sec)
+                    td = timedelta(seconds=timestamp_sec)
+                    top_name = top_concept_or_category['name']['en']
+                    node[f"best_timestamp_for_{to_snake_case(top_name)}"] = str(td)
+                    node['url'] += f'?t={timestamp_sec}'
+                except (IndexError, TypeError):
+                    pass
+
+    return nodes
+
+
 def to_snake_case(s):
     # Replace all non-word characters (everything except numbers and letters) with '_'
     s = re.sub(r'[^\w\s]', ' ', s)
@@ -90,21 +147,9 @@ def to_snake_case(s):
     return s
 
 
-def add_lecture_timestamps(nodes):
-    # Crawl the nodes and store the pairs (concept/category, lecture for which we need the timestamps)
-    pairs = []
-    for node in nodes:
-        # Skip if not a concept/category
-        if node['type'] not in ['Concept', 'Category']:
-            continue
-
-        # If a concept/category, store pair for all lecture links
-        for link in node['links']:
-            # Skip if not a lecture
-            if link['type'] != 'Lecture':
-                continue
-
-            pairs.append((node['type'], node['id'], link['id']))
+def add_lecture_timestamps(nodes, top_concept_or_category):
+    # Extract the concept/category - lecture pairs from the nodes
+    pairs = get_timestamp_pairs(nodes)
 
     # Return if no pairs
     if not pairs:
@@ -113,27 +158,8 @@ def add_lecture_timestamps(nodes):
     # Fetch timestamps from the database
     timestamps = get_timestamps(pairs)
 
-    # Iterate again over concept nodes and lecture links to add timestamp field and update the url
-    for node in nodes:
-        # Skip if not a concept
-        if node['type'] not in ['Concept', 'Category']:
-            continue
-
-        # If a concept, add timestamp field and update the lecture url
-        for link in node['links']:
-            # Skip if not a lecture
-            if link['type'] != 'Lecture':
-                continue
-
-            # Add field with timestamp in format
-            try:
-                timestamp_sec = timestamps.loc[(timestamps['node_type'] == node['type']) & (timestamps['node_id'] == node['id']) & (timestamps['lecture_id'] == link['id']), 'timestamp_s'].iloc[0]
-                timestamp_sec = int(timestamp_sec)
-                td = timedelta(seconds=timestamp_sec)
-                link[f"best_timestamp_for_{to_snake_case(node['name_en'])}"] = str(td)
-                link['url'] += f'?t={timestamp_sec}'
-            except (IndexError, TypeError):
-                pass
+    # Add the timestamp information to the appropriate nodes and links
+    nodes = update_with_timestamps(nodes, timestamps, top_concept_or_category)
 
     return nodes
 
@@ -159,11 +185,12 @@ def search_nodes(query: str, node_type: list | str = None) -> list:
     print('[GRAPH]', f"Kept {len(nodes)} nodes after cleanup with {[len(node['links']) for node in nodes]} links")
 
     # Add timestamps to lectures wherever needed
-    nodes = add_lecture_timestamps(nodes)
+    [top_concept_or_category] = search(query, node_type=['Concept', 'Category'], limit=1, return_links=False, return_scores=False)
+    nodes = add_lecture_timestamps(nodes, top_concept_or_category)
 
     return nodes
 
 
 if __name__ == '__main__':
-    nodes = search_nodes("reduced jordan form", node_type=['Lecture', 'Course'])
+    nodes = search_nodes("steepest descent", node_type=['Lecture', 'Course'])
     print(nodes)
