@@ -73,4 +73,5 @@ def search_nodes(query: str, node_type: list | str = None) -> list:
 
 
 if __name__ == '__main__':
-    search_nodes("solar cells", node_type=['Lecture', 'Course'])
+    nodes = search_nodes("solar cells", node_type=['Lecture', 'Course'])
+    print(nodes)

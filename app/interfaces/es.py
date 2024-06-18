@@ -149,3 +149,8 @@ def search(text, node_type=None, limit=10, return_links=False, return_scores=Fal
         hits = [hit['_source'] for hit in hits]
 
     return hits
+
+
+if __name__ == '__main__':
+    nodes = search('AI', node_type=None, return_links=True, return_scores=False)
+    print(nodes)
