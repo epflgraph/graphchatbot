@@ -56,6 +56,8 @@ class ChatInput(BaseModel):
 class ChatOutput(BaseModel):
     message: Optional[str] = None
     results: Optional[list] = None
+    context: Optional[list] = None
+    context_message: Optional[list] = None
     error_code: Optional[str] = None
     instructions: list = []
     instructions_str: str = ""

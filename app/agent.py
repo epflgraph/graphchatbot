@@ -313,6 +313,62 @@ def create_agent():
 
 ################################################################
 
+def generate_context(message, results):
+    message_nodes = []
+
+    # Keep only nodes and links that appear in the message
+    for nodes in results:
+        for node in nodes:
+            message_node_links = []
+            for link in node['links']:
+                if link['url'] in message:
+                    message_node_links.append(link)
+
+            if message_node_links or node['url'] in message:
+                message_nodes.append({**node, 'links': message_node_links, 'match': node['url'] in message})
+
+    # Gather the node types of links for all links of each node
+    for node in message_nodes:
+        link_types = []
+        for link in node['links']:
+            if link['type'] not in link_types:
+                link_types.append(link['type'])
+        node['link_types'] = link_types
+        node['link_count'] = len(node['links'])
+
+    return message_nodes
+
+
+def generate_node_context_message(message_node):
+    # Case where node links are mentioned
+    if len(message_node['link_types']) > 0:
+        # Generate subsrting for related node types
+        link_types = [f"{link_type}s" for link_type in message_node['link_types']]
+        if len(message_node['link_types']) == 1:
+            link_types = link_types[0]
+        else:
+            link_types = f"{', '.join(link_types[:-1])} and {link_types[-1]}"
+
+        # Return string including or not the node
+        if message_node['match']:
+            return f"""Showing the {message_node['type']} "{message_node['name_en']}" with related {link_types}"""
+        else:
+            return f"""Showing {link_types} related to the {message_node['type']} "{message_node['name_en']}\""""
+
+    # Case where node links are not mentioned
+    if message_node['match']:
+        return f"""Showing the {message_node['type']} "{message_node['name_en']}\""""
+
+    # Should never get here
+    return ''
+
+
+def generate_context_messages(message_nodes):
+    return [generate_node_context_message(message_node) for message_node in message_nodes]
+
+################################################################
+
+
 def send_message(conversation_id: str, prompt: str) -> dict:
     """
     Sends a new message to the chatbot in the context of a given conversation.
@@ -353,9 +409,15 @@ def send_message(conversation_id: str, prompt: str) -> dict:
     results = get_results(conversation_id)
     print("[WRAPPER]", f"Found {len(results)} results from the tools")
 
+    # Generate context to be displayed in the frontend
+    context = generate_context(message, results)
+    context_message = generate_context_messages(context)
+
     return {
         'message': message,
         'results': results,
+        'context': context,
+        'context_message': context_message,
     }
 
 
