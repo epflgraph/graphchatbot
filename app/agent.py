@@ -3,7 +3,8 @@ This module creates and manages the agent that serves all chat requests.
 It is created as a LangGraph StateGraph with custom functions on their nodes and edges.
 It also provides the entry point function to interact with it.
 """
-
+import json
+from hashlib import sha256
 from typing import Annotated, Sequence, TypedDict
 
 from langchain_core.messages import (
@@ -25,6 +26,7 @@ from langgraph.prebuilt.tool_executor import ToolExecutor, ToolInvocation
 from langgraph.prebuilt.tool_node import str_output
 
 from app.config import config
+from app.interfaces.db import db_manager
 from app.prompt import system_prompt
 from app.tools import search_nodes, search_news, search_exercises
 
@@ -46,6 +48,59 @@ def get_results(thread_id):
 def clear_results(thread_id):
     agent_results[thread_id] = []
 
+
+################################################################
+
+def set_to_cache(messages, response):
+    # Serialise list of messages and remove message ids, which should not be cached (tool call ids are cached and reused, but that's ok)
+    message_dicts = [message.dict() for message in messages]
+    message_dicts = [{k: v for k, v in message_dict.items() if k not in ['id']} for message_dict in message_dicts]
+    cache_input = json.dumps(message_dicts)
+
+    # Serialise response message (equivalent to json.dumps(message.dict()))
+    cache_output = response.json()
+
+    # Hash cache input to generate cache key
+    cache_key = sha256(cache_input.encode('utf-8')).hexdigest()
+
+    # Set cache row in database
+    db_manager.set(cache_key, {'input': cache_input, 'output': cache_output})
+
+
+def get_from_cache(messages):
+    # Serialise list of messages and remove message ids, which should not be cached (tool call ids are cached and reused, but that's ok)
+    message_dicts = [message.dict() for message in messages]
+    message_dicts = [{k: v for k, v in message_dict.items() if k not in ['id']} for message_dict in message_dicts]
+    cache_input = json.dumps(message_dicts)
+
+    # Hash cache input to generate cache key
+    cache_key = sha256(cache_input.encode('utf-8')).hexdigest()
+
+    # Try to fetch from database
+    cache_output = db_manager.get(cache_key)
+
+    # Return if not cached
+    if cache_output is None:
+        return None
+
+    # Deserialise response message
+    cached_response = json.loads(cache_output)
+
+    # Return correct type of message
+    message_type = cached_response['type']
+
+    if message_type == 'human':
+        response = HumanMessage(**cached_response)
+    elif message_type == 'ai':
+        response = AIMessage(**cached_response)
+    elif message_type == 'system':
+        response = SystemMessage(**cached_response)
+    elif message_type == 'tool':
+        response = ToolMessage(**cached_response)
+    else:
+        response = None
+
+    return response
 
 ################################################################
 
@@ -154,8 +209,23 @@ def create_agent():
 
     # Define the function that will run in the 'agent' node
     def call_model(state: State, config: RunnableConfig):
+        print(f"[AGENT] Entering agent state")
+
+        # Extract the list of messages from conversation history
         messages = state['messages']
-        response = model.invoke(messages, config)
+
+        # Try to fetch response from cache
+        response = get_from_cache(messages)
+
+        # Call LLM otherwise
+        if response is None:
+            print("[AGENT] Couldn't find cached response for the given message list, calling LLM")
+            response = model.invoke(messages, config)
+        else:
+            print("[AGENT] Found cached response for the given message list, skipping LLM")
+
+        # Set result to cache
+        set_to_cache(messages, response)
 
         # Clean up the tool requests and responses if there are no more tool calls
         if not response.tool_calls:
@@ -167,6 +237,8 @@ def create_agent():
 
     # Define the function that will run in the 'agent' node
     def call_tools(state: State, config: RunnableConfig):
+        print(f"[TOOLS] Entering tools state")
+
         messages = state['messages']
         last_message = messages[-1]
 
@@ -182,6 +254,7 @@ def create_agent():
             action = ToolInvocation(tool=tool_call['name'], tool_input=tool_call['args'])
 
             # Run it
+            print(f"[TOOLS] Running tool call {tool_call['name']}")
             response = tool_executor.invoke(action)
 
             # Store unobfuscated result
@@ -200,14 +273,18 @@ def create_agent():
 
     # Define the function to decide where to go from the 'agent' node
     def agent_target_node(state: State):
+        print("[POST-AGENT] Deciding what to do after agent state")
+
         messages = state['messages']
         last_message = messages[-1]
 
         # If there are tool calls, go to the 'tools' node
         if last_message.tool_calls:
+            print("[POST-AGENT] There are tool calls in the last message, moving to tools state")
             return 'tools'
 
         # Otherwise finish execution
+        print("[POST-AGENT] There are tool calls in the last message, moving to END state")
         return END
 
     ################################################################
@@ -250,7 +327,7 @@ def send_message(conversation_id: str, prompt: str) -> dict:
         returned nodes if applicable, respectively.
     """
 
-    print("[AGENT]", f"Received chat request for conversation `{conversation_id}` with input `{prompt}`")
+    print("[WRAPPER]", f"Received chat request for conversation `{conversation_id}` with input `{prompt}`")
 
     # Reset tools results
     clear_results(conversation_id)
@@ -268,13 +345,13 @@ def send_message(conversation_id: str, prompt: str) -> dict:
     # Log the response message
     display_message = message.replace('\n', ' ')
     if len(display_message) <= 100:
-        print("[AGENT]", f"Got response message `{display_message}` from agent executor")
+        print("[WRAPPER]", f"Got response message `{display_message}` from agent system")
     else:
-        print("[AGENT]", f"Got response message `{display_message[:100]}...` from agent executor")
+        print("[WRAPPER]", f"Got response message `{display_message[:100]}...` from agent system")
 
     # Fetch results obtained in the tools
     results = get_results(conversation_id)
-    print("[AGENT]", f"Found {len(results)} results from the tools")
+    print("[WRAPPER]", f"Found {len(results)} results from the tools")
 
     return {
         'message': message,

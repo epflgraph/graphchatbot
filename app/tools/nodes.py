@@ -174,15 +174,15 @@ def search_nodes(query: str, node_type: list | str = None) -> list:
     A list of nodes is returned. Aside from its own fields, each node has a `links` field which in turn contains a list of the node's related nodes.
     """
 
-    print('[GRAPH]', f"Called `search_graph` tool with query=`{query}` and node_type=`{node_type}`")
+    print('[NODES TOOL]', f"Called `search_nodes` tool with query=`{query}` and node_type=`{node_type}`")
 
     # Search nodes matching the given query
     nodes = search(query, node_type=None, limit=3, return_links=True, return_scores=False)
-    print('[GRAPH]', f"Got nodes ({[(node['name']['en'], node['doc_id']) for node in nodes]}) from elasticsearch with {[len(node['links']) for node in nodes]} links")
+    print('[NODES TOOL]', f"Got nodes ({[(node['name']['en'], node['doc_id']) for node in nodes]}) from elasticsearch with {[len(node['links']) for node in nodes]} links")
 
     # Build a nodes object by renaming, cleaning and filtering some fields
     nodes = clean_nodes(nodes, node_type)
-    print('[GRAPH]', f"Kept {len(nodes)} nodes after cleanup with {[len(node['links']) for node in nodes]} links")
+    print('[NODES TOOL]', f"Kept {len(nodes)} nodes after cleanup with {[len(node['links']) for node in nodes]} links")
 
     # Add timestamps to lectures wherever needed
     [top_concept_or_category] = search(query, node_type=['Concept', 'Category'], limit=1, return_links=False, return_scores=False)

@@ -35,7 +35,7 @@ def fetch_concept_exercises(node):
 
         return exercises
     except Exception:
-        print("[EXOSET]", "The request to EXOSET PROD API failed. Trying EXOSET TEST API...")
+        print("[EXOSET TOOL]", "The request to EXOSET PROD API failed. Trying EXOSET TEST API...")
 
     # Fallback to TEST API
     try:
@@ -46,7 +46,7 @@ def fetch_concept_exercises(node):
 
         return exercises
     except Exception:
-        print("[EXOSET]", "The request to EXOSET TEST API failed. Returning no exercises.")
+        print("[EXOSET TOOL]", "The request to EXOSET TEST API failed. Returning no exercises.")
 
     # Everything failed, return empty
     return pd.DataFrame([])
@@ -65,7 +65,7 @@ def search_exercises(query: str, language: str = 'en') -> list:
     The parameter `language` will prioritise exercises in that language, if available.
     """
 
-    print("[EXOSET]", f"Called search EXOSET tool with input `{query}` and language `{language}`")
+    print("[EXOSET TOOL]", f"Called search EXOSET tool with input `{query}` and language `{language}`")
 
     # Standardise language parameter
     if language.lower() in ['fr', 'french', 'français']:
@@ -79,10 +79,10 @@ def search_exercises(query: str, language: str = 'en') -> list:
 
     nodes = search(query, node_type='Concept', limit=50, return_links=False, return_scores=True)
 
-    print("[EXOSET]", f"Got {len(nodes)} concepts to query for exercises: {[node['name']['en'] for node in nodes]}")
+    print("[EXOSET TOOL]", f"Got {len(nodes)} concepts to query for exercises: {[node['name']['en'] for node in nodes]}")
 
     if len(nodes) == 0:
-        print("[EXOSET]", f"No concepts found, returning empty list")
+        print("[EXOSET TOOL]", f"No concepts found, returning empty list")
         return []
 
     # Send requests in parallel to EXOSET's API to obtain exercises for every found concept.
@@ -119,7 +119,7 @@ def search_exercises(query: str, language: str = 'en') -> list:
     all_exercises = all_exercises.groupby(by=['title', 'url']).aggregate(score=('score', 'sum')).reset_index()
     all_exercises = all_exercises.sort_values(by='score', ascending=False).reset_index(drop=True)
 
-    print("[EXOSET]", f"Found {len(all_exercises)} exercises among all concepts")
+    print("[EXOSET TOOL]", f"Found {len(all_exercises)} exercises among all concepts")
 
     # Convert DataFrame to list
     all_exercises = all_exercises.to_dict(orient='records')

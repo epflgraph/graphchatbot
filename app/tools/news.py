@@ -10,7 +10,7 @@ def search_news(query: str) -> list:
     Search exercises from EPFL news website.
     """
 
-    print("[NEWS]", f"Called search news tool with input `{query}`")
+    print("[NEWS TOOL]", f"Called search news tool with input `{query}`")
 
     endpoint_base_url = "https://search-backend.epfl.ch/api/cse"
     path_params = {
@@ -25,7 +25,7 @@ def search_news(query: str) -> list:
 
     response = requests.get(endpoint_full_url).json()
     items = response.get('items', [])
-    print("[NEWS]", f"Got {len(items)} news articles")
+    print("[NEWS TOOL]", f"Got {len(items)} news articles")
 
     news = [
         {
