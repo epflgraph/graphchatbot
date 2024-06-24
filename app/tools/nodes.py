@@ -114,6 +114,9 @@ def update_with_timestamps(nodes, timestamps, top_concept_or_category):
                     except (IndexError, TypeError):
                         pass
         elif node['type'] == 'Lecture':
+            if top_concept_or_category is None:
+                continue
+
             top_type = top_concept_or_category['doc_type']
             top_id = top_concept_or_category['doc_id']
             if (top_type, top_id) in [(link['type'], link['id']) for link in node['links']]:
@@ -185,7 +188,12 @@ def search_nodes(query: str, node_type: list | str = None) -> list:
     print('[NODES TOOL]', f"Kept {len(nodes)} nodes after cleanup with {[len(node['links']) for node in nodes]} links")
 
     # Add timestamps to lectures wherever needed
-    [top_concept_or_category] = search(query, node_type=['Concept', 'Category'], limit=1, return_links=False, return_scores=False)
+    # For that, we need the top matching concept or person, in case there are Lecture-Concept or Lecture-Category edges in the results
+    top_concept_or_category = search(query, node_type=['Concept', 'Category'], limit=1, return_links=False, return_scores=False)
+    if top_concept_or_category:
+        [top_concept_or_category] = top_concept_or_category
+    else:
+        top_concept_or_category = None
     nodes = add_lecture_timestamps(nodes, top_concept_or_category)
 
     return nodes
