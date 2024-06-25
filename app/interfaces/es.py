@@ -43,7 +43,7 @@ def search(text, node_type=None, limit=10, return_links=False, return_scores=Fal
         "multi_match": {
             "type": "most_fields",
             "operator": "and",
-            "fuzziness": "AUTO",
+            # "fuzziness": "AUTO",
             "fields": [
                 "name.en",
                 "name.en.keyword",
@@ -62,7 +62,7 @@ def search(text, node_type=None, limit=10, return_links=False, return_scores=Fal
         "multi_match": {
             "type": "most_fields",
             "operator": "and",
-            "fuzziness": "AUTO",
+            # "fuzziness": "AUTO",
             "fields": [
                 "name.fr",
                 "name.fr.keyword",
