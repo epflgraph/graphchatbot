@@ -55,12 +55,8 @@ class ChatInput(BaseModel):
 
 class ChatOutput(BaseModel):
     message: Optional[str] = None
-    results: Optional[list] = None
-    context: Optional[list] = None
-    context_message: Optional[list] = None
+    tool_interactions: Optional[list] = None
     error_code: Optional[str] = None
-    instructions: list = []
-    instructions_str: str = ""
     tokens: Optional[int] = None
     price: Optional[float] = None
 

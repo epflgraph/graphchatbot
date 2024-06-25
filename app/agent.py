@@ -31,22 +31,22 @@ from app.prompt import system_prompt
 from app.tools import search_nodes, search_news, search_exercises
 
 agent = None
-agent_results = {}
+tool_interactions = {}
 
 ################################################################
 
 
-def append_results(thread_id, results):
-    agent_results.setdefault(thread_id, [])
-    agent_results[thread_id].append(results)
+def append_tool_interaction(thread_id, tool_interaction):
+    tool_interactions.setdefault(thread_id, [])
+    tool_interactions[thread_id].append(tool_interaction)
 
 
-def get_results(thread_id):
-    return agent_results.get(thread_id, [])
+def get_tool_interactions(thread_id):
+    return tool_interactions.get(thread_id, [])
 
 
-def clear_results(thread_id):
-    agent_results[thread_id] = []
+def clear_tool_interactions(thread_id):
+    tool_interactions[thread_id] = []
 
 
 ################################################################
@@ -258,7 +258,8 @@ def create_agent():
             response = tool_executor.invoke(action)
 
             # Store unobfuscated result
-            append_results(config['configurable']['thread_id'], response)
+            tool_interaction = {'tool_call': tool_call, 'tool_response': response}
+            append_tool_interaction(config['configurable']['thread_id'], tool_interaction)
 
             # Obfuscate result - TODO Do this elsewhere by calling a function
             # for node in response['nodeset']:
@@ -313,12 +314,12 @@ def create_agent():
 
 ################################################################
 
-def generate_context(message, results):
+def generate_context(message, tool_interactions):
     message_nodes = []
 
     # Keep only nodes and links that appear in the message
-    for nodes in results:
-        for node in nodes:
+    for tool_interaction in tool_interactions:
+        for node in tool_interaction['tool_response']:
             message_node_links = []
             for link in node['links']:
                 if link['url'] in message:
@@ -386,7 +387,7 @@ def send_message(conversation_id: str, prompt: str) -> dict:
     print("[WRAPPER]", f"Received chat request for conversation `{conversation_id}` with input `{prompt}`")
 
     # Reset tools results
-    clear_results(conversation_id)
+    clear_tool_interactions(conversation_id)
 
     # Invoke model with given prompt and conversation_id
     agent_output = agent.invoke(
@@ -406,18 +407,16 @@ def send_message(conversation_id: str, prompt: str) -> dict:
         print("[WRAPPER]", f"Got response message `{display_message[:100]}...` from agent system")
 
     # Fetch results obtained in the tools
-    results = get_results(conversation_id)
-    print("[WRAPPER]", f"Found {len(results)} results from the tools")
+    tool_interactions = get_tool_interactions(conversation_id)
+    print("[WRAPPER]", f"Found {len(tool_interactions)} tool interactions")
 
     # Generate context to be displayed in the frontend
-    context = generate_context(message, results)
-    context_message = generate_context_messages(context)
+    # context = generate_context(message, tool_interactions)
+    # context_message = generate_context_messages(context)
 
     return {
         'message': message,
-        'results': results,
-        'context': context,
-        'context_message': context_message,
+        'tool_interactions': tool_interactions,
     }
 
 
