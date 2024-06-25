@@ -121,6 +121,9 @@ def search_exercises(query: str, language: str = 'en') -> list:
 
     print("[EXOSET TOOL]", f"Found {len(all_exercises)} exercises among all concepts")
 
+    # Return only up to 20 exercises not to drown in tokens
+    all_exercises = all_exercises[:20]
+
     # Convert DataFrame to list
     all_exercises = all_exercises.to_dict(orient='records')
 
