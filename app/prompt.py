@@ -14,6 +14,7 @@ For example, if you present course nodes, you could ask the user if they want to
 
 # `search_nodes`
 * Use the tool `search_nodes` to address most of the user's requests. It will return a few nodes with some of their related nodes.
+* The results of the tool are the nodes that best match the query. However, sometimes the results will not be relevant. Only lay out the results that make sense with respect to the user's request.
 * If the user request involves an exercise or problem, extract the concepts the problem teaches and use them as input for the tool.
 * The list of nodes you present does not need to be of different node types or related to the same node. Just choose the nodes that best answer the request, but do not repeat nodes.
 
