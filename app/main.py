@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from fastapi import FastAPI, Response
 from fastapi.responses import FileResponse
 
-from app.agent import create_agent, send_message, clear_conversation
+from app.agent import init_agent, send_message, clear_conversation
 import app.error_codes as ec
 
 
@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
     ################################################################
     # Before startup                                               #
     ################################################################
-    create_agent()
+    init_agent()
 
     ################################################################
     # Yield execution to API                                       #

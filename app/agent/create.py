@@ -1,16 +1,8 @@
-"""
-This module creates and manages the agent that serves all chat requests.
-It is created as a LangGraph StateGraph with custom functions on their nodes and edges.
-It also provides the entry point function to interact with it.
-"""
-import json
-from hashlib import sha256
 from typing import Annotated, Sequence, TypedDict
 
 from langchain_core.messages import (
     BaseMessage,
     SystemMessage,
-    HumanMessage,
     AIMessage,
     ToolMessage,
 )
@@ -19,90 +11,16 @@ from langchain.tools import StructuredTool
 from langchain_openai import ChatOpenAI
 
 from langgraph.checkpoint import MemorySaver
-from langgraph.checkpoint.base import empty_checkpoint
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt.tool_executor import ToolExecutor, ToolInvocation
 from langgraph.prebuilt.tool_node import str_output
 
 from app.config import config
-from app.interfaces.db import db_manager
-from app.prompt import system_prompt
+from app.agent.prompt import system_prompt
+from app.agent.cache import get_from_cache, set_to_cache
+from app.agent.tool_interactions import append_tool_interaction
 from app.tools import search_nodes, search_news, search_exercises
-
-agent = None
-tool_interactions = {}
-
-################################################################
-
-
-def append_tool_interaction(thread_id, tool_interaction):
-    tool_interactions.setdefault(thread_id, [])
-    tool_interactions[thread_id].append(tool_interaction)
-
-
-def get_tool_interactions(thread_id):
-    return tool_interactions.get(thread_id, [])
-
-
-def clear_tool_interactions(thread_id):
-    tool_interactions[thread_id] = []
-
-
-################################################################
-
-def set_to_cache(messages, response):
-    # Serialise list of messages and remove message ids, which should not be cached (tool call ids are cached and reused, but that's ok)
-    message_dicts = [message.dict() for message in messages]
-    message_dicts = [{k: v for k, v in message_dict.items() if k not in ['id']} for message_dict in message_dicts]
-    cache_input = json.dumps(message_dicts)
-
-    # Serialise response message (equivalent to json.dumps(message.dict()))
-    cache_output = response.json()
-
-    # Hash cache input to generate cache key
-    cache_key = sha256(cache_input.encode('utf-8')).hexdigest()
-
-    # Set cache row in database
-    db_manager.set(cache_key, {'input': cache_input, 'output': cache_output})
-
-
-def get_from_cache(messages):
-    # Serialise list of messages and remove message ids, which should not be cached (tool call ids are cached and reused, but that's ok)
-    message_dicts = [message.dict() for message in messages]
-    message_dicts = [{k: v for k, v in message_dict.items() if k not in ['id']} for message_dict in message_dicts]
-    cache_input = json.dumps(message_dicts)
-
-    # Hash cache input to generate cache key
-    cache_key = sha256(cache_input.encode('utf-8')).hexdigest()
-
-    # Try to fetch from database
-    cache_output = db_manager.get(cache_key)
-
-    # Return if not cached
-    if cache_output is None:
-        return None
-
-    # Deserialise response message
-    cached_response = json.loads(cache_output)
-
-    # Return correct type of message
-    message_type = cached_response['type']
-
-    if message_type == 'human':
-        response = HumanMessage(**cached_response)
-    elif message_type == 'ai':
-        response = AIMessage(**cached_response)
-    elif message_type == 'system':
-        response = SystemMessage(**cached_response)
-    elif message_type == 'tool':
-        response = ToolMessage(**cached_response)
-    else:
-        response = None
-
-    return response
-
-################################################################
 
 
 def create_agent():
@@ -307,129 +225,7 @@ def create_agent():
     workflow.add_edge(start_key='tools', end_key='agent')
 
     # Compile the StateGraph into a Langchain Runnable, so it can be invoked, streamed, batched and run asynchronously
-    global agent
     agent = workflow.compile(checkpointer=memory, debug=False)
     agent.step_timeout = 60
 
-
-################################################################
-
-def generate_context(message, tool_interactions):
-    message_nodes = []
-
-    # Keep only nodes and links that appear in the message
-    for tool_interaction in tool_interactions:
-        for node in tool_interaction['tool_response']:
-            message_node_links = []
-            for link in node['links']:
-                if link['url'] in message:
-                    message_node_links.append(link)
-
-            if message_node_links or node['url'] in message:
-                message_nodes.append({**node, 'links': message_node_links, 'match': node['url'] in message})
-
-    # Gather the node types of links for all links of each node
-    for node in message_nodes:
-        link_types = []
-        for link in node['links']:
-            if link['type'] not in link_types:
-                link_types.append(link['type'])
-        node['link_types'] = link_types
-        node['link_count'] = len(node['links'])
-
-    return message_nodes
-
-
-def generate_node_context_message(message_node):
-    # Case where node links are mentioned
-    if len(message_node['link_types']) > 0:
-        # Generate subsrting for related node types
-        link_types = [f"{link_type}s" for link_type in message_node['link_types']]
-        if len(message_node['link_types']) == 1:
-            link_types = link_types[0]
-        else:
-            link_types = f"{', '.join(link_types[:-1])} and {link_types[-1]}"
-
-        # Return string including or not the node
-        if message_node['match']:
-            return f"""Showing the {message_node['type']} "{message_node['name_en']}" with related {link_types}"""
-        else:
-            return f"""Showing {link_types} related to the {message_node['type']} "{message_node['name_en']}\""""
-
-    # Case where node links are not mentioned
-    if message_node['match']:
-        return f"""Showing the {message_node['type']} "{message_node['name_en']}\""""
-
-    # Should never get here
-    return ''
-
-
-def generate_context_messages(message_nodes):
-    return [generate_node_context_message(message_node) for message_node in message_nodes]
-
-################################################################
-
-
-def send_message(conversation_id: str, prompt: str) -> dict:
-    """
-    Sends a new message to the chatbot in the context of a given conversation.
-
-    Args:
-        conversation_id (str): ID of a conversation. Subsequent calls to the same conversation will keep the message history.
-        If no conversation is found for the given ID, a new one will be created.
-        prompt (str): Message written by the user to be sent to the chatbot.
-
-    Returns:
-        dict: Dictionary with keys `message` and `results`, containing the answer of the chatbot to the user's message and information about the
-        returned nodes if applicable, respectively.
-    """
-
-    print("[WRAPPER]", f"Received chat request for conversation `{conversation_id}` with input `{prompt}`")
-
-    # Reset tools results
-    clear_tool_interactions(conversation_id)
-
-    # Invoke model with given prompt and conversation_id
-    agent_output = agent.invoke(
-        input={'messages': [HumanMessage(content=prompt)]},
-        config={'configurable': {'thread_id': conversation_id}},
-        debug=False
-    )
-
-    # Extract response message
-    message = agent_output['messages'][-1].content
-
-    # Log the response message
-    display_message = message.replace('\n', ' ')
-    if len(display_message) <= 100:
-        print("[WRAPPER]", f"Got response message `{display_message}` from agent system")
-    else:
-        print("[WRAPPER]", f"Got response message `{display_message[:100]}...` from agent system")
-
-    # Fetch results obtained in the tools
-    tool_interactions = get_tool_interactions(conversation_id)
-    print("[WRAPPER]", f"Found {len(tool_interactions)} tool interactions")
-
-    # Generate context to be displayed in the frontend
-    # context = generate_context(message, tool_interactions)
-    # context_message = generate_context_messages(context)
-
-    return {
-        'message': message,
-        'tool_interactions': tool_interactions,
-    }
-
-
-def clear_conversation(conversation_id: str) -> bool:
-    checkpoint = empty_checkpoint()
-    agent.checkpointer.put(config={'configurable': {'thread_id': conversation_id}}, checkpoint=checkpoint, metadata={})
-
-    return True
-
-
-if __name__ == '__main__':
-    create_agent()
-
-    print(send_message('1234', "Show me lectures about the Fourier transform")['message'])
-
-    print(send_message('1234', "Now exercises")['message'])
+    return agent
