@@ -23,6 +23,20 @@ from app.agent.tool_interactions import append_tool_interaction
 from app.tools import search_nodes, search_news, search_exercises
 
 
+################################################################
+# State class for the agent graph                              #
+################################################################
+
+class State(TypedDict):
+    """
+    Class that represents a state on the graph. It holds:
+        * A list of messages
+        * The (full) set of results coming from a tool, whenever it applies
+    """
+
+    messages: Annotated[Sequence[BaseMessage], add_messages]
+
+
 def create_agent():
     """
     This function creates a custom agent with the custom tools from EPFL Graph's use case.
@@ -59,19 +73,6 @@ def create_agent():
     ################################################################
 
     memory = MemorySaver()
-
-    ################################################################
-    # State graph                                                  #
-    ################################################################
-
-    class State(TypedDict):
-        """
-        Class that represents a state on the graph. It holds:
-            * A list of messages
-            * The (full) set of results coming from a tool, whenever it applies
-        """
-
-        messages: Annotated[Sequence[BaseMessage], add_messages]
 
     ################################################################
 
