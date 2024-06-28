@@ -1,3 +1,4 @@
+import re
 from typing import Annotated, Sequence, TypedDict
 
 from langchain_core.messages import (
@@ -19,7 +20,7 @@ from langgraph.prebuilt.tool_node import str_output
 from app.config import config
 from app.agent.prompt import system_prompt
 from app.agent.cache import get_from_cache, set_to_cache
-from app.agent.tool_interactions import append_tool_interaction
+from app.agent.tool_interactions import append_tool_interaction, get_tool_interactions
 from app.tools import search_nodes, search_news, search_exercises
 
 
@@ -38,8 +39,59 @@ class State(TypedDict):
 
 
 ################################################################
-# Helper function                                              #
+# Helper functions                                             #
 ################################################################
+
+
+def extract_tool_links(tool_interactions):
+    tool_links = []
+
+    for tool_interaction in tool_interactions:
+        tool_name = tool_interaction['tool_call']['name']
+
+        if tool_name == 'search_nodes':
+            nodes = tool_interaction['tool_response']
+
+            for node in nodes:
+                tool_links.append(node['url'])
+                node_links = node.get('links', [])
+                tool_links.extend([link['url'] for link in node_links])
+
+        elif tool_name == 'search_exercises':
+            exercises = tool_interaction['tool_response']
+            tool_links.extend([exercise['url'] for exercise in exercises])
+
+        elif tool_name == 'search_news':
+            news_pieces = tool_interaction['tool_response']
+            tool_links.extend([news_piece['link'] for news_piece in news_pieces])
+
+    return tool_links
+
+
+def extract_message_links(content):
+    text_pattern = r'\[([^\]]+)\]'              # Character '[', then one or more characters other than ']', then character ']'
+    url_pattern = r'\(([^)]+)\)'                # Character '(', then one or more characters other than ')', then character ')'
+    link_pattern = text_pattern + url_pattern   # Concatenate both
+    link_regex = re.compile(link_pattern)
+
+    message_links = [url for text, url in link_regex.findall(content)]
+
+    return message_links
+
+
+def get_hallucinated_links(thread_id, message):
+    # Extract last message links
+    message_links = set(extract_message_links(message.content))
+    print('[POST-MODEL]', f"Found {len(message_links)} links in LLM message")
+
+    # Extract tool links
+    tool_interactions = get_tool_interactions(thread_id)
+    tool_links = set(extract_tool_links(tool_interactions))
+    print('[POST-MODEL]', f"Found {len(tool_links)} links in tool interactions")
+
+    # Return message links that are not among the tool links
+    return list(message_links - tool_links)
+
 
 def clean_tool_calls_and_responses(messages):
     # Start setting flag to mark when we will be done checking
@@ -60,16 +112,16 @@ def clean_tool_calls_and_responses(messages):
 
                     # Check all tool messages are indeed Tool Messages, otherwise skip to next AI Message
                     if not all(map(lambda x: isinstance(x, ToolMessage), tool_messages)):
-                        print(f"[AGENT] Found AI Message with {n_tool_calls} tool calls but not followed by {n_tool_calls} Tool Messages")
+                        print('[CLEANUP]', f"Found AI Message with {n_tool_calls} tool calls but not followed by {n_tool_calls} Tool Messages")
                         continue
 
                     # The AI Message specifies the list of tool call ids.
                     # Check that the tool messages have that same set of ids, otherwise skip to next AI Message
                     if set(tool_call_ids) != set(tool_message.tool_call_id for tool_message in tool_messages):
-                        print(f"[AGENT] Found AI Message with {n_tool_calls} tool calls and {n_tool_calls} subsequent Tool Messages, but their ids do not match")
+                        print('[CLEANUP]', f"Found AI Message with {n_tool_calls} tool calls and {n_tool_calls} subsequent Tool Messages, but their ids do not match")
                         continue
 
-                    print(f"[AGENT] Deleting tool call(s) and response(s): {[(tool_call['name'], tool_call['args']) for tool_call in messages[i].tool_calls]}")
+                    print('[CLEANUP]', f"Deleting tool call(s) and response(s): {[(tool_call['name'], tool_call['args']) for tool_call in messages[i].tool_calls]}")
 
                     # At this point, the AI Message specifies n tool call ids,
                     # and the next n messages are Tool Messages whose ids are exactly those.
@@ -80,6 +132,10 @@ def clean_tool_calls_and_responses(messages):
 
     return messages
 
+
+################################################################
+# Main function                                                #
+################################################################
 
 def create_agent():
     """
@@ -129,12 +185,18 @@ def create_agent():
     model = (lambda messages: [SystemMessage(content=system_prompt)] + messages) | model
 
     ################################################################
-    # Agent node function                                          #
+    # Hallucinated links                                           #
     ################################################################
 
-    # Define the function that will run in the 'agent' node
-    def call_model(state: State, config: RunnableConfig):
-        print("[AGENT] Entering agent state")
+    try_to_recover = True
+    hallucinated_links = []
+
+    ################################################################
+    # Model node function                                          #
+    ################################################################
+
+    def model_node(state: State, config: RunnableConfig):
+        print('[MODEL]', "Entering model state")
 
         # Extract the list of messages from conversation history
         messages = state['messages']
@@ -144,17 +206,13 @@ def create_agent():
 
         # Call LLM otherwise
         if response is None:
-            print("[AGENT] Couldn't find cached response for the given message list, calling LLM")
+            print("[MODEL] Couldn't find cached response for the given message list, calling LLM")
             response = model.invoke(messages, config)
         else:
-            print("[AGENT] Found cached response for the given message list, skipping LLM")
+            print("[MODEL] Found cached response for the given message list, skipping LLM")
 
         # Set result to cache
         set_to_cache(messages, response)
-
-        # Clean up the tool requests and responses if there are no more tool calls
-        if not response.tool_calls:
-            state['messages'] = clean_tool_calls_and_responses(messages)
 
         return {'messages': [response]}
 
@@ -162,17 +220,14 @@ def create_agent():
     # Tools node function                                          #
     ################################################################
 
-    # Define the function that will run in the 'agent' node
-    def call_tools(state: State, config: RunnableConfig):
-        print("[TOOLS] Entering tools state")
+    def tools_node(state: State, config: RunnableConfig):
+        print('[TOOLS]', "Entering tools state")
 
         messages = state['messages']
         last_message = messages[-1]
 
-        # Create new state to be filled with messages
-        new_state = {
-            'messages': []
-        }
+        # Create new list of messages to be filled
+        new_messages = []
 
         # We iterate over all tool calls in the last message, and run them storing their results
         # We know there is at least one tool call because of how the graph is built
@@ -181,7 +236,7 @@ def create_agent():
             action = ToolInvocation(tool=tool_call['name'], tool_input=tool_call['args'])
 
             # Run it
-            print(f"[TOOLS] Running tool call {tool_call['name']}")
+            print('[TOOLS]', f"Running tool call {tool_call['name']}")
             response = tool_executor.invoke(action)
 
             # Store unobfuscated result
@@ -193,29 +248,87 @@ def create_agent():
             #     del node['secret']
 
             # Store ToolMessage in a list to be returned
-            new_state['messages'].append(ToolMessage(content=str_output(response), name=tool_call['name'], tool_call_id=tool_call['id']))
+            new_messages.append(ToolMessage(content=str_output(response), name=tool_call['name'], tool_call_id=tool_call['id']))
 
-        return new_state
+        return {'messages': new_messages}
+
+    ################################################################
+    # Recover node function                                        #
+    ################################################################
+
+    def recover_node(state: State, config: RunnableConfig):
+        print('[RECOVER]', "Entering recover state")
+
+        # Delete last message because it contains hallucinations
+        state['messages'] = state['messages'][:-1]
+
+        # Disable recovery next time to prevent running into an infinite loop
+        nonlocal try_to_recover
+        try_to_recover = False
+
+        # Return new system message warning about the hallucination
+        print('[RECOVER]', f"Replacing last AI message with system message warning about hallucinations, stressing invalid url {hallucinated_links[0]}")
+        return {'messages': [SystemMessage(f"Make sure you only include urls present in the results from the tools. For instance, {hallucinated_links[0]} is not a valid url.")]}
+
+    ################################################################
+    # Cleanup node function                                        #
+    ################################################################
+
+    def cleanup_node(state: State, config: RunnableConfig):
+        print('[CLEANUP]', "Entering cleanup state")
+
+        # Delete AI messages with tool requests and their corresponding tool messages
+        print('[CLEANUP]', "Deleting tool call requests and responses")
+        state['messages'] = clean_tool_calls_and_responses(state['messages'])
+
+        # Prepare for next execution
+        nonlocal try_to_recover
+        try_to_recover = True
+
+        nonlocal hallucinated_links
+        hallucinated_links = []
+
+        return {'messages': []}
 
     ################################################################
     # Agent outgoing edge function                                 #
     ################################################################
 
-    # Define the function to decide where to go from the 'agent' node
-    def agent_target_node(state: State):
-        print("[POST-AGENT] Deciding what to do after agent state")
+    def model_edge(state: State, config: RunnableConfig):
+        print('[POST-MODEL]', "Deciding what to do after model state")
 
+        # Get last message
         messages = state['messages']
         last_message = messages[-1]
 
         # If there are tool calls, go to the 'tools' node
         if last_message.tool_calls:
-            print("[POST-AGENT] There are tool calls in the last message, moving to tools state")
+            print('[POST-MODEL]', "There are tool calls in the last message, moving to tools state")
             return 'tools'
 
-        # Otherwise finish execution
-        print("[POST-AGENT] There are tool calls in the last message, moving to END state")
-        return END
+        # If we already tried to recover from hallucinated links, proceed to 'cleanup' node
+        if not try_to_recover:
+            print('[POST-MODEL]', "We already tried to recover from hallucinated links. Finishing execution to avoid infinite loops.")
+            return 'cleanup'
+
+        # If last message is not an AIMessage, proceed to 'cleanup' node
+        if not isinstance(last_message, AIMessage):
+            print('[POST-MODEL]', f"The last message is a {last_message.__class__}, cannot check for hallucinations. Finishing execution.")
+            return 'cleanup'
+
+        # Check for hallucinated links
+        print('[POST-MODEL]', "Checking for hallucinated links")
+        nonlocal hallucinated_links
+        hallucinated_links = get_hallucinated_links(config['configurable']['thread_id'], last_message)
+
+        # If no hallucinated links, proceed to 'cleanup' node
+        if not hallucinated_links:
+            print('[POST-MODEL]', "All links are valid. Finishing execution.")
+            return 'cleanup'
+
+        # Try to recover from hallucinated links in the 'recover' node
+        print('[POST-MODEL]', f"Found some hallucinated links in the LLM message ({hallucinated_links[0]}). Moving to recover state to try to correct them.")
+        return 'recover'
 
     ################################################################
     # State graph                                                  #
@@ -225,17 +338,22 @@ def create_agent():
     workflow = StateGraph(State)
 
     # Define the two nodes we will cycle between
-    workflow.add_node('agent', call_model)
-    workflow.add_node('tools', call_tools)
+    workflow.add_node('model', model_node)
+    workflow.add_node('tools', tools_node)
+    workflow.add_node('recover', recover_node)
+    workflow.add_node('cleanup', cleanup_node)
 
-    # Set the entrypoint as 'agent'. This means that this node is the first one called.
-    workflow.set_entry_point('agent')
-
-    # Define the edges of the graph
-    #   From 'agent', we can go to 'tools' or END
-    #   From 'tools', we always go to 'agent'
-    workflow.add_conditional_edges(source='agent', path=agent_target_node)
-    workflow.add_edge(start_key='tools', end_key='agent')
+    # Define the edges of the graph:
+    #   From START, we always go to 'model'
+    #   From 'model', we can go to 'tools', 'recover' or 'cleanup'
+    #   From 'tools', we always go to 'model'
+    #   From 'recover', we always go to 'model'
+    #   From 'cleanup', we always go to END
+    workflow.set_entry_point('model')
+    workflow.add_conditional_edges(source='model', path=model_edge)
+    workflow.add_edge(start_key='tools', end_key='model')
+    workflow.add_edge(start_key='recover', end_key='model')
+    workflow.add_edge(start_key='cleanup', end_key=END)
 
     # Compile the StateGraph into a Langchain Runnable, so it can be invoked, streamed, batched and run asynchronously
     agent = workflow.compile(checkpointer=memory, debug=False)
