@@ -78,7 +78,7 @@ async def chat(input: ChatInput, response: Response):
     prompt = input.human_input
 
     # Ensure text not too long
-    if len(prompt) > 1000:
+    if len(prompt) > 5000:
         response.status_code = 500  # Internal server error
         return ChatOutput(error_code=ec.ERR_INPUT_TOO_LONG)
 
