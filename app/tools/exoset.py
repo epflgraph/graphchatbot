@@ -131,3 +131,11 @@ def search_exercises(query: str, language: str = 'en') -> list:
     cache[query] = all_exercises
 
     return all_exercises
+
+
+if __name__ == '__main__':
+    pd.set_option('display.max_rows', 400)
+    pd.set_option('display.max_columns', 500)
+    pd.set_option('display.width', 1000)
+
+    print(search_exercises(query="derivatives", language='en'))
