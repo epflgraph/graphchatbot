@@ -32,8 +32,6 @@ def test_news():
     for tool_input in tool_inputs['search_news']:
         tool_output = search_news(query=tool_input['query'])
 
-        print(tool_output)
-
         assert isinstance(tool_output, list)
         assert len(tool_output) > 0
         assert isinstance(tool_output[0], dict)
