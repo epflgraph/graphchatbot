@@ -12,7 +12,7 @@ from fastapi import FastAPI, Response
 from fastapi.responses import FileResponse
 
 from app.agent import init_agent, send_message, clear_conversation
-import app.error_codes as ec
+from app.errors import ERR_INPUT_TOO_LONG
 
 
 @asynccontextmanager
@@ -80,7 +80,7 @@ async def chat(input: ChatInput, response: Response):
     # Ensure text not too long
     if len(prompt) > 5000:
         response.status_code = 500  # Internal server error
-        return ChatOutput(error_code=ec.ERR_INPUT_TOO_LONG)
+        return ChatOutput(error_code=ERR_INPUT_TOO_LONG)
 
     # Main call to generate results
     output = send_message(conversation_id, prompt)
