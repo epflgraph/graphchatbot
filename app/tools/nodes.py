@@ -111,6 +111,12 @@ def update_with_timestamps(nodes, timestamps, top_concept_or_category):
                         td = timedelta(seconds=timestamp_sec)
                         link[f"best_timestamp_for_{to_snake_case(node['name_en'])}"] = str(td)
                         link['url'] += f'?t={timestamp_sec}'
+
+                        if node['type'] == 'Concept':
+                            link['url'] += f"&concept_id={node['id']}"
+                        elif node['type'] == 'Category':
+                            link['url'] += f"&category_id={node['id']}"
+
                     except (IndexError, TypeError):
                         pass
         elif node['type'] == 'Lecture':
@@ -132,6 +138,12 @@ def update_with_timestamps(nodes, timestamps, top_concept_or_category):
                     top_name = top_concept_or_category['name']['en']
                     node[f"best_timestamp_for_{to_snake_case(top_name)}"] = str(td)
                     node['url'] += f'?t={timestamp_sec}'
+
+                    if top_type == 'Concept':
+                        node['url'] += f"&concept_id={top_id}"
+                    elif top_type == 'Category':
+                        node['url'] += f"&category_id={top_id}"
+
                 except (IndexError, TypeError):
                     pass
 
