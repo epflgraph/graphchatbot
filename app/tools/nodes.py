@@ -178,9 +178,38 @@ def add_lecture_timestamps(nodes, top_concept_or_category):
 
     return nodes
 
+
 ################################################################
 # Tool function                                                #
 ################################################################
+
+def get_allowed_node_types(node_types: list | str):
+    # Mapping of allowed source node types depending on the given target node type
+    allowed_node_types_mapping = {
+        'Category': ['Category', 'Concept', 'Lecture'],
+        'Concept': ['Category', 'Concept', 'Lecture'],
+        'Lecture': ['Category', 'Concept', 'Lecture', 'Course', 'MOOC'],
+        'Course': ['Category', 'Concept', 'Lecture', 'Course'],
+        'MOOC': ['Category', 'Concept', 'Lecture', 'MOOC'],
+        'Person': ['Category', 'Concept', 'Course', 'MOOC', 'Person'],
+        'Publication': ['Category', 'Concept', 'Person', 'Publication', 'Unit'],
+        'Unit': ['Category', 'Concept', 'Person', 'Publication', 'Unit'],
+        'Startup': ['Category', 'Concept', 'Person', 'Startup'],
+    }
+
+    # Force node_types to be a list
+    if isinstance(node_types, str):
+        node_types = [node_types]
+
+    # Put in the same list all allowed node types together
+    allowed_node_types = []
+    for node_type in node_types:
+        allowed_node_types.extend(allowed_node_types_mapping[node_type])
+
+    # Make them unique
+    allowed_node_types = list(set(allowed_node_types))
+
+    return allowed_node_types
 
 
 def search_nodes(query: str, node_type: list | str = None) -> list:
@@ -191,9 +220,12 @@ def search_nodes(query: str, node_type: list | str = None) -> list:
 
     print('[NODES TOOL]', f"Called `search_nodes` tool with query=`{query}` and node_type=`{node_type}`")
 
-    # Search nodes matching the given query
-    nodes = search(query, node_type=None, limit=3, return_links=True, return_scores=False)
-    print('[NODES TOOL]', f"Got nodes ({[(node['name']['en'], node['doc_id']) for node in nodes]}) from elasticsearch with {[len(node['links']) for node in nodes]} links")
+    # Search nodes matching the given query:
+    # We match not only nodes of the given node types, but some more.
+    # For instance, we want `lectures about X` to match X against lectures but also concepts.
+    allowed_node_types = get_allowed_node_types(node_type)
+    nodes = search(query, node_type=allowed_node_types, limit=3, return_links=True, return_scores=False)
+    print('[NODES TOOL]', f"Got nodes ({[(node['doc_type'], node['doc_id'], node['name']['en']) for node in nodes]}) from elasticsearch with {[len(node['links']) for node in nodes]} links")
 
     # Build a nodes object by renaming, cleaning and filtering some fields
     nodes = clean_nodes(nodes, node_type)
