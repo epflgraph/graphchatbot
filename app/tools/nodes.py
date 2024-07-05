@@ -19,7 +19,7 @@ def clean_link(link):
         'id': link['link_id'],
         'name_en': link['link_name']['en'],
         'name_fr': link['link_name']['fr'],
-        # 'short_description': link['short_description']['en'],
+        'short_description': link['link_short_description']['en'],
         'ranking': link['link_rank'],
         'url': f"{config['graphsearch']['base_url']}/{link['link_type'].lower()}/{link['link_id']}"
     }
@@ -212,5 +212,5 @@ def search_nodes(query: str, node_type: list | str = None) -> list:
 
 
 if __name__ == '__main__':
-    nodes = search_nodes("steepest descent", node_type=['Lecture', 'Course'])
+    nodes = search_nodes("green function", node_type=['Lecture'])
     print(nodes)

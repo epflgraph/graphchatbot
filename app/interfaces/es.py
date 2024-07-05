@@ -115,9 +115,9 @@ def search(text, node_type=None, limit=10, return_links=False, return_scores=Fal
     # Build fields                                                 #
     ################################################################
 
-    node_fields = ["doc_type", "doc_id", "name", "short_description"]
+    node_fields = ["doc_type", "doc_id", "name", "short_description", "links"]
 
-    link_fields = ["link_type", "link_id", "link_name", "link_rank"]
+    link_fields = ["link_type", "link_id", "link_name", "link_rank", "link_short_description"]
 
     type_specific_fields = {
         'course': ["latest_academic_year"],
@@ -152,5 +152,5 @@ def search(text, node_type=None, limit=10, return_links=False, return_scores=Fal
 
 
 if __name__ == '__main__':
-    nodes = search('AI', node_type=None, return_links=True, return_scores=False)
+    nodes = search("green function", node_type='Lecture', limit=3, return_links=True, return_scores=False)
     print(nodes)
