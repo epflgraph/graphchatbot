@@ -115,7 +115,7 @@ def search(text, node_type=None, limit=10, return_links=False, return_scores=Fal
     # Build fields                                                 #
     ################################################################
 
-    node_fields = ["doc_type", "doc_id", "name", "short_description", "links"]
+    node_fields = ["doc_type", "doc_id", "name", "short_description"]
 
     link_fields = ["link_type", "link_id", "link_name", "link_rank", "link_short_description"]
 
@@ -134,6 +134,7 @@ def search(text, node_type=None, limit=10, return_links=False, return_scores=Fal
     fields = node_fields + [type_field for _, type_fields in type_specific_fields.items() for type_field in type_fields]
 
     if return_links:
+        fields += ['links']
         fields += [f"links.{link_field}" for link_field in link_fields]
         fields += [f"links.{type_field}" for _, type_fields in type_specific_fields.items() for type_field in type_fields]
 
