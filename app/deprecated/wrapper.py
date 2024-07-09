@@ -5,7 +5,7 @@ More specifically, it handles the management of langchain chains (creation, retr
 
 import time
 
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.schema import SystemMessage
 from langchain.prompts.chat import MessagesPlaceholder
@@ -13,9 +13,9 @@ from langchain.agents import initialize_agent
 from langchain.tools import StructuredTool
 
 from app.config import config
-from app.prompts import system_messages
-from app.agents import CUSTOM_OPENAI_FUNCTIONS
-from app.tools import ask_graph, search_exercises, find_color, search_news
+from app.deprecated.prompt import system_prompt
+from app.deprecated.agents import CUSTOM_OPENAI_FUNCTIONS
+from app.deprecated.tools import ask_graph, search_exercises, find_color, search_news
 
 ################################################################
 # CHAINS                                                       #
@@ -49,7 +49,7 @@ def create_chain(memory_key):
     memory = ConversationBufferMemory(memory_key=memory_key, return_messages=True)
 
     agent_kwargs = {
-        'system_message': SystemMessage(content=system_messages['wrapper']),        # system prompt of the agent
+        'system_message': SystemMessage(content=system_prompt),        # system prompt of the agent
         'extra_prompt_messages': [MessagesPlaceholder(variable_name=memory_key)]    # placeholder for history messages
     }
 

@@ -49,17 +49,10 @@ function appendMessage(className, message) {
 }
 
 function appendContext(elem) {
-    // Print error if any
-    if (elem.hasOwnProperty('error_code')) {
-        appendMessage('error-message', `ERROR: ${elem['error_code']}`);
-    }
-
     // Print context message
-    if (elem.hasOwnProperty('context_message')) {
-        let context_message = elem["context_message"].trim();
-        if (context_message !== "") {
-            appendMessage('context-message', context_message);
-        }
+    let context_message = elem.trim();
+    if (context_message !== "") {
+        appendMessage('context-message', context_message);
     }
 }
 
@@ -85,8 +78,8 @@ function sendMessage() {
                     appendMessage('error-message', `ERROR: ${response['error_code']}`);
                 }
 
-                if (response.hasOwnProperty('results')) {
-                    response['results'].forEach((elem) => appendContext(elem));
+                if (response.hasOwnProperty('context_message')) {
+                    response['context_message'].forEach((elem) => appendContext(elem));
                 }
 
                 if (response.hasOwnProperty('message')) {

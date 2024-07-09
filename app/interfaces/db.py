@@ -28,14 +28,9 @@ class ChatbotDBCachingManager(DBCachingManagerBase):
         schema: Name of the database schema
         """
         super().__init__(
-            db_config={
-              'host': config['database']['host'],
-              'port': config['database']['port'],
-              'user': config['database']['user'],
-              'pass': config['database']['password'],
-            },
-            cache_table='exact_cache',
-            most_similar_table='closest_match_cache',
+            db_config=config['database'],
+            cache_table='cache',
+            most_similar_table='',
             schema='chatbot',
         )
 
@@ -66,7 +61,7 @@ class ChatbotDBCachingManager(DBCachingManagerBase):
               `id_token` VARCHAR(255),
               `fingerprint` VARCHAR(255) DEFAULT NULL,
               `input` LONGTEXT DEFAULT NULL,
-              `output` VARCHAR(255) DEFAULT NULL,
+              `output` LONGTEXT DEFAULT NULL,
               `date_added` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
               PRIMARY KEY id_token (id_token)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -83,19 +78,19 @@ class ChatbotDBCachingManager(DBCachingManagerBase):
         # except Exception:
         #     pass
 
-        # Creating the closest match table. This table represents a DAG of most-similar relationships (although it
-        # can also have self-loops), where the row with "id_token" as its id is found to be (almost or exactly)
-        # identical to the row with "most_similar_token" as its id.
-        self.db.execute_query(
-            f"""
-            CREATE TABLE IF NOT EXISTS `{self.schema}`.`{self.most_similar_table}` (
-              `id_token` VARCHAR(255),
-              `most_similar_token` VARCHAR(255) DEFAULT NULL,
-              PRIMARY KEY id_token (id_token),
-              KEY most_similar_token (most_similar_token)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-            """
-        )
+        # # Creating the closest match table. This table represents a DAG of most-similar relationships (although it
+        # # can also have self-loops), where the row with "id_token" as its id is found to be (almost or exactly)
+        # # identical to the row with "most_similar_token" as its id.
+        # self.db.execute_query(
+        #     f"""
+        #     CREATE TABLE IF NOT EXISTS `{self.schema}`.`{self.most_similar_table}` (
+        #       `id_token` VARCHAR(255),
+        #       `most_similar_token` VARCHAR(255) DEFAULT NULL,
+        #       PRIMARY KEY id_token (id_token),
+        #       KEY most_similar_token (most_similar_token)
+        #     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+        #     """
+        # )
 
     def get(self, key):
         match = self.get_details(key, ['output'])[0]
@@ -105,8 +100,11 @@ class ChatbotDBCachingManager(DBCachingManagerBase):
 
         return match['output']
 
-    def set(self, key, value):
-        self.insert_or_update_details(key, values_to_insert={'output': value})
+    def set(self, key, values):
+        if not isinstance(values, dict):
+            values = {'output': values}
+
+        self.insert_or_update_details(key, values_to_insert=values)
 
     def delete(self, key):
         self.delete_cache_rows([key])

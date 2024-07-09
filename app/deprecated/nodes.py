@@ -29,10 +29,7 @@ def get_node_db_info(node_type):
     For a node_type, returns the corresponding (table_name, id_field)
     """
 
-    if node_type == 'Concept':
-        return 'Nodes_N_Concept_T_Neighbours', 'id'
-
-    return f'Nodes_N_{node_type}', 'id'
+    return f'graph_cache.Index_D_{node_type}'
 
 
 def get_edge_db_info(source_node_type, target_node_type):
@@ -41,40 +38,41 @@ def get_edge_db_info(source_node_type, target_node_type):
     returns the corresponding (table_name, source_id_field, target_id_field, order_field)
     """
 
-    if (source_node_type, target_node_type) == ('Course', 'Lecture'):
-        return 'Edges_N_Course_N_Lecture_MV', 'from_id', 'to_id', None
+    organisational_link_types = [
+        ('Category', 'Concept'),
+        ('Concept', 'Category'),
 
-    if (source_node_type, target_node_type) == ('Lecture', 'Course'):
-        return 'Edges_N_Course_N_Lecture_MV', 'to_id', 'from_id', None
+        ('Concept', 'Lecture'),
+        ('Lecture', 'Concept'),
 
-    if (source_node_type, target_node_type) == ('Person', 'Course'):
-        return 'Edges_N_Person_N_Course_T_StudyPlanTeacher', 'from_id', 'to_id', None
+        ('Lecture', 'Course'),
+        ('Course', 'Lecture'),
+        ('Course', 'Person'),
+        ('Person', 'Course'),
 
-    if (source_node_type, target_node_type) == ('Course', 'Person'):
-        return 'Edges_N_Person_N_Course_T_StudyPlanTeacher', 'to_id', 'from_id', None
+        ('Lecture', 'MOOC'),
+        ('MOOC', 'Lecture'),
+        ('MOOC', 'Person'),
+        ('Person', 'MOOC'),
 
-    if (source_node_type, target_node_type) == ('Person', 'Lecture'):
-        return 'Edges_N_Person_N_Lecture_MV', 'from_id', 'to_id', None
+        ('Person', 'Publication'),
+        ('Publication', 'Person'),
 
-    if (source_node_type, target_node_type) == ('Lecture', 'Person'):
-        return 'Edges_N_Person_N_Lecture_MV', 'to_id', 'from_id', None
+        ('Person', 'Unit'),
+        ('Unit', 'Person'),
+    ]
 
-    if (source_node_type, target_node_type) == ('Person', 'Publication'):
-        return 'Edges_N_Person_N_Publication_T_Author', 'from_id', 'to_id', None
+    if (source_node_type, target_node_type) in organisational_link_types:
+        link_type = 'ORG'
+    else:
+        link_type = 'SEM'
 
-    if (source_node_type, target_node_type) == ('Publication', 'Person'):
-        return 'Edges_N_Person_N_Publication_T_Author', 'to_id', 'from_id', None
-
-    if (source_node_type, target_node_type) == ('Person', 'Unit'):
-        return 'Edges_N_Person_N_Unit_T_Positions', 'from_id', 'to_id', None
-
-    if (source_node_type, target_node_type) == ('Unit', 'Person'):
-        return 'Edges_N_Person_N_Unit_T_Positions', 'to_id', 'from_id', None
-
-    return f'Edges_N_{source_node_type}_N_{target_node_type}_T_SemanticSimilarity_CQ', 'from_id', 'to_id', 'score'
+    return f'graph_cache.Index_D_{source_node_type}_L_{target_node_type}_T_{link_type}', 'doc_id', 'link_id', 'row_rank'
 
 
 def get_key_field(node_type, key):
+    # TODO fix this when Francisco copies these fields over to graph_cache
+
     key_fields = {
         ('Person', 'Gender'): 'gender_en',
         ('Person', 'Sex'): 'gender_en',
@@ -95,6 +93,8 @@ def get_key_field(node_type, key):
 
 
 def get_key_value(node_type, key_field, value):
+    # TODO fix this when Francisco copies these fields over to graph_cache
+
     if isinstance(value, tuple):
         return (
             get_key_value(node_type, key_field, value[0]),
@@ -113,6 +113,8 @@ def get_key_value(node_type, key_field, value):
 
 
 def want_exact_match(node_type, key_field):
+    # TODO fix this when Francisco copies these fields over to graph_cache
+
     want_exact_matches = [
         ('Person', 'gender_en'),
         ('Publication', 'year'),
@@ -134,7 +136,7 @@ def filter_node_ids(node_type, key, value, filter_ids=None):
     # Filter all nodes table using the (key_field, key_value)
     query = f"""
         SELECT {id_field}
-        FROM graphsearch.{table_name}
+        FROM {table_name}
     """
     query_params = []
 
@@ -189,6 +191,8 @@ def search_node(node_type, text, n=1, return_scores=False, search_title=True):
         list: A list of n dictionaries, each representing a node, with the keys `NodeKey`, `NodeType` and `Title`.
     """
 
+    print(f"[TOOL] Searching {node_type} node matching text {text}")
+
     if search_title:
         return es.search_nodes(text, node_type, n, return_scores)
     else:
@@ -233,6 +237,8 @@ def get_neighborhood(nodeset, node_type, return_order=False):
         If `return_order` is True, the key `Order` is set too.
     """
 
+    print(f"[TOOL] Getting neighborhood of type {node_type} for nodeset {nodeset}")
+
     if len(nodeset) == 0:
         return []
 
@@ -250,12 +256,12 @@ def get_neighborhood(nodeset, node_type, return_order=False):
     # Build and run query
     query = f"""
         SELECT DISTINCT {target_id_field}
-        FROM graphsearch.{table_name}
+        FROM {table_name}
         WHERE {source_id_field} IN ({', '.join(['%s'] * len(ids))})
     """
 
     if order_field is not None:
-        query += f"""ORDER BY {order_field} DESC"""
+        query += f"""ORDER BY {order_field} ASC"""
 
     results = db_manager.db.execute_query(query, ids)
     neighbor_ids = [r for r, in results]
@@ -266,15 +272,19 @@ def get_neighborhood(nodeset, node_type, return_order=False):
     # Remove duplicates while keeping order
     neighbor_ids = list(dict.fromkeys(neighbor_ids))
 
+    print(f"[TOOL] Got {len(neighbor_ids)} unique neighbour ids from database")
+
     # Get nodes from ids
     nodes = es.get_nodeset(neighbor_ids, target_node_type)
     nodes = drop_duplicates(nodes)
 
+    print(f"[TOOL] Got {len(nodes)} unique neighbour nodes from elasticsearch")
+
     # Return order field if required
     if return_order:
         query = f"""
-            SELECT {target_id_field}, MAX({order_field})
-            FROM graphsearch.{table_name}
+            SELECT {target_id_field}, MIN({order_field})
+            FROM {table_name}
             WHERE {source_id_field} IN ({', '.join(['%s'] * len(ids))})
             AND {target_id_field} IN ({', '.join(['%s'] * len(neighbor_ids))})
             GROUP BY {target_id_field}
@@ -373,7 +383,7 @@ def sort(nodeset, key, order):
     # Sort the node ids table using the (key_field, key_value)
     query = f"""
         SELECT {id_field}
-        FROM graphsearch.{table_name}
+        FROM {table_name}
         WHERE {id_field} IN ({', '.join(['%s'] * len(ids))})
         ORDER BY {key_field} {key_order}
     """
