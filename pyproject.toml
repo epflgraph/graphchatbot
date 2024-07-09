@@ -10,7 +10,7 @@ authors = [
 ]
 description = "GraphChatBot is an API that uses langchain to provide services leveraging LLMs in the context of the knowledge graph of the project EPFL Graph."
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent"
