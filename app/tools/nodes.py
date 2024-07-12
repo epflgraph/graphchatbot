@@ -58,18 +58,30 @@ def clean_nodes(nodes, node_type):
 # Timestamp functions                                          #
 ################################################################
 
-def get_timestamp_pairs(nodes):
+def get_timestamp_pairs(nodes, top_concept_or_category):
+    # Keep track of lecture ids, so we can later add pairs with the top concept or category
+    lecture_ids = []
+
     # Crawl the nodes and store the pairs (concept/category, lecture for which we need the timestamps)
     pairs = []
     for node in nodes:
         if node['type'] in ['Concept', 'Category']:
             for link in node['links']:
                 if link['type'] == 'Lecture':
+                    lecture_ids.append(node['id'])
                     pairs.append((node['type'], node['id'], link['id']))
         elif node['type'] == 'Lecture':
+            lecture_ids.append(node['id'])
             for link in node['links']:
                 if link['type'] in ['Concept', 'Category']:
                     pairs.append((link['type'], link['id'], node['id']))
+
+    # Add pairs of all seen lectures with the top concept or category
+    top_concept_or_category_type = top_concept_or_category['doc_type']
+    top_concept_or_category_id = top_concept_or_category['doc_id']
+
+    for lecture_id in lecture_ids:
+        pairs.append((top_concept_or_category_type, top_concept_or_category_id, lecture_id))
 
     return pairs
 
@@ -123,29 +135,28 @@ def update_with_timestamps(nodes, timestamps, top_concept_or_category):
             if top_concept_or_category is None:
                 continue
 
-            top_type = top_concept_or_category['doc_type']
-            top_id = top_concept_or_category['doc_id']
-            if (top_type, top_id) in [(link['type'], link['id']) for link in node['links']]:
-                try:
-                    timestamp_sec = timestamps.loc[
-                        (timestamps['node_type'] == top_type)
-                        & (timestamps['node_id'] == top_id)
-                        & (timestamps['lecture_id'] == node['id']),
-                        'timestamp_s',
-                    ].iloc[0]
-                    timestamp_sec = int(timestamp_sec)
-                    td = timedelta(seconds=timestamp_sec)
-                    top_name = top_concept_or_category['name']['en']
-                    node[f"best_timestamp_for_{to_snake_case(top_name)}"] = str(td)
-                    node['url'] += f'?t={timestamp_sec}'
+            try:
+                top_type = top_concept_or_category['doc_type']
+                top_id = top_concept_or_category['doc_id']
+                timestamp_sec = timestamps.loc[
+                    (timestamps['node_type'] == top_type)
+                    & (timestamps['node_id'] == top_id)
+                    & (timestamps['lecture_id'] == node['id']),
+                    'timestamp_s',
+                ].iloc[0]
+                timestamp_sec = int(timestamp_sec)
+                td = timedelta(seconds=timestamp_sec)
+                top_name = top_concept_or_category['name']['en']
+                node[f"best_timestamp_for_{to_snake_case(top_name)}"] = str(td)
+                node['url'] += f'?t={timestamp_sec}'
 
-                    if top_type == 'Concept':
-                        node['url'] += f"&concept_id={top_id}"
-                    elif top_type == 'Category':
-                        node['url'] += f"&category_id={top_id}"
+                if top_type == 'Concept':
+                    node['url'] += f"&concept_id={top_id}"
+                elif top_type == 'Category':
+                    node['url'] += f"&category_id={top_id}"
 
-                except (IndexError, TypeError):
-                    pass
+            except (IndexError, TypeError):
+                pass
 
     return nodes
 
@@ -164,7 +175,7 @@ def to_snake_case(s):
 
 def add_lecture_timestamps(nodes, top_concept_or_category):
     # Extract the concept/category - lecture pairs from the nodes
-    pairs = get_timestamp_pairs(nodes)
+    pairs = get_timestamp_pairs(nodes, top_concept_or_category)
 
     # Return if no pairs
     if not pairs:
@@ -244,5 +255,5 @@ def search_nodes(query: str, node_type: list | str = None) -> list:
 
 
 if __name__ == '__main__':
-    nodes = search_nodes("green function", node_type=['Lecture'])
+    nodes = search_nodes("hausdorff", node_type=['Lecture'])
     print(nodes)
