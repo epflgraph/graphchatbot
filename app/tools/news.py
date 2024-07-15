@@ -29,10 +29,14 @@ def search_news(query: str) -> list:
 
     news = [
         {
-            key: item[key]
-            for key in ['title', 'link', 'snippet']
+            target_key: item[source_key]
+            for source_key, target_key in [('title', 'title'), ('link', 'url'), ('snippet', 'snippet')]
         }
         for item in items
     ]
 
     return news
+
+
+if __name__ == '__main__':
+    print(search_news("Anna Fontcuberta"))
