@@ -16,6 +16,7 @@ tool_inputs = {
 }
 
 end_to_end_prompts = [
+    "what do you know about Patrick Jermann?",
     "hey show me people doing research on sustainable urbanism",
     "hey show me exercises about magnetic fields",
     "hey show me news about CEDE",

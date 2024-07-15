@@ -20,7 +20,6 @@ def clean_link(link):
         'name_en': link['link_name']['en'],
         'name_fr': link['link_name']['fr'],
         'short_description': link['link_short_description']['en'],
-        'ranking': link['link_rank'],
         'url': f"{config['graphsearch']['base_url']}/{link['link_type'].lower()}/{link['link_id']}"
     }
 
@@ -28,15 +27,76 @@ def clean_link(link):
 
 
 def clean_links(links, node_type):
+    # Split node links between semantic and organisational
+    semantic_links = [link for link in links if link['link_subtype'] == 'Semantic']
+    organisational_links = [link for link in links if link['link_subtype'] != 'Semantic']
+
+    # Clean all the organisational ones
+    organisational_links = [clean_link(link) for link in organisational_links]
+
+    # Clean up semantic links depending on the node type and only a subset
     if node_type is None:
-        return [clean_link(link) for link in links if link['link_rank'] <= 3]
+        semantic_links = [clean_link(link) for link in semantic_links[:5]]
     else:
         if isinstance(node_type, str):
             node_type = [node_type]
-        return [clean_link(link) for link in links if link['link_rank'] <= 10 and link['link_type'] in node_type]
+
+        # Keep only links of the given node type
+        semantic_links = [link for link in semantic_links if link['link_type'] in node_type]
+        semantic_links = [clean_link(link) for link in semantic_links[:10]]
+
+    return organisational_links, semantic_links
+
+
+# Dictionary that maps node and link types to the field name and the allowed limit of such links
+organisational_fields_mapping = {
+    'Unit': {
+        'Unit': {'field': 'parent_unit', 'limit': 1},
+        'Person': {'field': 'members', 'limit': None},
+    },
+    'Person': {
+        'Unit': {'field': 'unit', 'limit': 1},
+        'Publication': {'field': 'publications', 'limit': None},
+        'Course': {'field': 'teaching_courses', 'limit': None},
+        'MOOC': {'field': 'teaching_moocs', 'limit': None},
+    },
+    'Publication': {
+        'Person': {'field': 'authors', 'limit': None},
+    },
+    'Course': {
+        'Person': {'field': 'instructors', 'limit': None},
+    },
+    'MOOC': {
+        'Person': {'field': 'instructors', 'limit': None},
+    }
+}
+
+
+def get_organisational_field_names(node_type):
+    if node_type in organisational_fields_mapping:
+        return [row['field'] for row in organisational_fields_mapping[node_type].values()]
+
+    return []
 
 
 def clean_node(node, node_type):
+    # Clean node links and separate into organisational vs. semantic
+    organisational_links, semantic_links = clean_links(node['links'], node_type)
+
+    organisational_fields = {}
+    for link in organisational_links:
+        field = organisational_fields_mapping[node['doc_type']][link['type']]['field']
+        limit = organisational_fields_mapping[node['doc_type']][link['type']]['limit']
+
+        if field in organisational_fields:
+            if limit is None or len(organisational_fields[field]) < limit:
+                organisational_fields[field].append(link)
+        else:
+            if limit == 1:
+                organisational_fields[field] = link
+            else:
+                organisational_fields[field] = [link]
+
     node = {
         'type': node['doc_type'],
         'id': node['doc_id'],
@@ -44,7 +104,8 @@ def clean_node(node, node_type):
         'name_fr': node['name']['fr'],
         'short_description': node['short_description']['en'],
         'url': f"{config['graphsearch']['base_url']}/{node['doc_type'].lower()}/{node['doc_id']}",
-        'links': clean_links(node['links'], node_type)
+        **organisational_fields,
+        'nearest_nodes': semantic_links,
     }
 
     return node
@@ -66,22 +127,27 @@ def get_timestamp_pairs(nodes, top_concept_or_category):
     pairs = []
     for node in nodes:
         if node['type'] in ['Concept', 'Category']:
-            for link in node['links']:
-                if link['type'] == 'Lecture':
-                    lecture_ids.append(node['id'])
-                    pairs.append((node['type'], node['id'], link['id']))
+            organisational_field_names = get_organisational_field_names(node['type'])
+            for field in organisational_field_names + ['nearest_nodes']:
+                for link in node.get(field, []):
+                    if link['type'] == 'Lecture':
+                        lecture_ids.append(node['id'])
+                        pairs.append((node['type'], node['id'], link['id']))
         elif node['type'] == 'Lecture':
-            lecture_ids.append(node['id'])
-            for link in node['links']:
-                if link['type'] in ['Concept', 'Category']:
-                    pairs.append((link['type'], link['id'], node['id']))
+            organisational_field_names = get_organisational_field_names(node['type'])
+            for field in organisational_field_names + ['nearest_nodes']:
+                lecture_ids.append(node['id'])
+                for link in node.get(field, []):
+                    if link['type'] in ['Concept', 'Category']:
+                        pairs.append((link['type'], link['id'], node['id']))
 
     # Add pairs of all seen lectures with the top concept or category
-    top_concept_or_category_type = top_concept_or_category['doc_type']
-    top_concept_or_category_id = top_concept_or_category['doc_id']
+    if top_concept_or_category is not None:
+        top_concept_or_category_type = top_concept_or_category['doc_type']
+        top_concept_or_category_id = top_concept_or_category['doc_id']
 
-    for lecture_id in lecture_ids:
-        pairs.append((top_concept_or_category_type, top_concept_or_category_id, lecture_id))
+        for lecture_id in lecture_ids:
+            pairs.append((top_concept_or_category_type, top_concept_or_category_id, lecture_id))
 
     return pairs
 
@@ -110,27 +176,29 @@ def update_with_timestamps(nodes, timestamps, top_concept_or_category):
     # Iterate over nodes to add timestamp field and update the url
     for node in nodes:
         if node['type'] in ['Concept', 'Category']:
-            for link in node['links']:
-                if link['type'] == 'Lecture':
-                    try:
-                        timestamp_sec = timestamps.loc[
-                            (timestamps['node_type'] == node['type'])
-                            & (timestamps['node_id'] == node['id'])
-                            & (timestamps['lecture_id'] == link['id']),
-                            'timestamp_s',
-                        ].iloc[0]
-                        timestamp_sec = int(timestamp_sec)
-                        td = timedelta(seconds=timestamp_sec)
-                        link[f"best_timestamp_for_{to_snake_case(node['name_en'])}"] = str(td)
-                        link['url'] += f'?t={timestamp_sec}'
+            organisational_field_names = get_organisational_field_names(node['type'])
+            for field in organisational_field_names + ['nearest_nodes']:
+                for link in node.get(field, []):
+                    if link['type'] == 'Lecture':
+                        try:
+                            timestamp_sec = timestamps.loc[
+                                (timestamps['node_type'] == node['type'])
+                                & (timestamps['node_id'] == node['id'])
+                                & (timestamps['lecture_id'] == link['id']),
+                                'timestamp_s',
+                            ].iloc[0]
+                            timestamp_sec = int(timestamp_sec)
+                            td = timedelta(seconds=timestamp_sec)
+                            link[f"best_timestamp_for_{to_snake_case(node['name_en'])}"] = str(td)
+                            link['url'] += f'?t={timestamp_sec}'
 
-                        if node['type'] == 'Concept':
-                            link['url'] += f"&concept_id={node['id']}"
-                        elif node['type'] == 'Category':
-                            link['url'] += f"&category_id={node['id']}"
+                            if node['type'] == 'Concept':
+                                link['url'] += f"&concept_id={node['id']}"
+                            elif node['type'] == 'Category':
+                                link['url'] += f"&category_id={node['id']}"
 
-                    except (IndexError, TypeError):
-                        pass
+                        except (IndexError, TypeError):
+                            pass
         elif node['type'] == 'Lecture':
             if top_concept_or_category is None:
                 continue
@@ -195,6 +263,10 @@ def add_lecture_timestamps(nodes, top_concept_or_category):
 ################################################################
 
 def get_allowed_node_types(node_types: list | str):
+    # Allow every source node type if no particular target node type is requested
+    if node_types is None:
+        return None
+
     # Mapping of allowed source node types depending on the given target node type
     allowed_node_types_mapping = {
         'Category': ['Category', 'Concept', 'Lecture'],
@@ -226,7 +298,8 @@ def get_allowed_node_types(node_types: list | str):
 def search_nodes(query: str, node_type: list | str = None) -> list:
     """
     Search nodes from the EPFL Graph that best match the given `query` and return them along with their related nodes of the given `node_type`.
-    A list of nodes is returned. Aside from its own fields, each node has a `links` field which in turn contains a list of the node's related nodes.
+    A list of nodes is returned. Each node can have some organisational fields (e.g. `instructors` of a Course or `authors` of a Publication) which contain a node or list of nodes.
+    In addition, each node has a `nearest_nodes` field which contains a list of nodes that are semantically related to it (e.g. lectures about some Concept or people with the same research interests).
     """
 
     print('[NODES TOOL]', f"Called `search_nodes` tool with query=`{query}` and node_type=`{node_type}`")
@@ -240,7 +313,7 @@ def search_nodes(query: str, node_type: list | str = None) -> list:
 
     # Build a nodes object by renaming, cleaning and filtering some fields
     nodes = clean_nodes(nodes, node_type)
-    print('[NODES TOOL]', f"Kept {len(nodes)} nodes after cleanup with {[len(node['links']) for node in nodes]} links")
+    print('[NODES TOOL]', f"Kept {len(nodes)} nodes after cleanup")
 
     # Add timestamps to lectures wherever needed
     # For that, we need the top matching concept or person, in case there are Lecture-Concept or Lecture-Category edges in the results
@@ -255,5 +328,5 @@ def search_nodes(query: str, node_type: list | str = None) -> list:
 
 
 if __name__ == '__main__':
-    nodes = search_nodes("hausdorff", node_type=['Lecture'])
+    nodes = search_nodes("Jermann", node_type=None)
     print(nodes)
