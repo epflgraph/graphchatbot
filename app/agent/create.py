@@ -43,29 +43,24 @@ class State(TypedDict):
 ################################################################
 
 
-def extract_tool_links(tool_interactions):
-    tool_links = []
+def extract_dict_links(d):
+    if isinstance(d, list):
+        link_lists = [extract_dict_links(x) for x in d]
+        return [link for link_list in link_lists for link in link_list]
 
-    for tool_interaction in tool_interactions:
-        tool_name = tool_interaction['tool_call']['name']
+    if isinstance(d, dict):
+        if 'url' in d:
+            links = [d['url']]
+            del d['url']
+        else:
+            links = []
 
-        if tool_name == 'search_nodes':
-            nodes = tool_interaction['tool_response']
+        link_lists = [extract_dict_links(d[x]) for x in d]
+        links.extend([link for link_list in link_lists for link in link_list])
 
-            for node in nodes:
-                tool_links.append(node['url'])
-                node_links = node.get('links', [])
-                tool_links.extend([link['url'] for link in node_links])
+        return links
 
-        elif tool_name == 'search_exercises':
-            exercises = tool_interaction['tool_response']
-            tool_links.extend([exercise['url'] for exercise in exercises])
-
-        elif tool_name == 'search_news':
-            news_pieces = tool_interaction['tool_response']
-            tool_links.extend([news_piece['link'] for news_piece in news_pieces])
-
-    return tool_links
+    return []
 
 
 def extract_message_links(content):
@@ -86,8 +81,11 @@ def get_hallucinated_links(thread_id, message):
 
     # Extract tool links
     tool_interactions = get_tool_interactions(thread_id)
-    tool_links = set(extract_tool_links(tool_interactions))
+    tool_links = set(extract_dict_links(tool_interactions))
     print('[POST-MODEL]', f"Found {len(tool_links)} links in tool interactions")
+
+    print(message_links)
+    print(tool_interactions)
 
     # Return message links that are not among the tool links
     return list(message_links - tool_links)
