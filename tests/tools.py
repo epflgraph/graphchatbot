@@ -13,7 +13,7 @@ def test_nodes():
         assert isinstance(tool_output, list)
         assert len(tool_output) > 0
         assert isinstance(tool_output[0], dict)
-        assert all([field in tool_output[0] for field in ['type', 'id', 'name_en', 'name_fr', 'short_description', 'url', 'links']])
+        assert all([field in tool_output[0] for field in ['type', 'id', 'name_en', 'name_fr', 'short_description', 'url', 'nearest_nodes']])
 
 
 # Exoset tool
@@ -35,4 +35,4 @@ def test_news():
         assert isinstance(tool_output, list)
         assert len(tool_output) > 0
         assert isinstance(tool_output[0], dict)
-        assert all([field in tool_output[0] for field in ['title', 'link', 'snippet']])
+        assert all([field in tool_output[0] for field in ['title', 'url', 'snippet']])
