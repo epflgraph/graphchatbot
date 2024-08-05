@@ -174,7 +174,7 @@ def create_agent():
     ################################################################
 
     # Chat model
-    model = ChatOpenAI(temperature=0, openai_api_key=config['openai']['api_key'])
+    model = ChatOpenAI(model='gpt-4o-mini', temperature=0, openai_api_key=config['openai']['api_key'])
 
     # Bind tools to model
     model = model.bind_tools(tools)
