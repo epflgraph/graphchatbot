@@ -59,7 +59,7 @@ def fetch_all_exercises(nodes):
     return results
 
 
-def search_exercises(query: str, language: str = 'en') -> list:
+def search_exercises(query: str, language: str = 'EN') -> list:
     """
     Search exercises from EPFL's EXOSET database that best match the given `query`, which should be in English.
     The parameter `language` will prioritise exercises in that language, if available.
@@ -75,6 +75,7 @@ def search_exercises(query: str, language: str = 'en') -> list:
 
     # Check if result is cached
     if query in cache:
+        print("[EXOSET TOOL]", f"Found cached exercises for query `{query}` and language `{language}`, returning those")
         return cache[query]
 
     nodes = search(query, node_type='Concept', limit=50, return_links=False, return_scores=True)
@@ -128,6 +129,7 @@ def search_exercises(query: str, language: str = 'en') -> list:
     all_exercises = all_exercises.to_dict(orient='records')
 
     # Store result in cache
+    print("[EXOSET TOOL]", f"Storing {len(all_exercises)} exercises for query `{query}` and language `{language}` in cache")
     cache[query] = all_exercises
 
     return all_exercises

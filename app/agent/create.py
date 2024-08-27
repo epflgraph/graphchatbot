@@ -51,11 +51,10 @@ def extract_dict_links(d):
     if isinstance(d, dict):
         if 'url' in d:
             links = [d['url']]
-            del d['url']
         else:
             links = []
 
-        link_lists = [extract_dict_links(d[x]) for x in d]
+        link_lists = [extract_dict_links(d[x]) for x in d if x != 'url']
         links.extend([link for link_list in link_lists for link in link_list])
 
         return links
