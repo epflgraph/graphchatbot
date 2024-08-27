@@ -75,7 +75,7 @@ def search_exercises(query: str, language: str = 'EN') -> list:
 
     # Check if result is cached
     if query in cache:
-        print("[EXOSET TOOL]", f"Found cached exercises for query `{query}` and language `{language}`, returning those")
+        print("[EXOSET TOOL]", f"Found {len(cache[query])} cached exercises for query `{query}` and language `{language}`, returning those")
         return cache[query]
 
     nodes = search(query, node_type='Concept', limit=50, return_links=False, return_scores=True)
