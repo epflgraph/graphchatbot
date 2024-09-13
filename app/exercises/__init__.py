@@ -1,0 +1,1 @@
+from app.exercises.generate import generate_lecture_exercise

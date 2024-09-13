@@ -12,6 +12,7 @@ from fastapi import FastAPI, Response
 from fastapi.responses import FileResponse
 
 from app.agent import init_agent, send_message, clear_conversation
+import app.exercises as exercises
 from app.errors import ERR_INPUT_TOO_LONG
 
 
@@ -138,3 +139,21 @@ async def index_js():
     """
 
     return FileResponse('../html/index.js')
+
+
+################################################################
+
+
+class GenerateLectureExerciseInput(BaseModel):
+    lecture_id: str
+    description: str
+    include_solution: bool
+
+
+@app.post('/generate_lecture_exercise')
+async def generate_lecture_exercise(input: GenerateLectureExerciseInput):
+    lecture_id = input.lecture_id
+    description = input.description
+    include_solution = input.include_solution
+
+    return exercises.generate_lecture_exercise(lecture_id, description, include_solution)
