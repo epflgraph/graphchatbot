@@ -40,6 +40,10 @@ def fetch_lecture_metadata(lecture_id):
     videos = pd.DataFrame(db.find(table_name=table, fields=fields, conditions=conditions), columns=columns)
     video_ids = list(videos['video_id'])
 
+    # Return if no videos
+    if not video_ids:
+        return {}
+
     # Fetch video metadata
     table = 'graph_lectures.Nodes_N_Video'
     fields = ['title', 'description', 'tags']
@@ -63,6 +67,10 @@ def fetch_lecture_slides(lecture_id):
     conditions = {'from_institution_id': 'EPFL', 'from_object_type': 'Lecture', 'from_object_id': lecture_id, 'to_institution_id': 'EPFL', 'to_object_type': 'Video'}
     videos = pd.DataFrame(db.find(table_name=table, fields=fields, conditions=conditions), columns=columns)
     video_ids = list(videos['video_id'])
+
+    # Return if no videos
+    if not video_ids:
+        return []
 
     # Fetch video slides
     table = 'graph_lectures.Edges_N_Video_N_Slide_T_ParentToChild'
@@ -116,6 +124,10 @@ def fetch_lecture_transcripts(lecture_id):
     conditions = {'from_institution_id': 'EPFL', 'from_object_type': 'Lecture', 'from_object_id': lecture_id, 'to_institution_id': 'EPFL', 'to_object_type': 'Video'}
     videos = pd.DataFrame(db.find(table_name=table, fields=fields, conditions=conditions), columns=columns)
     video_ids = list(videos['video_id'])
+
+    # Return if no videos
+    if not video_ids:
+        return []
 
     # Fetch video transcripts
     table = 'graph_lectures.Edges_N_Video_N_Transcript_T_ParentToChild'
