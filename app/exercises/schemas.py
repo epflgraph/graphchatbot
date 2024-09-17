@@ -6,20 +6,27 @@ from langchain.output_parsers import PydanticOutputParser
 class ExerciseWithSolution(BaseModel, extra='allow'):
     model_config = {'json_schema_extra': {"additionalProperties": False}}
 
-    statement: str
-    title: str
-    description: str
-    solution: str
-    tags: list[str]
+    statement_en: str
+    statement_fr: str
+    title_en: str
+    title_fr: str
+    description_en: str
+    description_fr: str
+    solution_en: str
+    solution_fr: str
+    tags_en: list[str]
 
 
 class ExerciseWithoutSolution(BaseModel, extra='allow'):
     model_config = {'json_schema_extra': {"additionalProperties": False}}
 
-    statement: str
-    title: str
-    description: str
-    tags: list[str]
+    statement_en: str
+    statement_fr: str
+    title_en: str
+    title_fr: str
+    description_en: str
+    description_fr: str
+    tags_en: list[str]
 
 
 def build_response_schema(include_solution):

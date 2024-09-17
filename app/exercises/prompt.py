@@ -12,11 +12,15 @@ def build_system_prompt(content, include_solution):
 
     # Descriptions of output fields
     output_field_descriptions = {
-        'statement': "* An exercise `statement`, where you lay out the exercise and give precisions or context as needed. The exercise should stick to the user's `description` as closely as possible, and the statement should be clear and unambiguous.",
-        'title': "* A `title` for the exercise, limited to 10 words.",
-        'description': "* A `description` for the exercise, using between 24 and 32 words, consisting of one sentence in the third person that conveys what the exercise is about, but not disclosing the solution.",
-        'solution': "* A `solution` for the exercise, where you lay out a clear, unambiguous and step-by-step explanation of the exercise solution.",
-        'tags': "* A list of `tags` with the concepts the exercise is about. Make sure they are all distinct, in lowercase, not acronyms and sorted in descending order of relevance.",
+        'statement_en': "* An exercise `statement`, in English, where you lay out the exercise and give precisions or context as needed. The exercise should stick to the user's `description` as closely as possible, and the statement should be clear and unambiguous.",
+        'statement_fr': "* A French translation of `statement_en`",
+        'title_en': "* A `title` for the exercise, in English, limited to 10 words.",
+        'title_fr': "* A French translation of `title_en`",
+        'description_en': "* A `description` for the exercise, in English, using between 24 and 32 words, consisting of one sentence in the third person that conveys what the exercise is about, but not disclosing the solution.",
+        'description_fr': "* A French translation of `description_en`",
+        'solution_en': "* A `solution` for the exercise, in English, where you lay out a clear, unambiguous and step-by-step explanation of the exercise solution.",
+        'solution_fr': "* A French translation of `solution_en`",
+        'tags_en': "* A list of `tags` with the concepts, in English, the exercise is about. Make sure they are all distinct, in lowercase, not acronyms and sorted in descending order of relevance.",
     }
 
     if not include_solution:
@@ -51,11 +55,10 @@ Produce the following items:
 
 Make sure to comply with the following conditions:
 * Do not copy exercises from the lecture content.
-* Unless instructed otherwise, stay in the context of the lecture.
+* Unless instructed otherwise, the exercise should remain in the context of the lecture and solved using the same methods.  
 * Exercises must be well-defined, complete and solvable with the given information.
 * Exercises can be as long as needed, but should not be longer than necessary.
-* Use LaTeX code for mathematical formulas.
-* Produce all fields in the same language as the user `description`, except for `tags`, which should always be in English.
+* Output the exercise in standard LaTeX code. 
 * From the lecture raw data, only use information about the actual content of the lecture.
 * Do not include contact information, such as email addresses, phone numbers, or postal addresses.
 """
