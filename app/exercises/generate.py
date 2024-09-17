@@ -112,7 +112,7 @@ def generate_lecture_exercise(lecture_id, description, include_solution):
 
     # Instantiate model
     response_schema = build_response_schema(include_solution)
-    model = ChatOpenAI(model=model_name, temperature=0, openai_api_key=config['openai']['api_key'], request_timeout=30).bind(response_format=response_schema)
+    model = ChatOpenAI(model=model_name, temperature=0, openai_api_key=config['openai']['api_key'], request_timeout=60).bind(response_format=response_schema)
 
     # Send request to LLM
     with get_openai_callback() as cb:
@@ -127,8 +127,6 @@ def generate_lecture_exercise(lecture_id, description, include_solution):
             print('[LECTURE EXERCISE]', msg)
             return {'error': msg}
 
-    print(output)
-
     # Parse the structured output
     try:
         exercise = parse_response(output.content, include_solution)
@@ -136,8 +134,6 @@ def generate_lecture_exercise(lecture_id, description, include_solution):
         msg = f"There was an error parsing the LLM's response: {output.content}"
         print('[LECTURE EXERCISE]', msg)
         return {'error': msg}
-
-    print(exercise.statement)
 
     # Return if empty response
     if not exercise:
@@ -156,14 +152,34 @@ def generate_lecture_exercise(lecture_id, description, include_solution):
         'cost_usd': cb.total_cost,
     }
 
-    print(response['exercise']['statement'])
-
     return response
 
 
 if __name__ == '__main__':
+    ################################################################
+
     lecture_id = '0_92916guq'
-    description = r"Un exercice pour calculer le volume de la calotte d'angle $\alpha$ d'une sphère."
+    # description = r"Un exercice pour calculer le volume de la calotte d'angle $\alpha$ d'une sphère"
+    # description = r"An exercise to compute a volume of a figure that is not a cylinder but using cylindrical coordinates"
+    # description = r"An exercise to compute the volume of a figure with two parts: one solved using spherical coordinates and the other with cylindrical coordinates"
+    # description = r"An exercise to compute the volume of the intersection of two figures, where both spherical and cylindrical coordinates are useful. Avoid using spheres or cylinders as figures."
+    # description = r"An exercise that involves computing the volume of a Pokémon of your choice, but without assuming it is a sphere."
+
+    ################################################################
+
+    # lecture_id = '0_qf0m3zhf'
+    # description = r"An exercise about the evolution of the population of rabbits and wolves."
+    # description = r"An exercise with a concrete example of a 2D dynamical system that has three or more equilibrium points."
+
+    ################################################################
+
+    # lecture_id = '0_3tnuqgj7'
+    # description = r"An exercise with three charges"
+    # description = r"An exercise involving an electric field that disappears instantly after some time."
+    description = r"An exercise starring Pikachu and two other electric-type Pokémon"
+
+    ################################################################
+
     include_solution = True
 
     result = generate_lecture_exercise(lecture_id, description, include_solution)
@@ -174,3 +190,6 @@ if __name__ == '__main__':
 
     for k in result['exercise']:
         print(k, result['exercise'][k])
+
+
+
