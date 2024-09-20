@@ -12,13 +12,13 @@ def build_system_prompt(content, include_solution):
 
     # Descriptions of output fields
     output_field_descriptions = {
-        'statement_en': "* An exercise `statement`, in English, where you lay out the exercise and give precisions or context as needed. The exercise should stick to the user's `description` as closely as possible, and the statement should be clear and unambiguous.",
+        'statement_en': "* An exercise `statement`, in English, as it would appear in an exam about the lecture. Make sure the statement is clear, unambiguous and no guessing is required. Match the exercise to the user's `description`.",
         'statement_fr': "* A French translation of `statement_en`",
         'title_en': "* A `title` for the exercise, in English, limited to 10 words.",
         'title_fr': "* A French translation of `title_en`",
         'description_en': "* A `description` for the exercise, in English, using between 24 and 32 words, consisting of one sentence in the third person that conveys what the exercise is about, but not disclosing the solution.",
         'description_fr': "* A French translation of `description_en`",
-        'solution_en': "* A `solution` for the exercise, in English, where you lay out a clear, unambiguous and step-by-step explanation of the exercise solution.",
+        'solution_en': "* A clear, step-by-step `solution` for the exercise, in English. This should not just be hints on how to solve the exercise, but rather what would be given an A in an exam.",
         'solution_fr': "* A French translation of `solution_en`",
         'tags_en': "* A list of `tags` with the concepts, in English, the exercise is about. Make sure they are all distinct, in lowercase, not acronyms and sorted in descending order of relevance.",
     }
@@ -58,7 +58,7 @@ Make sure to comply with the following conditions:
 * Unless instructed otherwise, the exercise should remain in the context of the lecture and solved using the same methods.  
 * Exercises must be well-defined, complete and solvable with the given information.
 * Exercises can be as long as needed, but should not be longer than necessary.
-* Output the exercise in standard LaTeX code. 
+* Output the exercise `statement` and `solution` as LaTeX code, not Markdown.
 * From the lecture raw data, only use information about the actual content of the lecture.
 * Do not include contact information, such as email addresses, phone numbers, or postal addresses.
 """

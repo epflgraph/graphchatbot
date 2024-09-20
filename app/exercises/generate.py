@@ -141,6 +141,8 @@ def generate_lecture_exercise(lecture_id, description, include_solution):
         print('[LECTURE EXERCISE]', msg)
         return {'error': msg}
 
+    print('[LECTURE EXERCISE]', f"Generated exercise: `{exercise.statement_en[:200]}`")
+
     # Prepare response object
     response = {
         'lecture_id': lecture_id,
@@ -155,28 +157,55 @@ def generate_lecture_exercise(lecture_id, description, include_solution):
     return response
 
 
+def build_latex_mockup(exercise, description):
+    title = exercise['title_en']
+    statement = exercise['statement_en']
+    gen_description = exercise['description_en']
+    solution = exercise['solution_en']
+    tags = exercise['tags_en'][:3]
+
+    return rf"""
+    \section*{{{title}}}
+
+    \emph{{"{description}"}}
+
+    \vspace{{1em}}
+
+    \noindent
+    \framebox{{
+        \parbox{{\dimexpr\linewidth-2\fboxsep\relax}}{{\small {gen_description}}}
+    }}
+
+    \noindent
+    \framebox{{\small {tags[0]}}}
+    \framebox{{\small {tags[1]}}}
+    \framebox{{\small {tags[2]}}}
+
+    \vspace{{1em}}
+
+    \noindent
+    \textbf{{Statement:}} {statement}
+
+    \noindent
+    \textbf{{Solution:}} {solution}
+    """
+
+
 if __name__ == '__main__':
-    ################################################################
-
     lecture_id = '0_92916guq'
-    # description = r"Un exercice pour calculer le volume de la calotte d'angle $\alpha$ d'une sphère"
-    # description = r"An exercise to compute a volume of a figure that is not a cylinder but using cylindrical coordinates"
-    # description = r"An exercise to compute the volume of a figure with two parts: one solved using spherical coordinates and the other with cylindrical coordinates"
-    # description = r"An exercise to compute the volume of the intersection of two figures, where both spherical and cylindrical coordinates are useful. Avoid using spheres or cylinders as figures."
-    # description = r"An exercise that involves computing the volume of a Pokémon of your choice, but without assuming it is a sphere."
-
-    ################################################################
+    description = r"An exercise to compute the volume of a sphere cap of angle $\alpha$ using spherical coordinates."
+    # description = r"An exercise to compute the volume of a torus."
+    # description = r"An exercise to compute the volume of the Pokémon Snorlax, decomposing it into its head and body (spheres), hands and feet (short cylinders) and ears (cones)."
 
     # lecture_id = '0_qf0m3zhf'
     # description = r"An exercise about the evolution of the population of rabbits and wolves."
     # description = r"An exercise with a concrete example of a 2D dynamical system that has three or more equilibrium points."
-
-    ################################################################
+    # description = r"An exercise where the populations of the three Pokémon starters evolve according to their type advantages."
 
     # lecture_id = '0_3tnuqgj7'
-    # description = r"An exercise with three charges"
-    # description = r"An exercise involving an electric field that disappears instantly after some time."
-    description = r"An exercise starring Pikachu and two other electric-type Pokémon"
+    # # description = r"An exercise with three charges"
+    # # description = r"An exercise involving an electric field that disappears instantly after some time."
+    # description = r"An exercise where Pikachu uses Thunderbolt on four Spearows."
 
     ################################################################
 
@@ -184,12 +213,8 @@ if __name__ == '__main__':
 
     result = generate_lecture_exercise(lecture_id, description, include_solution)
 
-    for k in result:
-        if k != 'exercise':
-            print(k, result[k])
+    ################################################################
 
-    for k in result['exercise']:
-        print(k, result['exercise'][k])
+    latex_str = build_latex_mockup(result['exercise'], description)
 
-
-
+    print(latex_str)
