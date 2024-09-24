@@ -158,16 +158,21 @@ def get_timestamps(pairs):
     if not pairs:
         return pd.DataFrame(columns=columns)
 
-    table = 'graph_lectures.Data_N_Object_N_Object_T_CalculatedFields'
-    fields = ['to_object_type', 'to_object_id', 'from_object_id', 'field_value']
-    conditions = {
-        'from_institution_id': 'EPFL',
-        'from_object_type': 'Lecture',
-        'to_institution_id': 'Ont',
-        'field_name': 'primary_timestamp',
-        '(to_object_type, to_object_id, from_object_id)': pairs,
-    }
-    timestamps = pd.DataFrame(db_manager.db.find(table_name=table, fields=fields, conditions=conditions), columns=columns)
+    try:
+        table = 'graph_lectures.Data_N_Object_N_Object_T_CalculatedFields'
+        fields = ['to_object_type', 'to_object_id', 'from_object_id', 'field_value']
+        conditions = {
+            'from_institution_id': 'EPFL',
+            'from_object_type': 'Lecture',
+            'to_institution_id': 'Ont',
+            'field_name': 'primary_timestamp',
+            '(to_object_type, to_object_id, from_object_id)': pairs,
+        }
+        timestamps = pd.DataFrame(db_manager.db.find(table_name=table, fields=fields, conditions=conditions), columns=columns)
+    except Exception as e:
+        print("Cannot connect to table `graph_lectures.Data_N_Object_N_Object_T_CalculatedFields` to find timestamps, returning no timestamps.")
+        print(e)
+        return pd.DataFrame(columns=columns)
 
     return timestamps
 
