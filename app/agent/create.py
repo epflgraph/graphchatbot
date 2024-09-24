@@ -70,6 +70,12 @@ def extract_message_links(content):
 
     message_links = [url for text, url in link_regex.findall(content)]
 
+    # Exclude known exceptions
+    exceptions = [
+        "https://www.epfl.ch/about/respect/trust-and-support-network/"
+    ]
+    message_links = [link for link in message_links if link not in exceptions]
+
     return message_links
 
 
@@ -84,6 +90,7 @@ def get_hallucinated_links(thread_id, message):
     print('[POST-MODEL]', f"Found {len(tool_links)} links in tool interactions")
 
     print(message_links)
+    print(tool_links)
     print(tool_interactions)
 
     # Return message links that are not among the tool links
