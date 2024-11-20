@@ -21,7 +21,7 @@ from app.config import config
 from app.agent.prompt import system_prompt
 from app.agent.cache import get_from_cache, set_to_cache
 from app.agent.tool_interactions import append_tool_interaction, get_tool_interactions
-from app.tools import search_nodes, search_news, search_exercises
+from app.agent.tools import search_nodes, ask_expert, search_news, search_exercises
 
 
 ################################################################
@@ -162,6 +162,7 @@ def create_agent():
 
     tools = [
         StructuredTool.from_function(name='search_nodes', func=search_nodes),
+        StructuredTool.from_function(name='ask_expert', func=ask_expert),
         StructuredTool.from_function(name='search_exercises', func=search_exercises),
         StructuredTool.from_function(name='search_news', func=search_news),
     ]
