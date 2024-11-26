@@ -77,6 +77,6 @@ def clear_conversation(conversation_id: str) -> bool:
 if __name__ == '__main__':
     init_agent()
 
-    print(send_message('1234', "What is the Hausdorff dimension of the Cantor set?")['message'])
+    print(send_message('1234', "What is the Hausdorff dimension? How do I compute the Hausdorff dimension of the Cantor set?")['message'])
 
     # print(send_message('1234', "Why is it log_3(2)?")['message'])

@@ -26,7 +26,7 @@ def clean_link(link):
     return link
 
 
-def clean_links(links, node_type):
+def clean_links(links, node_types):
     # Split node links between semantic and organisational
     semantic_links = [link for link in links if link['link_subtype'] == 'Semantic']
     organisational_links = [link for link in links if link['link_subtype'] != 'Semantic']
@@ -34,18 +34,22 @@ def clean_links(links, node_type):
     # Clean all the organisational ones
     organisational_links = [clean_link(link) for link in organisational_links]
 
-    # Clean up semantic links depending on the node type and only a subset
-    if node_type is None:
-        semantic_links = [clean_link(link) for link in semantic_links[:5]]
+    # Define node_types properly and how many links of a given node_type we may have
+    if node_types is None:
+        node_types = list(set(link['link_type'] for link in semantic_links))
+        limit = 5
     else:
-        if isinstance(node_type, str):
-            node_type = [node_type]
+        if isinstance(node_types, str):
+            node_types = [node_types]
+        limit = 10
 
-        # Keep only links of the given node type
-        semantic_links = [link for link in semantic_links if link['link_type'] in node_type]
-        semantic_links = [clean_link(link) for link in semantic_links[:10]]
+    # Clean up semantic links and keep only links of the given node types, and up to the defined limit
+    clean_semantic_links = []
+    for node_type in node_types:
+        node_type_semantic_links = [link for link in semantic_links if link['link_type'] == node_type]
+        clean_semantic_links += [clean_link(link) for link in node_type_semantic_links[:limit]]
 
-    return organisational_links, semantic_links
+    return organisational_links, clean_semantic_links
 
 
 # Dictionary that maps node and link types to the field name and the allowed limit of such links
@@ -79,9 +83,9 @@ def get_organisational_field_names(node_type):
     return []
 
 
-def clean_node(node, node_type):
+def clean_node(node, node_types):
     # Clean node links and separate into organisational vs. semantic
-    organisational_links, semantic_links = clean_links(node['links'], node_type)
+    organisational_links, semantic_links = clean_links(node['links'], node_types)
 
     organisational_fields = {}
     for link in organisational_links:
@@ -111,8 +115,8 @@ def clean_node(node, node_type):
     return node
 
 
-def clean_nodes(nodes, node_type):
-    return [clean_node(node, node_type) for node in nodes]
+def clean_nodes(nodes, node_types):
+    return [clean_node(node, node_types) for node in nodes]
 
 
 ################################################################
@@ -314,11 +318,11 @@ def search_nodes(query: str, node_type: list | str = None) -> list:
     # For instance, we want `lectures about X` to match X against lectures but also concepts.
     allowed_node_types = get_allowed_node_types(node_type)
     nodes = search(query, node_type=allowed_node_types, limit=3, return_links=True, return_scores=False)
-    print('[NODES TOOL]', f"Got nodes ({[(node['doc_type'], node['doc_id'], node['name']['en']) for node in nodes]}) from elasticsearch with {[len(node['links']) for node in nodes]} links")
+    print('[NODES TOOL]', f"Got nodes ({[(node['doc_type'], node['doc_id'], node['name']['en']) for node in nodes]}) with {[len(node['links']) for node in nodes]} links from elasticsearch")
 
     # Build a nodes object by renaming, cleaning and filtering some fields
-    nodes = clean_nodes(nodes, node_type)
-    print('[NODES TOOL]', f"Kept {len(nodes)} nodes after cleanup")
+    nodes = clean_nodes(nodes, allowed_node_types)
+    print('[NODES TOOL]', f"Kept nodes ({[(node['type'], node['id'], node['name_en']) for node in nodes]}) with {[len(node['nearest_nodes']) for node in nodes]} nearest nodes after cleanup")
 
     # Add timestamps to lectures wherever needed
     # For that, we need the top matching concept or person, in case there are Lecture-Concept or Lecture-Category edges in the results
@@ -333,5 +337,5 @@ def search_nodes(query: str, node_type: list | str = None) -> list:
 
 
 if __name__ == '__main__':
-    nodes = search_nodes("Jermann", node_type=None)
+    nodes = search_nodes("MATH-211", node_type="Course")
     print(nodes)
