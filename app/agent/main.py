@@ -61,10 +61,6 @@ def send_message(conversation_id: str, prompt: str) -> dict:
     tool_interactions = get_tool_interactions(conversation_id)
     print("[WRAPPER]", f"Found {len(tool_interactions)} tool interactions")
 
-    # Generate context to be displayed in the frontend
-    # context = generate_context(message, tool_interactions)
-    # context_message = generate_context_messages(context)
-
     return {
         'message': message,
         'tool_interactions': tool_interactions,
@@ -81,6 +77,6 @@ def clear_conversation(conversation_id: str) -> bool:
 if __name__ == '__main__':
     init_agent()
 
-    print(send_message('1234', "Show me lectures about the Fourier transform")['message'])
+    print(send_message('1234', "What is the Hausdorff dimension of the Cantor set?")['message'])
 
-    print(send_message('1234', "Now exercises")['message'])
+    # print(send_message('1234', "Why is it log_3(2)?")['message'])
