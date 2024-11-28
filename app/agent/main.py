@@ -77,6 +77,7 @@ def clear_conversation(conversation_id: str) -> bool:
 if __name__ == '__main__':
     init_agent()
 
-    print(send_message('1234', "What is the Hausdorff dimension? How do I compute the Hausdorff dimension of the Cantor set?")['message'])
+    prompt = "Why is 1.99999... equal to 2?"
+    print(send_message('1234', prompt)['message'])
 
     # print(send_message('1234', "Why is it log_3(2)?")['message'])
