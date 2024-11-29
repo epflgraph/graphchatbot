@@ -77,7 +77,7 @@ def clear_conversation(conversation_id: str) -> bool:
 if __name__ == '__main__':
     init_agent()
 
-    prompt = "Why is 1.99999... equal to 2?"
+    prompt = "Explain electromagnetism"
     print(send_message('1234', prompt)['message'])
 
     # print(send_message('1234', "Why is it log_3(2)?")['message'])

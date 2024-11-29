@@ -196,6 +196,28 @@ def create_agent():
     hallucinated_links = []
 
     ################################################################
+    # Entry node function                                          #
+    ################################################################
+
+    def entry_node(state: State, config: RunnableConfig):
+        print('[ENTRY]', "Entering entry state")
+
+        messages = state['messages']
+        last_message = messages[-1]
+
+        # Append manual tool call to retrieve nodes before actually calling the model
+        tool_call = {
+            'name': 'search_nodes',
+            'args': {'query': last_message.content},
+            'id': '0'
+        }
+        tool_call_message = AIMessage(content="", tool_calls=[tool_call])
+
+        print('[ENTRY]', f"Forcing tool call to `search_nodes` with query=`{last_message.content}` and node_type=`None`")
+
+        return {'messages': [tool_call_message]}
+
+    ################################################################
     # Model node function                                          #
     ################################################################
 
@@ -342,20 +364,23 @@ def create_agent():
     workflow = StateGraph(State)
 
     # Define the two nodes we will cycle between
+    workflow.add_node('entry', entry_node)
     workflow.add_node('model', model_node)
     workflow.add_node('tools', tools_node)
     workflow.add_node('recover', recover_node)
     workflow.add_node('cleanup', cleanup_node)
 
     # Define the edges of the graph:
-    #   From START, we always go to 'model'
-    #   From 'model', we can go to 'tools', 'recover' or 'cleanup'
+    #   From START, we always go to 'entry'
+    #   From 'entry', we always go to 'tools'
     #   From 'tools', we always go to 'model'
+    #   From 'model', we can go to 'tools', 'recover' or 'cleanup'
     #   From 'recover', we always go to 'model'
     #   From 'cleanup', we always go to END
-    workflow.set_entry_point('model')
-    workflow.add_conditional_edges(source='model', path=model_edge)
+    workflow.set_entry_point('entry')
+    workflow.add_edge(start_key='entry', end_key='tools')
     workflow.add_edge(start_key='tools', end_key='model')
+    workflow.add_conditional_edges(source='model', path=model_edge)
     workflow.add_edge(start_key='recover', end_key='model')
     workflow.add_edge(start_key='cleanup', end_key=END)
 
