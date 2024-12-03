@@ -47,6 +47,7 @@ def call_llm(conversation):
 You will be given a conversation between two agents A and B.
 Your task is to suggest up to three Wikipedia pages that represent the concepts discussed in the conversation.
 They should therefore be short, concise and without any mathematical formula or urls.
+If the conversation is about some exercise or problem, focus on the mathematical, physical or engineering concepts needed to solve it. For example, for an exercise about a volcano eruption on a Jupiter satellite with a different gravity, suggest pages like "Uniformly accelerated linear motion" or "Newton's laws" instead of "Volcano" or "Io (moon)". 
     """
 
     # Prepare human prompt
@@ -93,8 +94,7 @@ def get_keywords_from_messages(messages):
 
 if __name__ == '__main__':
     messages = [
-        HumanMessage(content="hey show me lectures on electromagnetism"),
-        AIMessage(content="Sure! Here are some lectures on electromagnetism:\n* [Maxwell's equations](https://graphsearch.epfl.ch/lecture/0_af43e837)\n* [Electric and Magnetic fields](https://graphsearch.epfl.ch/lecture/0_b238c923)\n* [Trajectories under electromagnetic forces](https://graphsearch.epfl.ch/lecture/0_6d7a194a)\nFeel free to ask more about these lectures or about a different topic!")
+        HumanMessage(content="A partir des données envoyées par l'engin spatial Voyager en 1979, l'ingénieur Linda Morabitoa découvert sur Io, un satellite de Jupiter, la première activité volcanique extraterrestre. Le panache de l'éruption s'élevait à 280 km d'altitude environ. Sachant que l'accélération due à la gravité à la surface de Io vaut 1.8 m·s^(−2), et supposant qu'elle demeure constante jusqu'à la hauteur maximale du panache, déterminez: 1. La vitesse à laquelle les débris étaient projetés? 2. Le temps qu'il leur fallait pour atteindre la hauteur maximale?"),
     ]
 
     query = get_keywords_from_messages(messages)
