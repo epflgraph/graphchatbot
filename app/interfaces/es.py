@@ -9,11 +9,82 @@ from app.config import config
 es = ES(config['elasticsearch'], config['elasticsearch']['index'])
 
 
-def search(text, node_type=None, limit=10, return_links=False, return_scores=False):
+def search(texts, node_type=None, limit=10, return_links=False, return_scores=False):
+    # Make texts always a list
+    if isinstance(texts, str):
+        texts = [texts]
+
+    ################################################################
+    # Build text match clauses                                     #
+    ################################################################
+
+    def build_fields(lang):
+        return [
+            f"name.{lang}",
+            f"name.{lang}.keyword",
+            f"name.{lang}.raw",
+            f"name.{lang}.trigram",
+            f"name.{lang}.sayt._2gram",
+            f"name.{lang}.sayt._3gram",
+            f"short_description.{lang}",
+            f"long_description.{lang}^0.001"
+        ]
+
+    en_clauses = []
+    fr_clauses = []
+    id_clauses = []
+    for text in texts:
+        en_clauses.append({
+            "multi_match": {
+                "fields": build_fields('en'),
+                "query": text
+            }
+        })
+
+        fr_clauses.append({
+            "multi_match": {
+                "fields": build_fields('fr'),
+                "query": text
+            }
+        })
+
+        id_clauses.append({
+            "term": {
+                "doc_id.keyword": {
+                    "boost": 10,
+                    "value": text
+                }
+            }
+        })
+
+    # en_query is an OR between matches against en fields for all texts
+    en_query = {
+        "bool": {
+            "should": en_clauses,
+            "minimum_should_match": 1
+        }
+    }
+
+    # fr_query is an OR between matches against fr fields for all texts
+    fr_query = {
+        "bool": {
+            "should": fr_clauses,
+            "minimum_should_match": 1
+        }
+    }
+
+    # We then take the maximum between the two (otherwise words spelled the same in both languages would be boosted)
+    max_en_fr_query = {
+        "dis_max": {
+            "queries": [en_query, fr_query]
+        }
+    }
+
     ################################################################
     # Build filter clause                                          #
     ################################################################
 
+    # We use only documents from EPFL or the ontology
     filter_clause = [
         {
             "terms": {"doc_institution.keyword": ["EPFL", "Ont"]}
@@ -23,12 +94,14 @@ def search(text, node_type=None, limit=10, return_links=False, return_scores=Fal
         # }
     ]
 
+    # And if node_types are specified, we keep only those documents
     if isinstance(node_type, list):
         filter_clause.append(
             {
                 "terms": {"doc_type.keyword": node_type}
             }
         )
+
     elif isinstance(node_type, str):
         filter_clause.append(
             {
@@ -37,66 +110,13 @@ def search(text, node_type=None, limit=10, return_links=False, return_scores=Fal
         )
 
     ################################################################
-    # Build should clause                                          #
+    # Build final query                                            #
     ################################################################
-    match_en_clause = {
-        "multi_match": {
-            "type": "most_fields",
-            "operator": "and",
-            # "fuzziness": "AUTO",
-            "fields": [
-                "name.en",
-                "name.en.keyword",
-                "name.en.raw",
-                "name.en.trigram",
-                "name.en.sayt._2gram",
-                "name.en.sayt._3gram",
-                "short_description.en",
-                "long_description.en^0.001"
-            ],
-            "query": text
-        }
-    }
 
-    match_fr_clause = {
-        "multi_match": {
-            "type": "most_fields",
-            "operator": "and",
-            # "fuzziness": "AUTO",
-            "fields": [
-                "name.fr",
-                "name.fr.keyword",
-                "name.fr.raw",
-                "name.fr.trigram",
-                "name.fr.sayt._2gram",
-                "name.fr.sayt._3gram",
-                "short_description.fr",
-                "long_description.fr^0.001"
-            ],
-            "query": text
-        }
-    }
-
-    match_en_fr_clause = {
-        "dis_max": {
-            "queries": [match_en_clause, match_fr_clause]
-        }
-    }
-
-    match_id_clause = {
-        "term": {
-            "doc_id.keyword": {
-                "boost": 10,
-                "value": text
-            }
-        }
-    }
-
-    should_clause = [match_id_clause, match_en_fr_clause]
-
-    ################################################################
-    # Build query                                                  #
-    ################################################################
+    # The final query does the following
+    #   1. Keeps only documents satisfying the filter
+    #   2. Looks at text matches in en and fr, and also exact matches against the id field.
+    #   3. Updates match score multiplying by degree score
     query = {
         "function_score": {
             "score_mode": "multiply",
@@ -104,7 +124,7 @@ def search(text, node_type=None, limit=10, return_links=False, return_scores=Fal
             "query": {
                 "bool": {
                     "filter": filter_clause,
-                    "should": should_clause,
+                    "should": id_clauses + [max_en_fr_query],
                     "minimum_should_match": 1
                 }
             }
@@ -153,5 +173,5 @@ def search(text, node_type=None, limit=10, return_links=False, return_scores=Fal
 
 
 if __name__ == '__main__':
-    nodes = search("green function", node_type='Lecture', limit=3, return_links=True, return_scores=False)
+    nodes = search(["Hausdorff Dimension", "Fractal Geometry", "Koch Snowflake"], node_type=None, limit=3, return_links=True, return_scores=False)
     print(nodes)

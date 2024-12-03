@@ -29,7 +29,7 @@ class WikipageList(BaseModel, extra='allow'):
 response_format = {
     "type": "json_schema",
     "json_schema": {
-        "name": "search_query",
+        "name": "wikipage_list",
         "strict": True,
         "schema": WikipageList.model_json_schema()
     }
@@ -69,17 +69,17 @@ They should therefore be short, concise and without any mathematical formula or 
 
     # Parse output
     try:
-        search_query = parser.parse(output.content)
+        keywords_list = parser.parse(output.content)
     except Exception as e:
         print('[ENTRY]', "ERROR: Parsing LLM response failed")
         print('[ENTRY]', output.content)
         print('[ENTRY]', e)
         return None
 
-    return search_query.titles
+    return keywords_list.titles
 
 
-def get_query_from_messages(messages):
+def get_keywords_from_messages(messages):
     # Keep only Human and AI messages, and transform message to simpler dict form
     message_dicts = []
     for message in messages:
@@ -88,7 +88,7 @@ def get_query_from_messages(messages):
         elif isinstance(message, AIMessage):
             message_dicts.append({'role': 'AI', 'content': message.content})
 
-    return '   '.join(call_llm(message_dicts))
+    return call_llm(message_dicts)
 
 
 if __name__ == '__main__':
@@ -97,6 +97,6 @@ if __name__ == '__main__':
         AIMessage(content="Sure! Here are some lectures on electromagnetism:\n* [Maxwell's equations](https://graphsearch.epfl.ch/lecture/0_af43e837)\n* [Electric and Magnetic fields](https://graphsearch.epfl.ch/lecture/0_b238c923)\n* [Trajectories under electromagnetic forces](https://graphsearch.epfl.ch/lecture/0_6d7a194a)\nFeel free to ask more about these lectures or about a different topic!")
     ]
 
-    query = get_query_from_messages(messages)
+    query = get_keywords_from_messages(messages)
 
     print(query)

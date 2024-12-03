@@ -47,7 +47,7 @@ def get_allowed_node_types(node_types: list | str):
     return allowed_node_types
 
 
-def search_nodes(query: str = "", node_type: list | str = None) -> list:
+def search_nodes(query: list[str] | str = "", node_type: list[str] | str = None) -> list:
     """
     Search nodes from the EPFL Graph that best match the given `query` and return them along with their related nodes of the given `node_type`.
     A list of nodes is returned. Each node can have some organisational fields (e.g. `instructors` of a Course or `authors` of a Publication) which contain a node or list of nodes.
@@ -80,5 +80,5 @@ def search_nodes(query: str = "", node_type: list | str = None) -> list:
 
 
 if __name__ == '__main__':
-    nodes = search_nodes("MATH-211", node_type="Course")
+    nodes = search_nodes(query=["Hausdorff Dimension", "Fractal Geometry", "Koch Snowflake"], node_type=None)
     print(nodes)

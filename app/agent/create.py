@@ -22,7 +22,7 @@ from app.agent.prompt import system_prompt
 from app.agent.cache import get_from_cache, set_to_cache
 from app.agent.tool_interactions import append_tool_interaction, get_tool_interactions
 from app.agent.tools import search_nodes, search_news, search_exercises
-from app.agent.entry import get_query_from_messages
+from app.agent.entry import get_keywords_from_messages
 
 
 ################################################################
@@ -205,14 +205,14 @@ def create_agent():
 
         messages = state['messages']
 
-        # Call LLM to get a query to search nodes
-        query = get_query_from_messages(messages)
-        print('[ENTRY]', f"Forcing tool call to `search_nodes` with query=`{query}` and node_type=`None`")
+        # Call LLM to get a list of keywords to search nodes
+        keywords_list = get_keywords_from_messages(messages)
+        print('[ENTRY]', f"Forcing tool call to `search_nodes` with query=`{keywords_list}` and node_type=`None`")
 
         # Append manual tool call to retrieve nodes before actually calling the model
         tool_call = {
             'name': 'search_nodes',
-            'args': {'query': query},
+            'args': {'query': keywords_list},
             'id': '0'
         }
         tool_call_message = AIMessage(content="", tool_calls=[tool_call])
