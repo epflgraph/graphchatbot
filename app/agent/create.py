@@ -1,4 +1,3 @@
-import re
 from typing import Annotated, Sequence, TypedDict
 
 from langchain_core.messages import (
@@ -20,9 +19,10 @@ from langgraph.prebuilt.tool_node import str_output
 from app.config import config
 from app.agent.prompt import system_prompt
 from app.agent.cache import get_from_cache, set_to_cache
-from app.agent.tool_interactions import append_tool_interaction, get_tool_interactions
+from app.agent.tool_interactions import append_tool_interaction
 from app.agent.tools import search_nodes, search_news, search_exercises
 from app.agent.entry import get_keywords_from_messages
+from app.agent.hallucinations import get_hallucinated_links
 
 
 ################################################################
@@ -42,61 +42,6 @@ class State(TypedDict):
 ################################################################
 # Helper functions                                             #
 ################################################################
-
-
-def extract_dict_links(d):
-    if isinstance(d, list):
-        link_lists = [extract_dict_links(x) for x in d]
-        return [link for link_list in link_lists for link in link_list]
-
-    if isinstance(d, dict):
-        if 'url' in d:
-            links = [d['url']]
-        else:
-            links = []
-
-        link_lists = [extract_dict_links(d[x]) for x in d if x != 'url']
-        links.extend([link for link_list in link_lists for link in link_list])
-
-        return links
-
-    return []
-
-
-def extract_message_links(content):
-    text_pattern = r'\[([^\]]+)\]'              # Character '[', then one or more characters other than ']', then character ']'
-    url_pattern = r'\(([^)]+)\)'                # Character '(', then one or more characters other than ')', then character ')'
-    link_pattern = text_pattern + url_pattern   # Concatenate both
-    link_regex = re.compile(link_pattern)
-
-    message_links = [url for text, url in link_regex.findall(content)]
-
-    # Exclude known exceptions
-    exceptions = [
-        "https://www.epfl.ch/about/respect/trust-and-support-network/"
-    ]
-    message_links = [link for link in message_links if link not in exceptions]
-
-    return message_links
-
-
-def get_hallucinated_links(thread_id, message):
-    # Extract last message links
-    message_links = set(extract_message_links(message.content))
-    print('[POST-MODEL]', f"Found {len(message_links)} links in LLM message")
-
-    # Extract tool links
-    tool_interactions = get_tool_interactions(thread_id)
-    tool_links = set(extract_dict_links(tool_interactions))
-    print('[POST-MODEL]', f"Found {len(tool_links)} links in tool interactions")
-
-    print(message_links)
-    print(tool_links)
-    print(tool_interactions)
-
-    # Return message links that are not among the tool links
-    return list(message_links - tool_links)
-
 
 def clean_tool_calls_and_responses(messages):
     # Start setting flag to mark when we will be done checking
@@ -347,7 +292,8 @@ def create_agent():
         # Check for hallucinated links
         print('[POST-MODEL]', "Checking for hallucinated links")
         nonlocal hallucinated_links
-        hallucinated_links = get_hallucinated_links(config['configurable']['thread_id'], last_message)
+        ai_messages = [message for message in messages if isinstance(message, AIMessage)]
+        hallucinated_links = get_hallucinated_links(config['configurable']['thread_id'], ai_messages)
 
         # If no hallucinated links, proceed to 'cleanup' node
         if not hallucinated_links:
