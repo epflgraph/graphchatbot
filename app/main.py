@@ -9,9 +9,9 @@ from typing import Optional
 from pydantic import BaseModel
 
 from fastapi import FastAPI, Response
-from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse, FileResponse
 
-from app.agent import init_agent, send_message, clear_conversation
+from app.agent import init_agent, send_message, stream_send_message, clear_conversation
 import app.exercises as exercises
 from app.errors import ERR_INPUT_TOO_LONG
 
@@ -87,6 +87,25 @@ async def chat(input: ChatInput, response: Response):
     output = send_message(conversation_id, prompt)
 
     return output
+
+
+@app.post('/stream_chat')
+async def stream_chat(input: ChatInput):
+    """
+    Sends a new message to the chatbot in the context of a given conversation. This is the stream version of the main endpoint to interact with the chatbot.
+
+    Args:
+        input (ChatInput): Input object containing the conversation_id and the new piece of human_input. This is the payload of the request.
+
+    Returns:
+        StreamingResponse: Streams bits of the response asynchronously as they become available.
+    """
+
+    conversation_id = input.conversation_id
+    prompt = input.human_input
+
+    return StreamingResponse(stream_send_message(conversation_id, prompt), media_type='application/x-ndjson')
+
 
 ################################################################
 

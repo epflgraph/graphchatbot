@@ -10,11 +10,11 @@ from langchain_core.runnables import RunnableConfig
 from langchain.tools import StructuredTool
 from langchain_openai import ChatOpenAI
 
-from langgraph.checkpoint import MemorySaver
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt.tool_executor import ToolExecutor, ToolInvocation
-from langgraph.prebuilt.tool_node import str_output
+from langgraph.prebuilt.tool_node import msg_content_output
 
 from app.config import config
 from app.agent.prompt import system_prompt
@@ -221,7 +221,7 @@ def create_agent():
             #     del node['secret']
 
             # Store ToolMessage in a list to be returned
-            new_messages.append(ToolMessage(content=str_output(response), name=tool_call['name'], tool_call_id=tool_call['id']))
+            new_messages.append(ToolMessage(content=msg_content_output(response), name=tool_call['name'], tool_call_id=tool_call['id']))
 
         return {'messages': new_messages}
 
