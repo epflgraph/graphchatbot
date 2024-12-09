@@ -1,4 +1,3 @@
-import re
 from typing import Annotated, Sequence, TypedDict
 
 from langchain_core.messages import (
@@ -11,17 +10,19 @@ from langchain_core.runnables import RunnableConfig
 from langchain.tools import StructuredTool
 from langchain_openai import ChatOpenAI
 
-from langgraph.checkpoint import MemorySaver
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt.tool_executor import ToolExecutor, ToolInvocation
-from langgraph.prebuilt.tool_node import str_output
+from langgraph.prebuilt.tool_node import msg_content_output
 
 from app.config import config
 from app.agent.prompt import system_prompt
 from app.agent.cache import get_from_cache, set_to_cache
-from app.agent.tool_interactions import append_tool_interaction, get_tool_interactions
-from app.agent.tools import search_nodes, ask_expert, search_news, search_exercises
+from app.agent.tool_interactions import append_tool_interaction
+from app.agent.tools import search_nodes, search_news, search_exercises
+from app.agent.entry import get_keywords_from_messages
+from app.agent.hallucinations import get_hallucinated_links
 
 
 ################################################################
@@ -41,61 +42,6 @@ class State(TypedDict):
 ################################################################
 # Helper functions                                             #
 ################################################################
-
-
-def extract_dict_links(d):
-    if isinstance(d, list):
-        link_lists = [extract_dict_links(x) for x in d]
-        return [link for link_list in link_lists for link in link_list]
-
-    if isinstance(d, dict):
-        if 'url' in d:
-            links = [d['url']]
-        else:
-            links = []
-
-        link_lists = [extract_dict_links(d[x]) for x in d if x != 'url']
-        links.extend([link for link_list in link_lists for link in link_list])
-
-        return links
-
-    return []
-
-
-def extract_message_links(content):
-    text_pattern = r'\[([^\]]+)\]'              # Character '[', then one or more characters other than ']', then character ']'
-    url_pattern = r'\(([^)]+)\)'                # Character '(', then one or more characters other than ')', then character ')'
-    link_pattern = text_pattern + url_pattern   # Concatenate both
-    link_regex = re.compile(link_pattern)
-
-    message_links = [url for text, url in link_regex.findall(content)]
-
-    # Exclude known exceptions
-    exceptions = [
-        "https://www.epfl.ch/about/respect/trust-and-support-network/"
-    ]
-    message_links = [link for link in message_links if link not in exceptions]
-
-    return message_links
-
-
-def get_hallucinated_links(thread_id, message):
-    # Extract last message links
-    message_links = set(extract_message_links(message.content))
-    print('[POST-MODEL]', f"Found {len(message_links)} links in LLM message")
-
-    # Extract tool links
-    tool_interactions = get_tool_interactions(thread_id)
-    tool_links = set(extract_dict_links(tool_interactions))
-    print('[POST-MODEL]', f"Found {len(tool_links)} links in tool interactions")
-
-    print(message_links)
-    print(tool_links)
-    print(tool_interactions)
-
-    # Return message links that are not among the tool links
-    return list(message_links - tool_links)
-
 
 def clean_tool_calls_and_responses(messages):
     # Start setting flag to mark when we will be done checking
@@ -162,7 +108,6 @@ def create_agent():
 
     tools = [
         StructuredTool.from_function(name='search_nodes', func=search_nodes),
-        StructuredTool.from_function(name='ask_expert', func=ask_expert),
         StructuredTool.from_function(name='search_exercises', func=search_exercises),
         StructuredTool.from_function(name='search_news', func=search_news),
     ]
@@ -195,6 +140,29 @@ def create_agent():
 
     try_to_recover = True
     hallucinated_links = []
+
+    ################################################################
+    # Entry node function                                          #
+    ################################################################
+
+    def entry_node(state: State, config: RunnableConfig):
+        print('[ENTRY]', "Entering entry state")
+
+        messages = state['messages']
+
+        # Call LLM to get a list of keywords to search nodes
+        keywords_list = get_keywords_from_messages(messages)
+        print('[ENTRY]', f"Forcing tool call to `search_nodes` with query=`{keywords_list}` and node_type=`None`")
+
+        # Append manual tool call to retrieve nodes before actually calling the model
+        tool_call = {
+            'name': 'search_nodes',
+            'args': {'query': keywords_list},
+            'id': '0'
+        }
+        tool_call_message = AIMessage(content="", tool_calls=[tool_call])
+
+        return {'messages': [tool_call_message]}
 
     ################################################################
     # Model node function                                          #
@@ -253,7 +221,7 @@ def create_agent():
             #     del node['secret']
 
             # Store ToolMessage in a list to be returned
-            new_messages.append(ToolMessage(content=str_output(response), name=tool_call['name'], tool_call_id=tool_call['id']))
+            new_messages.append(ToolMessage(content=msg_content_output(response), name=tool_call['name'], tool_call_id=tool_call['id']))
 
         return {'messages': new_messages}
 
@@ -324,7 +292,8 @@ def create_agent():
         # Check for hallucinated links
         print('[POST-MODEL]', "Checking for hallucinated links")
         nonlocal hallucinated_links
-        hallucinated_links = get_hallucinated_links(config['configurable']['thread_id'], last_message)
+        ai_messages = [message for message in messages if isinstance(message, AIMessage)]
+        hallucinated_links = get_hallucinated_links(config['configurable']['thread_id'], ai_messages)
 
         # If no hallucinated links, proceed to 'cleanup' node
         if not hallucinated_links:
@@ -343,20 +312,23 @@ def create_agent():
     workflow = StateGraph(State)
 
     # Define the two nodes we will cycle between
+    workflow.add_node('entry', entry_node)
     workflow.add_node('model', model_node)
     workflow.add_node('tools', tools_node)
     workflow.add_node('recover', recover_node)
     workflow.add_node('cleanup', cleanup_node)
 
     # Define the edges of the graph:
-    #   From START, we always go to 'model'
-    #   From 'model', we can go to 'tools', 'recover' or 'cleanup'
+    #   From START, we always go to 'entry'
+    #   From 'entry', we always go to 'tools'
     #   From 'tools', we always go to 'model'
+    #   From 'model', we can go to 'tools', 'recover' or 'cleanup'
     #   From 'recover', we always go to 'model'
     #   From 'cleanup', we always go to END
-    workflow.set_entry_point('model')
-    workflow.add_conditional_edges(source='model', path=model_edge)
+    workflow.set_entry_point('entry')
+    workflow.add_edge(start_key='entry', end_key='tools')
     workflow.add_edge(start_key='tools', end_key='model')
+    workflow.add_conditional_edges(source='model', path=model_edge)
     workflow.add_edge(start_key='recover', end_key='model')
     workflow.add_edge(start_key='cleanup', end_key=END)
 

@@ -1,6 +1,6 @@
-from app.tools.nodes import search_nodes
-from app.tools.exoset import search_exercises
-from app.tools.news import search_news
+from app.agent.tools.nodes import search_nodes
+from app.agent.tools.exoset import search_exercises
+from app.agent.tools.news import search_news
 
 from conftest import tool_inputs
 
