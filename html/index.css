@@ -54,20 +54,10 @@ button {
 #send {
     background-color: #4e90e0;
     color: white;
-    margin-right: 10px;
 }
 
 #send:hover {
     background-color: #3b76c4;
-}
-
-#reset {
-    background-color: #e0904e;
-    color: white;
-}
-
-#reset:hover {
-    background-color: #c4763b;
 }
 
 /****************************************************************/
