@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from fastapi import FastAPI, Response
 from fastapi.responses import StreamingResponse, FileResponse
 
-from app.agent import init_agent, send_message, stream_send_message, clear_conversation
+from app.agent import init_agent, send_message, stream_send_message
 import app.exercises as exercises
 from app.errors import ERR_INPUT_TOO_LONG
 
@@ -106,29 +106,6 @@ async def stream_chat(input: ChatInput):
 
     return StreamingResponse(stream_send_message(conversation_id, prompt), media_type='application/x-ndjson')
 
-
-################################################################
-
-
-class ResetInput(BaseModel):
-    conversation_id: str
-
-
-@app.post('/reset')
-async def reset(input: ResetInput):
-    """
-    Resets the conversation with a given conversation_id. The next message sent to that conversation will start a fresh interaction with the chatbot.
-
-    Args:
-        input (ChatInput): Input object containing the conversation_id to be reset.
-
-    Returns:
-        dict: Dictionary containing whether everything went well.
-    """
-
-    return {
-        'ok': clear_conversation(input.conversation_id)
-    }
 
 ################################################################
 

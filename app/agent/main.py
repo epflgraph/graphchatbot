@@ -136,13 +136,6 @@ async def stream_send_message(conversation_id: str, prompt: str) -> AsyncGenerat
     })
 
 
-def clear_conversation(conversation_id: str) -> bool:
-    checkpoint = empty_checkpoint()
-    agent.checkpointer.put(config={'configurable': {'thread_id': conversation_id}}, checkpoint=checkpoint, metadata={})
-
-    return True
-
-
 if __name__ == '__main__':
     init_agent()
 

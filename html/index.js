@@ -93,22 +93,6 @@ function sendMessage() {
 
 }
 
-function reset() {
-    let xhr = new XMLHttpRequest();
-    xhr.open("POST", "/reset", true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.send(JSON.stringify({conversation_id: "1234567890abcdef"}));
-
-    xhr.onload = function() {
-        let response = JSON.parse(this.responseText);
-        console.log(response);
-
-        if (response.hasOwnProperty('ok') && response['ok']) {
-            location.reload();
-        }
-    }
-}
-
 document.getElementById('chat-input').addEventListener('keyup', function(event) {
     if (event.key === 'Enter') {
         sendMessage();
