@@ -30,7 +30,8 @@ def clean_links(links, node_types):
 
     # Define node_types properly and how many links of a given node_type we may have
     if node_types is None:
-        node_types = list(set(link['link_type'] for link in semantic_links))
+        node_types = [link['link_type'] for link in semantic_links]
+        node_types = list(dict.fromkeys(node_types))  # Remove duplicates. This is like list(set(x)) but preserving the order, otherwise we have issues with the cache.
         limit = 5
     else:
         if isinstance(node_types, str):
