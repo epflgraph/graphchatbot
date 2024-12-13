@@ -150,17 +150,31 @@ def create_agent():
 
         messages = state['messages']
 
-        # Call LLM to get a list of keywords to search nodes
-        keywords_list = get_keywords_from_messages(messages)
-        print('[ENTRY]', f"Forcing tool call to `search_nodes` with query=`{keywords_list}` and node_type=`None`")
+        # Try to fetch response from cache
+        tool_call_message = get_from_cache(messages)
 
-        # Append manual tool call to retrieve nodes before actually calling the model
-        tool_call = {
-            'name': 'search_nodes',
-            'args': {'query': keywords_list},
-            'id': '0'
-        }
-        tool_call_message = AIMessage(content="", tool_calls=[tool_call])
+        if tool_call_message is None:
+            # Call LLM to get a list of keywords to search nodes otherwise
+            print("[ENTRY] Couldn't find cached response for the given message list, calling LLM")
+            keywords_list = get_keywords_from_messages(messages)
+
+            # Append manual tool call to retrieve nodes before actually calling the model
+            tool_call = {
+                'name': 'search_nodes',
+                'args': {'query': keywords_list},
+                'id': '0'
+            }
+            tool_call_message = AIMessage(content="", tool_calls=[tool_call])
+        else:
+            print("[ENTRY] Found cached response for the given message list, skipping LLM")
+
+        [tool_call] = tool_call_message.tool_calls
+        query = tool_call.get('args', {}).get('query')
+        node_type = tool_call.get('args', {}).get('node_type')
+        print('[ENTRY]', f"Forcing tool call to `search_nodes` with query=`{query}` and node_type=`{node_type}`")
+
+        # Set result to cache
+        set_to_cache(messages, tool_call_message)
 
         return {'messages': [tool_call_message]}
 
