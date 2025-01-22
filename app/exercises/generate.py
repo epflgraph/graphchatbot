@@ -230,41 +230,20 @@ A common visual representation of forces acting in concert is the free body diag
 
 Newton's second law is sometimes presented as a definition of force, i.e., a force is that which exists when an inertial observer sees a body accelerating. In order for this to be more than a tautology — acceleration implies force, force implies acceleration — some other statement about force must also be made. For example, an equation detailing the force might be specified, like Newton's law of universal gravitation. By inserting such an expression for F {\displaystyle \mathbf {F} } into Newton's second law, an equation with predictive power can be written.[note 5] Newton's second law has also been regarded as setting out a research program for physics, establishing that important goals of the subject are to identify the forces present in nature and to catalogue the constituents of matter.[15]: 134 [26]: 12-2 
 """
+    lecture_id = '0_mp6uyap1'
+
     description = "An exercise involving an inclined plane, without friction."
 
     bloom_level = 5
     include_solution = True
+    output_format = 'markdown'
     model_name = 'gpt-4o-mini'
 
-    result = generate_text_exercise(text, description, bloom_level=bloom_level, include_solution=include_solution, output_format='latex', model_name=model_name)
+    result = generate_text_exercise(text, description, bloom_level=bloom_level, include_solution=include_solution, output_format=output_format, model_name=model_name)
+    # result = generate_lecture_exercise(lecture_id, description, bloom_level=bloom_level, include_solution=include_solution, output_format=output_format, model_name=model_name)
 
     print(result)
 
-
-# if __name__ == '__main__':
-#     lecture_id = '0_92916guq'
-#     description = r"An exercise to compute the volume of a sphere cap of angle $\alpha$ using spherical coordinates."
-#     # description = r"An exercise to compute the volume of a torus."
-#     # description = r"An exercise to compute the volume of the Pokémon Snorlax, decomposing it into its head and body (spheres), hands and feet (short cylinders) and ears (cones)."
-#
-#     # lecture_id = '0_qf0m3zhf'
-#     # description = r"An exercise about the evolution of the population of rabbits and wolves."
-#     # description = r"An exercise with a concrete example of a 2D dynamical system that has three or more equilibrium points."
-#     # description = r"An exercise where the populations of the three Pokémon starters evolve according to their type advantages."
-#
-#     # lecture_id = '0_3tnuqgj7'
-#     # # description = r"An exercise with three charges"
-#     # # description = r"An exercise involving an electric field that disappears instantly after some time."
-#     # description = r"An exercise where Pikachu uses Thunderbolt on four Spearows."
-#
-#     ################################################################
-#
-#     include_solution = True
-#
-#     result = generate_lecture_exercise(lecture_id, description, include_solution)
-#
-#     ################################################################
-#
 #     latex_str = build_latex_mockup(result['exercise'], description)
 #
 #     print(latex_str)
