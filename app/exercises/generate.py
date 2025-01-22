@@ -96,7 +96,7 @@ def generate_text_exercise(text, description, bloom_level, include_solution, out
     return response
 
 
-def fetch_lecture_content(lecture_id, bloom_level, include_solution, output_format):
+def fetch_lecture_content(lecture_id, bloom_level, include_solution, output_format, model_name):
     ################################################################
     # Fetch lecture data                                           #
     ################################################################
@@ -169,7 +169,7 @@ def generate_lecture_exercise(lecture_id, description, bloom_level, include_solu
     print('[GENERATE EXERCISE]', f"Generating exercise for lecture {lecture_id}: `{description[:100]}`")
 
     # Build lecture content
-    content = fetch_lecture_content(lecture_id, bloom_level, include_solution, output_format)
+    content = fetch_lecture_content(lecture_id, bloom_level=bloom_level, include_solution=include_solution, output_format=output_format, model_name=model_name)
 
     # Build system prompt and human prompt
     system_prompt = build_lecture_system_prompt(content, bloom_level=bloom_level, include_solution=include_solution, output_format=output_format)
