@@ -147,6 +147,7 @@ class GenerateTextExerciseInput(BaseModel):
     include_solution: bool = True
     output_format: Literal['plain-text', 'markdown', 'latex'] = 'plain-text'
     llm_model: Literal['gpt-4o-mini', 'gpt-4o'] = 'gpt-4o-mini'
+    openai_api_key: str
 
 
 class GenerateLectureExerciseInput(BaseModel):
@@ -156,6 +157,7 @@ class GenerateLectureExerciseInput(BaseModel):
     include_solution: bool = True
     output_format: Literal['plain-text', 'markdown', 'latex'] = 'markdown'
     llm_model: Literal['gpt-4o-mini', 'gpt-4o'] = 'gpt-4o-mini'
+    openai_api_key: str
 
 
 @app.post('/generate_exercise')
@@ -175,10 +177,11 @@ async def generate_exercise(input: Union[GenerateTextExerciseInput, GenerateLect
     include_solution = input.include_solution
     output_format = input.output_format
     llm_model = input.llm_model
+    openai_api_key = input.openai_api_key
 
     if isinstance(input, GenerateTextExerciseInput):
-        return exercises.generate_text_exercise(input.text, description, bloom_level, include_solution, output_format, llm_model)
+        return exercises.generate_text_exercise(input.text, description, bloom_level, include_solution, output_format, llm_model, openai_api_key)
     elif isinstance(input, GenerateLectureExerciseInput):
-        return exercises.generate_lecture_exercise(input.lecture_id, description, bloom_level, include_solution, output_format, llm_model)
+        return exercises.generate_lecture_exercise(input.lecture_id, description, bloom_level, include_solution, output_format, llm_model, openai_api_key)
 
     return {}

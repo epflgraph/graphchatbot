@@ -24,10 +24,8 @@ from app.exercises.schemas import (
     parse_response,
 )
 
-from app.config import config
 
-
-def call_llm(model_name, system_prompt, human_prompt, include_solution):
+def call_llm(model_name, system_prompt, human_prompt, include_solution, openai_api_key):
     ################################################################
     # Send request to LLM                                          #
     ################################################################
@@ -40,7 +38,7 @@ def call_llm(model_name, system_prompt, human_prompt, include_solution):
 
     # Instantiate model
     response_schema = build_response_schema(include_solution)
-    model = ChatOpenAI(model=model_name, temperature=0, openai_api_key=config['openai']['api_key'], request_timeout=60).bind(response_format=response_schema)
+    model = ChatOpenAI(model=model_name, temperature=0, openai_api_key=openai_api_key, request_timeout=60).bind(response_format=response_schema)
 
     # Send request to LLM
     with get_openai_callback() as cb:
@@ -82,7 +80,7 @@ def call_llm(model_name, system_prompt, human_prompt, include_solution):
     return response
 
 
-def generate_text_exercise(text, description, bloom_level, include_solution, output_format, model_name):
+def generate_text_exercise(text, description, bloom_level, include_solution, output_format, model_name, openai_api_key):
     print('[GENERATE EXERCISE]', f"Generating exercise for text `{text[:100]}` with description `{description[:100]}`")
 
     # Build system prompt and human prompt
@@ -91,7 +89,7 @@ def generate_text_exercise(text, description, bloom_level, include_solution, out
     human_prompt = build_human_prompt(content=content, description=description)
 
     # Call LLM to generate exercise
-    response = call_llm(model_name, system_prompt, human_prompt, include_solution)
+    response = call_llm(model_name, system_prompt, human_prompt, include_solution, openai_api_key)
 
     return response
 
@@ -165,7 +163,7 @@ def fetch_lecture_content(lecture_id, bloom_level, include_solution, output_form
     return content
 
 
-def generate_lecture_exercise(lecture_id, description, bloom_level, include_solution, output_format, model_name):
+def generate_lecture_exercise(lecture_id, description, bloom_level, include_solution, output_format, model_name, openai_api_key):
     print('[GENERATE EXERCISE]', f"Generating exercise for lecture {lecture_id}: `{description[:100]}`")
 
     # Build lecture content
@@ -176,7 +174,7 @@ def generate_lecture_exercise(lecture_id, description, bloom_level, include_solu
     human_prompt = build_human_prompt(content, description)
 
     # Call LLM to generate exercise
-    response = call_llm(model_name, system_prompt, human_prompt, include_solution)
+    response = call_llm(model_name, system_prompt, human_prompt, include_solution, openai_api_key)
 
     return response
 
