@@ -12,8 +12,6 @@ from langchain_core.messages import (
     HumanMessage,
 )
 
-from langgraph.checkpoint.base import empty_checkpoint
-
 from app.agent.tool_interactions import get_tool_interactions, clear_tool_interactions
 from app.agent.create import create_agent
 
@@ -139,15 +137,15 @@ async def stream_send_message(conversation_id: str, prompt: str) -> AsyncGenerat
 if __name__ == '__main__':
     init_agent()
 
-    prompt = "Why is 1.99999... equal to 2?"
+    prompt = "What is math?"
 
     # Sync
-    # print(send_message('1234', prompt)['message'])
-    # print(send_message('1234', "Why is it log_3(2)?")['message'])
+    print(send_message('1234', prompt)['message'])
+    print(send_message('1234', "What did I just ask you?")['message'])
 
     # Async
-    async def f():
-        async for update in stream_send_message('1234', prompt):
-            print(update)
-
-    asyncio.run(f())
+    # async def f():
+    #     async for update in stream_send_message('1234', prompt):
+    #         print(update)
+    #
+    # asyncio.run(f())

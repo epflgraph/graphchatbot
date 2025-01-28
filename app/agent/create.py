@@ -128,12 +128,6 @@ def create_agent():
     # Chat model
     model = ChatOpenAI(model='gpt-4o-mini', temperature=0, openai_api_key=config['openai']['api_key'])
 
-    # Bind tools to model
-    model = model.bind_tools(tools)
-
-    # Add system prompt to the model chain
-    model = (lambda messages: [SystemMessage(content=system_prompt)] + messages) | model
-
     ################################################################
     # Hallucinated links                                           #
     ################################################################
@@ -194,7 +188,9 @@ def create_agent():
         # Call LLM otherwise
         if response is None:
             print("[MODEL] Couldn't find cached response for the given message list, calling LLM")
-            response = model.invoke(messages, config)
+            model_with_tools = model.bind_tools(tools)
+            messages_with_system_prompt = [SystemMessage(content=system_prompt)] + messages
+            response = model_with_tools.invoke(messages_with_system_prompt, config)
         else:
             print("[MODEL] Found cached response for the given message list, skipping LLM")
 
