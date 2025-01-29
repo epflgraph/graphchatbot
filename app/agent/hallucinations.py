@@ -45,22 +45,20 @@ def get_hallucinated_links(thread_id, messages):
 
     # Last message links are candidates for being hallucinated
     last_message_links = set(extract_message_links(last_message.content))
-    print('[POST-MODEL]', f"Found {len(last_message_links)} links in last LLM message")
 
     # If there are no links there can't be hallucinated links, we return
     if not last_message_links:
+        print('[CHECK]', "Found no links in last LLM message")
         return []
 
     # Links in past messages are considered valid (we have checked them already at some point)
     past_message_links = set()
     for past_message in past_messages:
         past_message_links |= set(extract_message_links(past_message.content))
-    print('[POST-MODEL]', f"Found {len(past_message_links)} links in previous LLM messages")
 
     # Extract tool links
     tool_interactions = get_tool_interactions(thread_id)
     tool_links = set(extract_dict_links(tool_interactions))
-    print('[POST-MODEL]', f"Found {len(tool_links)} links in tool interactions")
 
     # Exclude known exceptions
     exception_links = set(
@@ -69,6 +67,8 @@ def get_hallucinated_links(thread_id, messages):
 
     # Valid links are tool links, past message links or exceptions
     valid_links = tool_links | past_message_links | exception_links
+
+    print('[CHECK]', f"Found {len(last_message_links)} links in last LLM message, {len(past_message_links)} links in previous LLM messages and {len(tool_links)} links in tool interactions.")
 
     # Return links from the last message which are not valid
     return list(last_message_links - valid_links)
