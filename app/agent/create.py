@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 
 from langchain_core.messages import (
     SystemMessage,
@@ -20,7 +20,7 @@ from app.agent.prompt import system_prompt
 from app.agent.cache import get_from_cache, set_to_cache
 from app.agent.tool_interactions import append_tool_interaction
 from app.agent.tools import search_nodes, search_news, search_exercises
-from app.agent.entry import get_keywords_from_messages
+from app.agent.classify import classify_conversation, get_category_tool
 from app.agent.hallucinations import get_hallucinated_links
 from app.agent.cleanup import clean_tool_calls_and_responses
 
@@ -36,9 +36,10 @@ class State(MessagesState):
         * Other variables that keep track of the status of the execution
     """
 
-    have_used_tools: bool
-    have_checked_hallucinations: bool
-    have_cleaned_up: bool
+    request_type: Optional[str]
+    have_used_tools: Optional[bool]
+    have_checked_hallucinations: Optional[bool]
+    have_cleaned_up: Optional[bool]
 
 
 ################################################################
@@ -90,76 +91,50 @@ def create_agent():
     # Supervisor node                                              #
     ################################################################
 
-    def supervisor_node(state: State) -> Command[Literal['model', 'tools']]:
-        # If state only contains the 'messages' key, we initialise the rest
-        if list(state.keys()) == ['messages']:
-            print('[SUPERVISOR]', "Initialising state")
-            return Command(goto='supervisor', update={'have_used_tools': False, 'have_checked_hallucinations': False, 'have_cleaned_up': False})
-
+    def supervisor_node(state: State):
         # Extract list of messages and last message from state
         messages = state['messages']
         last_message = messages[-1]
 
+        # If request has not been classified, do so
+        if state.get('request_type') is None:
+            print('[SUPERVISOR]', "Request has not been classified, handing to `classify` state")
+            return Command(goto='classify', update={'messages': []})
+
         # If the last message is not an AIMessage, we generate one
         if last_message.type != 'ai':
-            print('[SUPERVISOR]', f"Last message is {last_message.type}, handing to model state")
+            print('[SUPERVISOR]', f"Last message is {last_message.type}, handing to `model` state")
             return Command(goto='model', update={'messages': []})
 
         # If the last message is an AIMessage and there are tool calls, we execute them
         if last_message.tool_calls:
-            print('[SUPERVISOR]', "Last message is ai and there are tool calls, handing to tools state")
+            print('[SUPERVISOR]', "Last message contains some tool calls, handing to `tools` state")
             return Command(goto='tools', update={'messages': []})
 
         # If the last message is an AIMessage with no tool calls, we check for hallucinations
-        if not state['have_checked_hallucinations']:
-            print('[SUPERVISOR]', "Last message is ai, there are no tool calls and we never checked for hallucinations, handing to check state")
+        if not state.get('have_checked_hallucinations'):
+            print('[SUPERVISOR]', "We need to check for hallucinated links, handing to `check` state")
             return Command(goto='check', update={'messages': []})
 
         # If the last message is an AIMessage with no tool calls, and we have checked for hallucinations, we clean up
-        if not state['have_cleaned_up']:
-            print('[SUPERVISOR]', "Last message is ai, there are no tool calls, we already checked for hallucinations, but we haven't cleaned up, handing to cleanup state")
+        if not state.get('have_cleaned_up'):
+            print('[SUPERVISOR]', "Need to clean up, handing to `cleanup` state")
             return Command(goto='cleanup', update={'messages': []})
 
-        # Reset state flags for next execution
-        state['have_used_tools'] = False
-        state['have_checked_hallucinations'] = False
-        state['have_cleaned_up'] = False
+        print('[SUPERVISOR]', "Finishing execution")
+        return Command(goto=END, update={'request_type': None, 'have_used_tools': False, 'have_checked_hallucinations': False, 'have_cleaned_up': False})
 
-        print('[SUPERVISOR]', "Last message is ai, there are no tool calls, we already checked for hallucinations and cleaned up, finishing execution")
-        return Command(goto=END)
+    ################################################################
+    # Classify node                                                #
+    ################################################################
 
-    def entry_node(state: State, config: RunnableConfig):
-        print('[ENTRY]', "Entering entry state")
-
+    def classify_node(state: State):
         messages = state['messages']
 
-        # Try to fetch response from cache
-        tool_call_message = get_from_cache(messages)
+        category = classify_conversation(messages)
+        print('[CLASSIFY]', f"Classified conversation as `{category}`")
 
-        if tool_call_message is None:
-            # Call LLM to get a list of keywords to search nodes otherwise
-            print("[ENTRY] Couldn't find cached response for the given message list, calling LLM")
-            keywords_list = get_keywords_from_messages(messages)
-
-            # Append manual tool call to retrieve nodes before actually calling the model
-            tool_call = {
-                'name': 'search_nodes',
-                'args': {'query': keywords_list},
-                'id': '0'
-            }
-            tool_call_message = AIMessage(content="", tool_calls=[tool_call])
-        else:
-            print("[ENTRY] Found cached response for the given message list, skipping LLM")
-
-        [tool_call] = tool_call_message.tool_calls
-        query = tool_call.get('args', {}).get('query')
-        node_type = tool_call.get('args', {}).get('node_type')
-        print('[ENTRY]', f"Forcing tool call to `search_nodes` with query=`{query}` and node_type=`{node_type}`")
-
-        # Set result to cache
-        set_to_cache(messages, tool_call_message)
-
-        return {'messages': [tool_call_message]}
+        return Command(goto='supervisor', update={'request_type': category})
 
     ################################################################
     # Model node                                                   #
@@ -177,10 +152,11 @@ def create_agent():
             print('[MODEL]', "Couldn't find cached response for the given message list, calling LLM")
 
             # Force tool call if there has not been any
-            if state['have_used_tools']:
+            if state.get('have_used_tools'):
                 model_with_tools = model.bind_tools(tools)
             else:
-                model_with_tools = model.bind_tools(tools, tool_choice='required')
+                tool_name = get_category_tool(state.get('request_type'))
+                model_with_tools = model.bind_tools(tools, tool_choice=tool_name)
 
             messages_with_system_prompt = [SystemMessage(content=system_prompt)] + messages
             response = model_with_tools.invoke(messages_with_system_prompt, config)
@@ -269,6 +245,7 @@ def create_agent():
 
     # Define the nodes of the graph
     workflow.add_node('supervisor', supervisor_node)
+    workflow.add_node('classify', classify_node)
     workflow.add_node('model', model_node)
     workflow.add_node('tools', tools_node)
     workflow.add_node('check', check_node)
