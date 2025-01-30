@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Optional
 
 from langchain_core.messages import (
     SystemMessage,
@@ -19,7 +19,7 @@ from app.config import config
 from app.agent.prompt import system_prompt
 from app.agent.cache import get_from_cache, set_to_cache
 from app.agent.tool_interactions import append_tool_interaction
-from app.agent.tools import search_nodes, search_news, search_exercises
+from app.agent.tools import search_nodes, search_exercises, search_news, search_plan
 from app.agent.classify import classify_conversation, get_category_tool
 from app.agent.hallucinations import get_hallucinated_links
 from app.agent.cleanup import clean_tool_calls_and_responses
@@ -69,6 +69,7 @@ def create_agent():
         StructuredTool.from_function(name='search_nodes', func=search_nodes),
         StructuredTool.from_function(name='search_exercises', func=search_exercises),
         StructuredTool.from_function(name='search_news', func=search_news),
+        StructuredTool.from_function(name='search_plan', func=search_plan),
     ]
 
     # Instantiate ToolExecutor that will be used in the 'tools' state

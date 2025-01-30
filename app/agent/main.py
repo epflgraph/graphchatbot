@@ -137,7 +137,7 @@ async def stream_send_message(conversation_id: str, prompt: str) -> AsyncGenerat
 if __name__ == '__main__':
     init_agent()
 
-    prompt = "How hot is it in Mars?"
+    prompt = "Are there changing rooms for babies at EPFL?"
 
     # Sync
     print(send_message('1234', prompt)['message'])
