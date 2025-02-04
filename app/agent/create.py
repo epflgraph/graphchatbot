@@ -100,27 +100,27 @@ def create_agent():
         # If request has not been classified, do so
         if state.get('request_type') is None:
             print('[SUPERVISOR]', "Request has not been classified, handing to `classify` state")
-            return Command(goto='classify', update={'messages': []})
+            return Command(goto='classify')
 
         # If the last message is not an AIMessage, we generate one
         if last_message.type != 'ai':
             print('[SUPERVISOR]', f"Last message is {last_message.type}, handing to `model` state")
-            return Command(goto='model', update={'messages': []})
+            return Command(goto='model')
 
         # If the last message is an AIMessage and there are tool calls, we execute them
         if last_message.tool_calls:
             print('[SUPERVISOR]', "Last message contains some tool calls, handing to `tools` state")
-            return Command(goto='tools', update={'messages': []})
+            return Command(goto='tools')
 
         # If the last message is an AIMessage with no tool calls, we check for hallucinations
         if not state.get('have_checked_hallucinations'):
             print('[SUPERVISOR]', "We need to check for hallucinated links, handing to `check` state")
-            return Command(goto='check', update={'messages': []})
+            return Command(goto='check')
 
         # If the last message is an AIMessage with no tool calls, and we have checked for hallucinations, we clean up
         if not state.get('have_cleaned_up'):
             print('[SUPERVISOR]', "Need to clean up, handing to `cleanup` state")
-            return Command(goto='cleanup', update={'messages': []})
+            return Command(goto='cleanup')
 
         print('[SUPERVISOR]', "Finishing execution")
         return Command(goto=END, update={'request_type': None, 'have_used_tools': False, 'have_checked_hallucinations': False, 'have_cleaned_up': False})

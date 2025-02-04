@@ -97,20 +97,37 @@ async def stream_send_message(conversation_id: str, prompt: str) -> AsyncGenerat
     agent_config = {'configurable': {'thread_id': conversation_id}}
 
     # Define states to be checked
-    states = ['entry', 'tools', 'model', 'model_edge', 'recover', 'cleanup']
-    state = None
+    node_names = ['supervisor', 'classify', 'model', 'tools', 'check', 'cleanup']
+    current_node = None
     last_event = None
     async for event in agent.astream_events(input=agent_input, config=agent_config, version='v2'):
+        # Yield when we enter a node
+        if event['name'] in node_names and event['event'] == 'on_chain_start':
+            current_node = event['name']
+
+            if event['name'] == 'tools':
+                tool_calls = [{'name': tool_call['name'], 'args': tool_call['args']} for tool_call in event['data']['input']['messages'][-1].tool_calls]
+                yield ndjson({'name': current_node, 'event': 'start', 'tool_calls': tool_calls})
+            else:
+                yield ndjson({'name': current_node, 'event': 'start'})
+
+        # Yield in the model node when there is a message chunk
+        if current_node == 'model' and event['name'] == 'ChatOpenAI' and event['event'] == 'on_chat_model_stream':
+            yield ndjson({'name': current_node, 'event': 'stream', 'content': event['data']['chunk'].content})
+
+        # Yield when we exit a node
+        if event['name'] in node_names and event['event'] == 'on_chain_end':
+            if event['name'] == 'classify':
+                yield ndjson({'name': event['name'], 'event': 'end', 'request_type': event['data']['output'].update['request_type']})
+            elif event['name'] == 'check':
+                messages = event['data']['output'].update.get('messages')
+                need_to_regenerate = bool(messages)
+                yield ndjson({'name': event['name'], 'event': 'end', 'need_to_regenerate': need_to_regenerate})
+            else:
+                yield ndjson({'name': event['name'], 'event': 'end'})
+
+        # Store event in case it is the last one, so we can yield it later
         last_event = event
-
-        # Yield when there is a change in the graph state
-        if event['name'] in states and event['event'] == 'on_chain_start':
-            state = event['name']
-            yield ndjson({'state': state})
-
-        # Yield in the model state when there is a message chunk
-        if state == 'model' and event['name'] == 'ChatOpenAI' and event['event'] == 'on_chat_model_stream':
-            yield ndjson({'state': state, 'content': event['data']['chunk'].content})
 
     # Extract response message
     content = last_event['data']['output']['messages'][-1].content
@@ -128,8 +145,8 @@ async def stream_send_message(conversation_id: str, prompt: str) -> AsyncGenerat
 
     # Yield last update with the final message complete and the tool interactions
     yield ndjson({
-        'state': 'end',
-        'content': content,
+        'name': 'report',
+        'message': content,
         'tool_interactions': tool_interactions,
     })
 
@@ -137,13 +154,13 @@ async def stream_send_message(conversation_id: str, prompt: str) -> AsyncGenerat
 if __name__ == '__main__':
     init_agent()
 
-    prompt = "Are there changing rooms for babies at EPFL?"
+    prompt = "Explain the key points of general relativity in 100 words."
 
     # Sync
     print(send_message('1234', prompt)['message'])
     print(send_message('1234', "What did I just ask you?")['message'])
 
-    # Async
+    # # Async
     # async def f():
     #     async for update in stream_send_message('1234', prompt):
     #         print(update)
