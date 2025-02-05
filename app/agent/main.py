@@ -154,15 +154,15 @@ async def stream_send_message(conversation_id: str, prompt: str) -> AsyncGenerat
 if __name__ == '__main__':
     init_agent()
 
-    prompt = "Explain the key points of general relativity in 100 words."
+    prompt = "What is the main difference between special and general relativity?"
 
-    # Sync
-    print(send_message('1234', prompt)['message'])
-    print(send_message('1234', "What did I just ask you?")['message'])
+    # # Sync
+    # print(send_message('1234', prompt)['message'])
+    # print(send_message('1234', "What did I just ask you?")['message'])
 
-    # # Async
-    # async def f():
-    #     async for update in stream_send_message('1234', prompt):
-    #         print(update)
-    #
-    # asyncio.run(f())
+    # Async
+    async def f():
+        async for update in stream_send_message('1234', prompt):
+            print(update)
+
+    asyncio.run(f())
