@@ -20,9 +20,9 @@ from app.agent.prompt import system_prompt
 from app.agent.cache import get_from_cache, set_to_cache
 from app.agent.tool_interactions import append_tool_interaction
 from app.agent.tools import search_nodes, search_exercises, search_news, search_plan
-from app.agent.classify import classify_conversation, get_category_tool
+from app.agent.classify import classify_conversation, get_category_tool, get_category_system_prompt
 from app.agent.hallucinations import get_hallucinated_links
-from app.agent.cleanup import clean_tool_calls_and_responses
+from app.agent.cleanup import clean_system_messages, clean_tool_calls_and_responses
 
 
 ################################################################
@@ -135,7 +135,12 @@ def create_agent():
         category = classify_conversation(messages)
         print('[CLASSIFY]', f"Classified conversation as `{category}`")
 
-        return Command(goto='supervisor', update={'request_type': category})
+        category_system_prompt = get_category_system_prompt(category)
+
+        if category_system_prompt is None:
+            return Command(goto='supervisor', update={'request_type': category})
+        else:
+            return Command(goto='supervisor', update={'messages': [SystemMessage(content=category_system_prompt)], 'request_type': category})
 
     ################################################################
     # Model node                                                   #
@@ -231,6 +236,10 @@ def create_agent():
     ################################################################
 
     def cleanup_node(state: State):
+        # Delete intermediate System messages
+        print('[CLEANUP]', "Deleting intermediate system messages")
+        state['messages'] = clean_system_messages(state['messages'])
+
         # Delete AI messages with tool requests and their corresponding tool messages
         print('[CLEANUP]', "Deleting tool call requests and responses")
         state['messages'] = clean_tool_calls_and_responses(state['messages'])

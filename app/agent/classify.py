@@ -20,34 +20,47 @@ from app.config import config
 # Categories                                                   #
 ################################################################
 
-conversation_categories = [
-    'help-with-assigment',
-    'explain-concept',
-    'lectures',
-    'exercises',
-    'courses',
-    'study-plan',
-    'schedule',
-    'student-projects',
-    'internships',
-    'labs-or-units',
-    'startups',
-    'news',
-    'infrastructure',
-]
+categories = {
+    'help-with-assignment': {'system_prompt': """
+# Pedagogical requirements
+* Act as if you were a tutor or mentor for the user.
+* Do not give the solution right away, but rather lay out directions or ask questions for the user to find the solution on their own.
+* Your answer should help the user learn or understand.
+* Do not use words or phrases that express doubt or provide a subjective opinion.
+    """},
+
+    'explain-concept': {'system_prompt': """
+# Pedagogical requirements
+* Act as if you were an academic expert in the relevant domain.
+* Your answer should help the user learn or understand.
+* Do not use words or phrases that express doubt or provide a subjective opinion.
+    """},
+
+    'lectures': {},
+    'exercises': {'tool': 'search_exercises'},
+    'courses': {},
+    'study-plan': {},
+    'schedule': {},
+    'student-projects': {},
+    'internships': {},
+    'labs-or-units': {},
+    'startups': {},
+    'news': {'tool': 'search_news'},
+    'infrastructure': {'tool': 'search_plan'},
+}
+
+
+category_names = list(categories.keys())
 
 
 def get_category_tool(category):
-    if category == 'exercises':
-        return 'search_exercises'
+    # Return specific tool for the given category or default to `search_nodes`
+    return categories.get(category, {}).get('tool', 'search_nodes')
 
-    if category == 'news':
-        return 'search_news'
 
-    if category == 'infrastructure':
-        return 'search_plan'
-
-    return 'search_nodes'
+def get_category_system_prompt(category):
+    # Return specific system prompt for the given category or default to None
+    return categories.get(category, {}).get('system_prompt')
 
 
 ################################################################
@@ -57,7 +70,7 @@ def get_category_tool(category):
 class ConversationType(BaseModel, extra='allow'):
     model_config = {'json_schema_extra': {"additionalProperties": False}}
 
-    category: Literal[*conversation_categories]
+    category: Literal[*category_names]
 
 
 response_format = {
@@ -80,12 +93,12 @@ def classify_conversation(conversation):
     conversation = [m for m in conversation if isinstance(m, HumanMessage) or isinstance(m, AIMessage)]
 
     # Prepare system prompt
-    conversation_categories_str = '\n'.join([f'* {category}' for category in conversation_categories])
+    category_names_str = '\n'.join([f'* {category}' for category in category_names])
     system_prompt = f"""
 You will be given a conversation between a Human and an AI system.
 Your task is to classify the conversation based on what the last request is about. 
 The possible categories are the following:
-{conversation_categories_str}
+{category_names_str}
 """
 
     # Prepare human prompt

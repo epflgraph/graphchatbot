@@ -1,7 +1,12 @@
 from langchain_core.messages import (
+    SystemMessage,
     AIMessage,
     ToolMessage,
 )
+
+
+def clean_system_messages(messages):
+    return [message for message in messages if not isinstance(message, SystemMessage)]
 
 
 def clean_tool_calls_and_responses(messages):
