@@ -1,9 +1,9 @@
 from typing import Optional
+import json
 
 from langchain_core.messages import (
     SystemMessage,
     AIMessage,
-    ToolMessage,
 )
 from langchain_core.runnables import RunnableConfig
 from langchain.tools import StructuredTool
@@ -11,8 +11,7 @@ from langchain_openai import ChatOpenAI
 
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import StateGraph, MessagesState, END
-from langgraph.prebuilt.tool_executor import ToolExecutor, ToolInvocation
-from langgraph.prebuilt.tool_node import msg_content_output
+from langgraph.prebuilt.tool_node import ToolNode
 from langgraph.types import Command
 
 from app.config import config
@@ -71,9 +70,6 @@ def create_agent():
         StructuredTool.from_function(name='search_news', func=search_news),
         StructuredTool.from_function(name='search_plan', func=search_plan),
     ]
-
-    # Instantiate ToolExecutor that will be used in the 'tools' state
-    tool_executor = ToolExecutor(tools)
 
     ################################################################
     # Memory                                                       #
@@ -182,29 +178,22 @@ def create_agent():
         messages = state['messages']
         last_message = messages[-1]
 
-        # Create new list of messages to be filled
-        tool_messages = []
+        # Execute all tool calls in the last message
+        tool_messages = ToolNode(tools).invoke([last_message])
 
-        # We iterate over all tool calls in the last message, and run them storing their results
-        # We know there is at least one tool call because of how the graph is built
-        for tool_call in last_message.tool_calls:
-            # Set up tool invocation
-            action = ToolInvocation(tool=tool_call['name'], tool_input=tool_call['args'])
+        # Store tool interactions (unobfuscated)
+        tool_calls = last_message.tool_calls
+        for tool_call in tool_calls:
+            for tool_message in tool_messages:
+                if tool_call['id'] == tool_message.tool_call_id:
+                    print('[TOOLS]', f"Storing tool call result for `{tool_call['name']}`")
 
-            # Run it
-            print('[TOOLS]', f"Running tool call `{tool_call['name']}`")
-            response = tool_executor.invoke(action)
+                    tool_interaction = {'tool_call': tool_call, 'tool_response': json.loads(tool_message.content)}
+                    append_tool_interaction(config['configurable']['thread_id'], tool_interaction)
+                    break
 
-            # Store unobfuscated result
-            tool_interaction = {'tool_call': tool_call, 'tool_response': response}
-            append_tool_interaction(config['configurable']['thread_id'], tool_interaction)
-
-            # Obfuscate result - TODO Do this elsewhere by calling a function
-            # for node in response['nodeset']:
-            #     del node['secret']
-
-            # Store ToolMessage in a list to be returned
-            tool_messages.append(ToolMessage(content=msg_content_output(response), name=tool_call['name'], tool_call_id=tool_call['id']))
+        # TODO: Obfuscate result if needed
+        pass
 
         return Command(goto='supervisor', update={'messages': tool_messages, 'have_used_tools': True})
 
