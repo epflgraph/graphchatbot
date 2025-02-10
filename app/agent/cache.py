@@ -13,12 +13,12 @@ from app.interfaces.db import db_manager
 
 def set_to_cache(messages, response):
     # Serialise list of messages and remove message ids, which should not be cached (tool call ids are cached and reused, but that's ok)
-    message_dicts = [message.dict() for message in messages]
+    message_dicts = [message.model_dump() for message in messages]
     message_dicts = [{k: v for k, v in message_dict.items() if k not in ['id']} for message_dict in message_dicts]
     cache_input = json.dumps(message_dicts)
 
-    # Serialise response message (equivalent to json.dumps(message.dict()))
-    cache_output = response.json()
+    # Serialise response message (equivalent to json.dumps(message.model_dump()))
+    cache_output = response.model_dump_json()
 
     # Hash cache input to generate cache key
     cache_key = sha256(cache_input.encode('utf-8')).hexdigest()
@@ -29,7 +29,7 @@ def set_to_cache(messages, response):
 
 def get_from_cache(messages):
     # Serialise list of messages and remove message ids, which should not be cached (tool call ids are cached and reused, but that's ok)
-    message_dicts = [message.dict() for message in messages]
+    message_dicts = [message.model_dump() for message in messages]
     message_dicts = [{k: v for k, v in message_dict.items() if k not in ['id']} for message_dict in message_dicts]
     cache_input = json.dumps(message_dicts)
 

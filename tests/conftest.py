@@ -1,9 +1,9 @@
 tool_inputs = {
     'search_nodes': [
-        {'query': "solar cells", 'node_type': 'Person'},
-        {'query': "data science", 'node_type': ['Lecture', 'Course', 'MOOC']},
-        {'query': "lidar", 'node_type': 'Startup'},
-        {'query': "nuclear fusion", 'node_type': ['Publication', 'Unit', 'Startup']},
+        {'keywords': ["solar cells"], 'node_type': 'Person'},
+        {'keywords': ["data science"], 'node_type': ['Lecture', 'Course', 'MOOC']},
+        {'keywords': ["lidar"], 'node_type': 'Startup'},
+        {'keywords': ["nuclear fusion"], 'node_type': ['Publication', 'Unit', 'Startup']},
     ],
     'search_exercises': [
         {'query': "derivatives"},
@@ -12,6 +12,9 @@ tool_inputs = {
     ],
     'search_news': [
         {'query': "Anna Fontcuberta"},
+    ],
+    'search_plan': [
+        {'query': "CM 1 105"},
     ],
 }
 
