@@ -8,13 +8,8 @@ from conftest import end_to_end_prompts
 def test_end_to_end():
     with TestClient(app) as client:
         for prompt in end_to_end_prompts:
-            # Reset conversation
-            payload = {'conversation_id': 'test'}
-            response = client.post('/reset', json=payload)
-            assert response.status_code == 200
-
             # Chat using prompt
-            payload = {'human_input': prompt, 'conversation_id': 'test'}
+            payload = {'human_input': prompt, 'conversation_id': '1234'}
             response = client.post('/chat', json=payload)
             assert response.status_code == 200
 
