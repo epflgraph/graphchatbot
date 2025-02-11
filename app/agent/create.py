@@ -188,6 +188,8 @@ def create_agent():
                 if tool_call['id'] == tool_message.tool_call_id:
                     print('[TOOLS]', f"Storing tool call result for `{tool_call['name']}`")
 
+                    print(tool_message.content)
+
                     tool_interaction = {'tool_call': tool_call, 'tool_response': json.loads(tool_message.content)}
                     append_tool_interaction(config['configurable']['thread_id'], tool_interaction)
                     break
