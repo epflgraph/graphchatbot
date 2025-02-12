@@ -188,7 +188,13 @@ def create_agent():
                 if tool_call['id'] == tool_message.tool_call_id:
                     print('[TOOLS]', f"Storing tool call result for `{tool_call['name']}`")
 
-                    tool_interaction = {'tool_call': tool_call, 'tool_response': json.loads(tool_message.content)}
+                    if isinstance(tool_message.content, str):
+                        tool_response = json.loads(tool_message.content)
+                    else:
+                        # Oddly enough, when tool returns empty list, content is not a string '[]' but an actual empty list
+                        tool_response = tool_message.content
+
+                    tool_interaction = {'tool_call': tool_call, 'tool_response': tool_response}
                     append_tool_interaction(config['configurable']['thread_id'], tool_interaction)
                     break
 
