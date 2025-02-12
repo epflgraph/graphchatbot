@@ -84,5 +84,5 @@ def search_nodes(keywords: list[str] = None, node_type: list[str] | str = None) 
 
 
 if __name__ == '__main__':
-    nodes = search_nodes(keywords=["Osterwalder"], node_type='Course')
+    nodes = search_nodes(keywords=["Anna Fontcuberta"], node_type='Person')
     print(nodes)

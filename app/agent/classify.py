@@ -36,6 +36,11 @@ categories = {
 * Do not use words or phrases that express doubt or provide a subjective opinion.
     """},
 
+    'people': {'system_prompt': """
+# Warning
+Be careful with statements about people. Do not make any assumption that is not supported in the result from the `search_nodes` tool. After using the `search_nodes` tool to find information about a person, use the `search_news` tool to find news articles about them, and add anything relevant you may find there as well.
+    """},
+
     'lectures': {},
     'exercises': {'tool': 'search_exercises'},
     'courses': {},
