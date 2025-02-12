@@ -60,6 +60,10 @@ def search_nodes(keywords: list[str] = None, node_type: list[str] | str = None) 
     # We match not only nodes of the given node types, but some more.
     # For instance, we want `lectures about X` to match X against lectures but also concepts.
     allowed_node_types = get_allowed_node_types(node_type)
+
+    # We override the behavior above because of the Osterwalder example
+    allowed_node_types = None
+
     nodes = search(keywords, node_type=allowed_node_types, limit=3, return_links=True, return_scores=False)
     print('[NODES TOOL]', f"Got nodes ({[(node['doc_type'], node['doc_id'], node['name']['en']) for node in nodes]}) with {[len(node['links']) for node in nodes]} links from elasticsearch")
 
@@ -80,5 +84,5 @@ def search_nodes(keywords: list[str] = None, node_type: list[str] | str = None) 
 
 
 if __name__ == '__main__':
-    nodes = search_nodes(keywords=["Hausdorff Dimension", "Fractal Geometry", "Koch Snowflake"], node_type=None)
+    nodes = search_nodes(keywords=["Osterwalder"], node_type='Course')
     print(nodes)

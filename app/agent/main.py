@@ -154,15 +154,26 @@ async def stream_send_message(conversation_id: str, prompt: str) -> AsyncGenerat
 if __name__ == '__main__':
     init_agent()
 
-    prompt = "What is the main difference between special and general relativity?"
+    conversation_id = '1234'
+    prompt = "do you have a Course by osterwalder"
+    followup_prompt = "What did I just ask you?"
 
-    # # Sync
-    # print(send_message('1234', prompt)['message'])
-    # print(send_message('1234', "What did I just ask you?")['message'])
+    method = 'sync'
+    followup = False
 
-    # Async
-    async def f():
-        async for update in stream_send_message('1234', prompt):
-            print(update)
+    if method == 'sync':
+        message = send_message(conversation_id, prompt)['message']
+        print(message)
 
-    asyncio.run(f())
+        if followup:
+            message = send_message(conversation_id, followup_prompt)['message']
+            print(message)
+    elif method == 'async':
+        async def async_run(prompt):
+            async for update in stream_send_message(conversation_id, prompt):
+                print(update)
+
+        asyncio.run(async_run(prompt))
+
+        if followup:
+            asyncio.run(async_run(followup_prompt))
