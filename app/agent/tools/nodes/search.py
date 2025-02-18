@@ -56,6 +56,9 @@ def search_nodes(keywords: list[str] = None, node_type: list[str] | str = None) 
 
     print('[NODES TOOL]', f"Called `search_nodes` tool with keywords=`{keywords}` and node_type=`{node_type}`")
 
+    if keywords is None:
+        return []
+
     # Search nodes matching the given keywords:
     # We match not only nodes of the given node types, but some more.
     # For instance, we want `lectures about X` to match X against lectures but also concepts.
