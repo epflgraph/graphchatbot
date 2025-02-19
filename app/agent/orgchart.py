@@ -16,12 +16,8 @@ def get_ldap_attribute(entry, attribute, index=0):
     return binary_str.decode('utf-8')
 
 
-def epfl_orgchart() -> list:
-    """
-    Retrieves the organizational chart from EPFL. This includes EPFL staff from certain upper-management units, but it is not an exhaustive list of EPFL members.
-    """
-
-    print("[ORGCHART TOOL]", "Called `epfl_orgchart` tool")
+def epfl_orgchart():
+    print("[ORGCHART]", "Fetching orgchart from LDAP")
 
     # Initialize LDAP connection
     ldap_connection = ldap.initialize('ldap://ldap.epfl.ch')
@@ -62,6 +58,17 @@ def epfl_orgchart() -> list:
     ldap_connection.unbind_s()
 
     return orgchart
+
+
+def get_orgchart_system_prompt():
+    orgchart = epfl_orgchart()
+
+    return f"""
+For reference, below is the organizational chart of EPFL. This includes EPFL staff from certain upper-management units, but it is not an exhaustive list of EPFL members.
+```
+{orgchart}
+```
+    """
 
 
 if __name__ == '__main__':

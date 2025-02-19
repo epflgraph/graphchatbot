@@ -47,14 +47,6 @@ Be careful with statements about people. Do not make any assumption that is not 
     """
     },
 
-    'organizational-chart': {
-        'system_prompt': """
-# Warning
-# Be careful with statements about the organizational chart of EPFL. Do not make any assumptions and lay only results coming from the `epfl_orgchart` tool. If you can't answer the request with that information, just say you don't have that information. Do not mention anyone not in the results from the tool.
-    """,
-        'tool': 'epfl_orgchart',
-    },
-
     'lectures': {},
     'exercises': {'tool': 'search_exercises'},
     'courses': {},

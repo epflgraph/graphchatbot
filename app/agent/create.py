@@ -15,11 +15,12 @@ from langgraph.prebuilt.tool_node import ToolNode
 from langgraph.types import Command
 
 from app.config import config
-from app.agent.prompt import system_prompt
+from app.agent.prompt import get_system_prompt
 from app.agent.cache import get_from_cache, set_to_cache
 from app.agent.tool_interactions import append_tool_interaction
-from app.agent.tools import search_nodes, search_exercises, search_news, search_plan, epfl_orgchart
+from app.agent.tools import search_nodes, search_exercises, search_news, search_plan
 from app.agent.classify import classify_conversation, get_category_tool, get_category_system_prompt
+from app.agent.orgchart import get_orgchart_system_prompt
 from app.agent.hallucinations import get_hallucinated_links
 from app.agent.cleanup import clean_system_messages, clean_tool_calls_and_responses
 
@@ -36,6 +37,7 @@ class State(MessagesState):
     """
 
     request_type: Optional[str]
+    have_fetched_orgchart: Optional[bool]
     have_used_tools: Optional[bool]
     have_checked_hallucinations: Optional[bool]
     have_cleaned_up: Optional[bool]
@@ -69,7 +71,6 @@ def create_agent():
         StructuredTool.from_function(name='search_exercises', func=search_exercises),
         StructuredTool.from_function(name='search_news', func=search_news),
         StructuredTool.from_function(name='search_plan', func=search_plan),
-        StructuredTool.from_function(name='epfl_orgchart', func=epfl_orgchart),
     ]
 
     ################################################################
@@ -120,7 +121,7 @@ def create_agent():
             return Command(goto='cleanup')
 
         print('[SUPERVISOR]', "Finishing execution")
-        return Command(goto=END, update={'request_type': None, 'have_used_tools': False, 'have_checked_hallucinations': False, 'have_cleaned_up': False})
+        return Command(goto=END, update={'request_type': None, 'have_used_tools': False, 'have_fetched_orgchart': False, 'have_checked_hallucinations': False, 'have_cleaned_up': False})
 
     ################################################################
     # Classify node                                                #
@@ -146,6 +147,15 @@ def create_agent():
     def model_node(state: State, config: RunnableConfig):
         # Extract the list of messages from conversation history
         messages = state['messages']
+        new_messages = []
+
+        # If it is request about people, and we haven't done it already, add a message with the organizational chart
+        have_fetched_orgchart = state.get('have_fetched_orgchart')
+        if state['request_type'] == 'people' and not have_fetched_orgchart:
+            orgchart_message = SystemMessage(content=get_orgchart_system_prompt())
+            messages.append(orgchart_message)
+            new_messages.append(orgchart_message)
+            have_fetched_orgchart = True
 
         # Try to fetch response from cache
         response = get_from_cache(messages)
@@ -161,7 +171,7 @@ def create_agent():
                 tool_name = get_category_tool(state.get('request_type'))
                 model_with_tools = model.bind_tools(tools, tool_choice=tool_name)
 
-            messages_with_system_prompt = [SystemMessage(content=system_prompt)] + messages
+            messages_with_system_prompt = [SystemMessage(content=get_system_prompt())] + messages
             response = model_with_tools.invoke(messages_with_system_prompt, config)
         else:
             print('[MODEL]', "Found cached response for the given message list, skipping LLM")
@@ -169,7 +179,9 @@ def create_agent():
         # Set result to cache
         set_to_cache(messages, response)
 
-        return Command(goto='supervisor', update={'messages': [response]})
+        new_messages.append(response)
+
+        return Command(goto='supervisor', update={'messages': new_messages, 'have_fetched_orgchart': have_fetched_orgchart})
 
     ################################################################
     # Tools node                                                   #
