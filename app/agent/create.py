@@ -18,7 +18,7 @@ from app.config import config
 from app.agent.prompt import system_prompt
 from app.agent.cache import get_from_cache, set_to_cache
 from app.agent.tool_interactions import append_tool_interaction
-from app.agent.tools import search_nodes, search_exercises, search_news, search_plan
+from app.agent.tools import search_nodes, search_exercises, search_news, search_plan, epfl_orgchart
 from app.agent.classify import classify_conversation, get_category_tool, get_category_system_prompt
 from app.agent.hallucinations import get_hallucinated_links
 from app.agent.cleanup import clean_system_messages, clean_tool_calls_and_responses
@@ -69,6 +69,7 @@ def create_agent():
         StructuredTool.from_function(name='search_exercises', func=search_exercises),
         StructuredTool.from_function(name='search_news', func=search_news),
         StructuredTool.from_function(name='search_plan', func=search_plan),
+        StructuredTool.from_function(name='epfl_orgchart', func=epfl_orgchart),
     ]
 
     ################################################################

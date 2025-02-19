@@ -10,7 +10,7 @@ def search_news(query: str) -> list:
     Search exercises from EPFL news website.
     """
 
-    print("[NEWS TOOL]", f"Called search news tool with input `{query}`")
+    print("[NEWS TOOL]", f"Called the `search_news` tool with input `{query}`")
 
     endpoint_base_url = "https://search-backend.epfl.ch/api/cse"
     path_params = {

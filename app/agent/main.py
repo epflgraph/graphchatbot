@@ -155,11 +155,12 @@ if __name__ == '__main__':
     init_agent()
 
     conversation_id = '1234'
-    prompt = "do you have a Course by osterwalder"
-    followup_prompt = "What did I just ask you?"
-
     method = 'sync'
+
+    prompt = "Who is the president of EPFL?"
+
     followup = False
+    followup_prompt = "What did I just ask you?"
 
     if method == 'sync':
         message = send_message(conversation_id, prompt)['message']

@@ -65,7 +65,7 @@ def search_exercises(query: str, language: str = 'EN') -> list:
     The parameter `language` will prioritise exercises in that language, if available.
     """
 
-    print("[EXOSET TOOL]", f"Called search EXOSET tool with input `{query}` and language `{language}`")
+    print("[EXOSET TOOL]", f"Called the `search_exercises` tool with input `{query}` and language `{language}`")
 
     # Standardise language parameter
     if language.lower() in ['fr', 'french', 'français']:

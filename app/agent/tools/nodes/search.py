@@ -54,7 +54,7 @@ def search_nodes(keywords: list[str] = None, node_type: list[str] | str = None) 
     In addition, each node has a `nearest_nodes` field which contains a list of nodes that are semantically related to it (e.g. lectures about some Concept or people with the same research interests).
     """
 
-    print('[NODES TOOL]', f"Called `search_nodes` tool with keywords=`{keywords}` and node_type=`{node_type}`")
+    print('[NODES TOOL]', f"Called the `search_nodes` tool with keywords=`{keywords}` and node_type=`{node_type}`")
 
     if keywords is None:
         return []

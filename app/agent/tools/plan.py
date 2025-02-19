@@ -10,7 +10,7 @@ def search_plan(query: str) -> dict:
     Performs a search in the website of the EPFL plan. Returns the most relevant result for the given query.
     """
 
-    print("[PLAN TOOL]", f"Called search plan tool with input `{query}`")
+    print("[PLAN TOOL]", f"Called the `search_plan` tool with input `{query}`")
 
     # Encode url (to avoid spaces and symbols in the url)
     query = urllib.parse.quote(query)
