@@ -1,6 +1,7 @@
 """
 This module contains the tool to retrieve the organizational chart from EPFL
 """
+import json
 
 import ldap
 
@@ -18,13 +19,18 @@ def get_ldap_attribute(entry, attribute, index=0):
     return binary_str.decode('utf-8')
 
 
-def epfl_orgchart():
-    print("[ORGCHART]", "Fetching orgchart from LDAP")
-
+def fetch_from_ldap():
     # Initialize LDAP connection
     host = config.get('ldap', {}).get('host')
     port = config.get('ldap', {}).get('port')
     ldap_connection = ldap.initialize(f'ldap://{host}:{port}')
+
+    # Define base dn
+    base_dn = 'o=epfl, c=ch'
+
+    # Set timeout of 5 seconds both for establishing the connection and for the request
+    ldap_connection.set_option(ldap.OPT_NETWORK_TIMEOUT, 3)
+    ldap_connection.set_option(ldap.OPT_TIMEOUT, 3)
 
     # Search filter: Presidency plus VPs plus AVPs
     personnel_filter = '(organizationalStatus=Personnel)'
@@ -39,8 +45,7 @@ def epfl_orgchart():
     search_filter = f'(& {personnel_filter} (| {pres_filter} {vpa_filter} {vpf_filter} {vph_filter} {vpi_filter} {vpo_filter} {vps_filter} ))'
     attributes = ['displayName', 'ou', 'title', 'mail', 'uniqueIdentifier']
 
-    # Perform the search
-    base_dn = 'o=epfl, c=ch'
+    # Fetch data
     results = ldap_connection.search_s(base_dn, ldap.SCOPE_SUBTREE, search_filter, attributes)
 
     # Parse the results
@@ -60,6 +65,32 @@ def epfl_orgchart():
 
     # Close the LDAP connection
     ldap_connection.unbind_s()
+
+    return orgchart
+
+
+def epfl_orgchart():
+    print('[ORGCHART]', "Fetching orgchart")
+
+    # Initialise orgchart
+    orgchart = []
+
+    # Try to fetch fresh data from LDAP
+    try:
+        orgchart = fetch_from_ldap()
+        fresh = True
+        print('[ORGCHART]', "Fetched fresh orgchart from LDAP")
+    except (ldap.SERVER_DOWN, ldap.TIMEOUT) as e:
+        print('[ORGCHART]', f"Error fetching orgchart from LDAP: {e}")
+        fresh = False
+
+    # If no fetch fresh data from LDAP, fetch it from file
+    if not fresh:
+        filename = config.get('ldap', {}).get('orgchart_file')
+        with open(filename, encoding='utf-8') as f:
+            orgchart = json.load(f)
+
+        print('[ORGCHART]', f"Fetched orgchart from local stored copy at {filename}")
 
     return orgchart
 
