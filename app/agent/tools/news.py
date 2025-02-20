@@ -27,13 +27,21 @@ def search_news(query: str) -> list:
     items = response.get('items', [])
     print("[NEWS TOOL]", f"Got {len(items)} news articles")
 
-    news = [
-        {
-            target_key: item[source_key]
-            for source_key, target_key in [('title', 'title'), ('link', 'url'), ('snippet', 'snippet')]
-        }
-        for item in items
-    ]
+    news = []
+    for item in items:
+        og_list = item.get('pagemap', {}).get('metatags', [])
+
+        if og_list:
+            og_item = og_list[0]
+        else:
+            continue
+
+        news.append({
+            'title': og_item.get('og:title', ''),
+            'description': og_item.get('og:description', ''),
+            'url': og_item.get('og:url', ''),
+            'date': og_item.get('article:published_time', ''),
+        })
 
     return news
 
