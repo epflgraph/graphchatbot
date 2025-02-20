@@ -4,6 +4,8 @@ This module contains the tool to retrieve the organizational chart from EPFL
 
 import ldap
 
+from app.config import config
+
 
 def get_ldap_attribute(entry, attribute, index=0):
     binary_str_list = entry.get(attribute, [b''])
@@ -20,7 +22,9 @@ def epfl_orgchart():
     print("[ORGCHART]", "Fetching orgchart from LDAP")
 
     # Initialize LDAP connection
-    ldap_connection = ldap.initialize('ldap://ldap.epfl.ch')
+    host = config.get('ldap', {}).get('host')
+    port = config.get('ldap', {}).get('port')
+    ldap_connection = ldap.initialize(f'ldap://{host}:{port}')
 
     # Search filter: Presidency plus VPs plus AVPs
     personnel_filter = '(organizationalStatus=Personnel)'
