@@ -159,8 +159,8 @@ if __name__ == '__main__':
 
     prompt = "Who is the president of EPFL?"
 
-    followup = False
-    followup_prompt = "What did I just ask you?"
+    followup = True
+    followup_prompt = "And who are the vice presidents?"
 
     if method == 'sync':
         message = send_message(conversation_id, prompt)['message']

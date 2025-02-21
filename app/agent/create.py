@@ -19,7 +19,7 @@ from app.agent.prompt import get_system_prompt
 from app.agent.cache import get_from_cache, set_to_cache
 from app.agent.tool_interactions import append_tool_interaction
 from app.agent.tools import search_nodes, search_exercises, search_news, search_plan
-from app.agent.classify import classify_conversation, get_category_tool, get_category_system_prompt
+from app.agent.classify import classify_conversation, get_category_tool, category_needs_orgchart, get_category_system_prompt
 from app.agent.orgchart import get_orgchart_system_prompt
 from app.agent.hallucinations import get_hallucinated_links
 from app.agent.cleanup import clean_system_messages, clean_tool_calls_and_responses
@@ -151,7 +151,7 @@ def create_agent():
 
         # If it is request about people, and we haven't done it already, add a message with the organizational chart
         have_fetched_orgchart = state.get('have_fetched_orgchart')
-        if state['request_type'] == 'people' and not have_fetched_orgchart:
+        if category_needs_orgchart(state['request_type']) and not have_fetched_orgchart:
             orgchart_message = SystemMessage(content=get_orgchart_system_prompt())
             messages.append(orgchart_message)
             new_messages.append(orgchart_message)

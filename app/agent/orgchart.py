@@ -1,6 +1,8 @@
 """
 This module contains the tool to retrieve the organizational chart from EPFL
 """
+from datetime import datetime
+
 import json
 
 import ldap
@@ -98,8 +100,11 @@ def epfl_orgchart():
 def get_orgchart_system_prompt():
     orgchart = epfl_orgchart()
 
+    today = datetime.now().strftime("%Y-%m-%d")
+
     return f"""
-For reference, below is the organizational chart of EPFL. This includes EPFL staff from certain upper-management units, but it is not an exhaustive list of EPFL members.
+For reference, below is the current organizational chart of EPFL as fetched today ({today}). This includes EPFL staff from certain upper-management units, but it is not an exhaustive list of EPFL members.
+Note that this is more up-to-date than the output of `search_nodes`, so make sure to prioritise this organizational chart over that or your beliefs in case they disagree.
 ```
 {orgchart}
 ```
@@ -107,4 +112,4 @@ For reference, below is the organizational chart of EPFL. This includes EPFL sta
 
 
 if __name__ == '__main__':
-    print(epfl_orgchart())
+    print(get_orgchart_system_prompt())

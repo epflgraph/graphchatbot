@@ -40,11 +40,32 @@ categories = {
     """
     },
 
+    'epfl-presidency': {
+        'system_prompt': """
+# Warning
+Be careful with statements about people. Do not make any assumption that is not coming from the available information.
+EPFL has one "President" and 6 "Vice Presidents", not to be confused with "Associate Vice Presidents".
+    """,
+        'tool': 'search_news',
+        'needs_orgchart': True,
+    },
+
+    'epfl-vice-presidencies': {
+        'system_prompt': """
+# Warning
+Be careful with statements about people. Do not make any assumption that is not coming from the available information.
+EPFL has one "President" and 6 "Vice Presidents", not to be confused with "Associate Vice Presidents".
+    """,
+        'tool': 'search_news',
+        'needs_orgchart': True,
+    },
+
     'people': {
         'system_prompt': """
 # Warning
 Be careful with statements about people. Do not make any assumption that is not coming from the available information. After using the `search_nodes` tool to find information about a person, use the `search_news` tool to find news articles about them.
-    """
+        """,
+        'needs_orgchart': True,
     },
 
     'lectures': {},
@@ -67,6 +88,11 @@ category_names = list(categories.keys())
 def get_category_tool(category):
     # Return specific tool for the given category or default to `search_nodes`
     return categories.get(category, {}).get('tool', 'search_nodes')
+
+
+def category_needs_orgchart(category):
+    # Return whether a category needs the orgchart
+    return categories.get(category, {}).get('needs_orgchart', False)
 
 
 def get_category_system_prompt(category):
