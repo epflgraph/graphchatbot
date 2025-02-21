@@ -1,6 +1,7 @@
 """
 This module contains the tool to search for news in actu.epfl.ch.
 """
+import datetime
 
 import requests
 
@@ -29,11 +30,18 @@ def search_news(query: str) -> list:
 
     news = []
     for item in items:
+        # Extract OG fields
         og_list = item.get('pagemap', {}).get('metatags', [])
 
         if og_list:
             og_item = og_list[0]
         else:
+            continue
+
+        # Skip if too old (published more than 3 years ago)
+        date = og_item.get('article:published_time', '')
+        cutoff_date = (datetime.datetime.now() - datetime.timedelta(days=3 * 365)).strftime("%Y-%m-%d")
+        if date and date < cutoff_date:
             continue
 
         news.append({
