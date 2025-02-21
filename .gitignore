@@ -12,6 +12,9 @@ config.ini
 config-prod.ini
 config-test.ini
 
+# Data files
+data
+
 # Python package egg folder
 *egg-info
 
