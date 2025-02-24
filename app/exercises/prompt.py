@@ -26,7 +26,8 @@ def build_output_field_instructions(include_solution):
     }
 
     if not include_solution:
-        del output_field_instructions['solution']
+        del output_field_instructions['solution_en']
+        del output_field_instructions['solution_fr']
 
     output_field_instructions = '\n'.join(output_field_instructions.values())
 
@@ -54,9 +55,9 @@ The exercise should be based on skill level {bloom_level} from the revised Bloom
 
 def build_output_format_instructions(output_format):
     output_format_instructions = {
-        'plain-text': """Output the exercise `statement` and `solution` as plain text, without any Markdown nor LaTeX code.""",
-        'markdown': """Output the exercise `statement` and `solution` as Markdown text.""",
-        'latex': """Output the exercise `statement` and `solution` as LaTeX code, not Markdown.""",
+        'plain-text': """Output the exercise fields as plain text, without any Markdown nor LaTeX code.""",
+        'markdown': """Output the exercise fields as Markdown text.""",
+        'latex': """Output the exercise fields as LaTeX code, not Markdown.""",
     }
 
     return output_format_instructions[output_format]
