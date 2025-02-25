@@ -105,6 +105,7 @@ def get_orgchart_system_prompt():
     return f"""
 For reference, below is the current organizational chart of EPFL as fetched today ({today}). This includes EPFL staff from certain upper-management units, but it is not an exhaustive list of EPFL members.
 Note that this is more up-to-date than the output of `search_nodes`, so make sure to prioritise this organizational chart over that or your beliefs in case they disagree.
+In particular, note that Martin Vetterli served as the president of EPFL from 2017 to 2024, and was succeeded in 2025 by Anna Fontcuberta i Morral.
 ```
 {orgchart}
 ```
