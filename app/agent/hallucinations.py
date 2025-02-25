@@ -39,7 +39,7 @@ def extract_message_links(content):
 
 
 def get_hallucinated_links(thread_id, messages):
-    # Split messages into last and past messages, and keep only AI past messages
+    # Split messages into last and past messages, and keep only AI + Sys past messages
     last_message = messages[-1]
     past_messages = messages[:-1]
 

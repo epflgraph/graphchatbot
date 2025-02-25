@@ -102,10 +102,15 @@ def get_orgchart_system_prompt():
 
     today = datetime.now().strftime("%Y-%m-%d")
 
+    mv_sciper = '107537'
+    afm_sciper = '182447'
+    mv_link = f"{config['graphsearch']['base_url']}/person/{mv_sciper}"
+    afm_link = f"{config['graphsearch']['base_url']}/person/{afm_sciper}"
+
     return f"""
 For reference, below is the current organizational chart of EPFL as fetched today ({today}). This includes EPFL staff from certain upper-management units, but it is not an exhaustive list of EPFL members.
 Note that this is more up-to-date than the output of `search_nodes`, so make sure to prioritise this organizational chart over that or your beliefs in case they disagree.
-In particular, note that Martin Vetterli served as the president of EPFL from 2017 to 2024, and was succeeded in 2025 by Anna Fontcuberta i Morral.
+In particular, note that [Martin Vetterli]({mv_link}) served as the president of EPFL from 2017 to 2024, and was succeeded in 2025 by [Anna Fontcuberta i Morral]({afm_link}).
 ```
 {orgchart}
 ```
