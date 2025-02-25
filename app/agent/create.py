@@ -224,8 +224,8 @@ def create_agent():
         messages = state['messages']
 
         thread_id = config['configurable']['thread_id']
-        ai_messages = [message for message in messages if isinstance(message, AIMessage)]
-        hallucinated_links = get_hallucinated_links(thread_id, ai_messages)
+        ai_sys_messages = [message for message in messages if isinstance(message, AIMessage) or isinstance(message, SystemMessage)]
+        hallucinated_links = get_hallucinated_links(thread_id, ai_sys_messages)
 
         if not hallucinated_links:
             print('[CHECK]', "Did not find any hallucinated link")
