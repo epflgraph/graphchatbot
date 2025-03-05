@@ -6,7 +6,7 @@ import pandas as pd
 
 import tiktoken
 
-from app.interfaces.db import db
+from app.interfaces.db import get_db_manager
 
 ################################################################
 
@@ -37,7 +37,7 @@ def fetch_lecture_metadata(lecture_id):
     fields = ['original_title', 'original_description', 'original_tags']
     columns = ['title', 'description', 'keywords']
     conditions = {'institution_id': 'EPFL', 'object_type': 'Lecture', 'object_id': lecture_id}
-    lecture = pd.DataFrame(db.find(table_name=table, fields=fields, conditions=conditions), columns=columns)
+    lecture = pd.DataFrame(get_db_manager().db.find(table_name=table, fields=fields, conditions=conditions), columns=columns)
 
     # For each field, make a list with the different values across the lecture videos
     metadata = {}
@@ -57,7 +57,7 @@ def fetch_lecture_slides(lecture_id):
     fields = ['to_object_id', 'sort_number']
     columns = ['slide_id', 'slide_number']
     conditions = {'from_institution_id': 'EPFL', 'from_object_type': 'Lecture', 'from_object_id': lecture_id, 'to_institution_id': 'EPFL', 'to_object_type': 'Slide'}
-    lecture_slides = pd.DataFrame(db.find(table_name=table, fields=fields, conditions=conditions), columns=columns)
+    lecture_slides = pd.DataFrame(get_db_manager().db.find(table_name=table, fields=fields, conditions=conditions), columns=columns)
     slide_ids = list(lecture_slides['slide_id'])
 
     # Return if no slides
@@ -69,7 +69,7 @@ def fetch_lecture_slides(lecture_id):
     fields = ['object_id', 'text_original', 'text_en']
     columns = ['slide_id', 'slide_text', 'slide_text_en']
     conditions = {'institution_id': 'EPFL', 'object_type': 'Slide', 'object_id': slide_ids}
-    slides = pd.DataFrame(db.find(table_name=table, fields=fields, conditions=conditions), columns=columns)
+    slides = pd.DataFrame(get_db_manager().db.find(table_name=table, fields=fields, conditions=conditions), columns=columns)
 
     # Merge them in the same DataFrame to add the slide number and sort
     slides = pd.merge(lecture_slides, slides, how='inner', on='slide_id')
@@ -98,7 +98,7 @@ def fetch_lecture_transcripts(lecture_id):
     fields = ['to_object_id', 'sort_number']
     columns = ['transcript_id', 'transcript_number']
     conditions = {'from_institution_id': 'EPFL', 'from_object_type': 'Lecture', 'from_object_id': lecture_id, 'to_institution_id': 'EPFL', 'to_object_type': 'Transcript'}
-    lecture_transcripts = pd.DataFrame(db.find(table_name=table, fields=fields, conditions=conditions), columns=columns)
+    lecture_transcripts = pd.DataFrame(get_db_manager().db.find(table_name=table, fields=fields, conditions=conditions), columns=columns)
     transcript_ids = list(lecture_transcripts['transcript_id'])
 
     # Return if no transcripts
@@ -110,7 +110,7 @@ def fetch_lecture_transcripts(lecture_id):
     fields = ['object_id', 'text_original', 'text_en']
     columns = ['transcript_id', 'transcript_text', 'transcript_text_en']
     conditions = {'institution_id': 'EPFL', 'object_type': 'Transcript', 'object_id': transcript_ids}
-    transcripts = pd.DataFrame(db.find(table_name=table, fields=fields, conditions=conditions), columns=columns)
+    transcripts = pd.DataFrame(get_db_manager().db.find(table_name=table, fields=fields, conditions=conditions), columns=columns)
 
     # Merge them in the same DataFrame to add the transcript number and sort
     transcripts = pd.merge(lecture_transcripts, transcripts, how='inner', on='transcript_id')
