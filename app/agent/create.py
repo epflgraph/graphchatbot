@@ -274,6 +274,6 @@ def create_agent():
 
     # Compile the StateGraph into a Langchain Runnable, so it can be invoked, streamed, batched and run asynchronously
     agent = workflow.compile(checkpointer=memory, debug=False)
-    agent.step_timeout = 60
+    agent.step_timeout = 600
 
     return agent

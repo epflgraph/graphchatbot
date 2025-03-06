@@ -30,7 +30,7 @@ def fetch_from_ldap():
     # Define base dn
     base_dn = 'o=epfl, c=ch'
 
-    # Set timeout of 5 seconds both for establishing the connection and for the request
+    # Set timeout of 3 seconds both for establishing the connection and for the request
     ldap_connection.set_option(ldap.OPT_NETWORK_TIMEOUT, 3)
     ldap_connection.set_option(ldap.OPT_TIMEOUT, 3)
 

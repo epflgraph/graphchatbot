@@ -84,15 +84,16 @@ def search(texts, node_type=None, limit=10, return_links=False, return_scores=Fa
     # Build filter clause                                          #
     ################################################################
 
-    # We use only documents from EPFL or the ontology
-    filter_clause = [
-        {
-            "terms": {"doc_institution.keyword": ["EPFL", "Ont"]}
-        },
-        # {
-        #     "terms": {"links.link_institution.keyword": ["EPFL", "Ont"]}
-        # }
-    ]
+    # We use only documents from EPFL or the ontology - WAS REMOVED FROM THE INDEX
+    # filter_clause = [
+    #     {
+    #         "terms": {"doc_institution.keyword": ["EPFL", "Ont"]}
+    #     },
+    #     # {
+    #     #     "terms": {"links.link_institution.keyword": ["EPFL", "Ont"]}
+    #     # }
+    # ]
+    filter_clause = []
 
     # And if node_types are specified, we keep only those documents
     if isinstance(node_type, list):

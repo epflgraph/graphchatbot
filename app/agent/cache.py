@@ -8,7 +8,7 @@ from langchain_core.messages import (
     ToolMessage,
 )
 
-from app.interfaces.db import db_manager
+from app.interfaces.db import get_db_manager
 
 
 def set_to_cache(messages, response):
@@ -24,7 +24,7 @@ def set_to_cache(messages, response):
     cache_key = sha256(cache_input.encode('utf-8')).hexdigest()
 
     # Set cache row in database
-    db_manager.set(cache_key, {'input': cache_input, 'output': cache_output})
+    get_db_manager().set(cache_key, {'input': cache_input, 'output': cache_output})
 
 
 def get_from_cache(messages):
@@ -37,7 +37,7 @@ def get_from_cache(messages):
     cache_key = sha256(cache_input.encode('utf-8')).hexdigest()
 
     # Try to fetch from database
-    cache_output = db_manager.get(cache_key)
+    cache_output = get_db_manager().get(cache_key)
 
     # Return if not cached
     if cache_output is None:

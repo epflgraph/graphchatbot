@@ -157,9 +157,9 @@ if __name__ == '__main__':
     conversation_id = '1234'
     method = 'sync'
 
-    prompt = "Who is the president of EPFL?"
+    prompt = "Courses about genomics"
 
-    followup = True
+    followup = False
     followup_prompt = "And who are the vice presidents?"
 
     if method == 'sync':

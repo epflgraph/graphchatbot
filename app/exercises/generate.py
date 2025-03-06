@@ -38,7 +38,7 @@ def call_llm(model_name, system_prompt, human_prompt, include_solution, openai_a
 
     # Instantiate model
     response_schema = build_response_schema(include_solution)
-    model = ChatOpenAI(model=model_name, temperature=0, openai_api_key=openai_api_key, request_timeout=60).bind(response_format=response_schema)
+    model = ChatOpenAI(model=model_name, temperature=0, openai_api_key=openai_api_key, request_timeout=600).bind(response_format=response_schema)
 
     # Send request to LLM
     with get_openai_callback() as cb:

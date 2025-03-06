@@ -110,5 +110,5 @@ class ChatbotDBCachingManager(DBCachingManagerBase):
         self.delete_cache_rows([key])
 
 
-db_manager = ChatbotDBCachingManager()
-db = db_manager.db
+def get_db_manager():
+    return ChatbotDBCachingManager()

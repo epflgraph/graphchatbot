@@ -19,9 +19,21 @@ organisational_fields_mapping = {
     },
     'Course': {
         'Person': {'field': 'instructors', 'limit': None},
+        'Lecture': {'field': 'lectures', 'limit': None},
     },
     'MOOC': {
         'Person': {'field': 'instructors', 'limit': None},
+        'Lecture': {'field': 'lectures', 'limit': None},
+    },
+    'Category': {
+        'Concept': {'field': 'concepts', 'limit': None}
+    },
+    'Concept': {
+        'Category': {'field': 'category', 'limit': 1}
+    },
+    'Lecture': {
+        'Course': {'field': 'courses', 'limit': None},
+        'MOOC': {'field': 'MOOCs', 'limit': None},
     }
 }
 

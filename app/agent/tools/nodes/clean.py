@@ -9,12 +9,13 @@ from app.agent.tools.nodes.organisational_links import get_organisational_field_
 
 def clean_link(link):
     link = {
-        'type': link['link_type'],
-        'id': link['link_id'],
-        'name_en': link['link_name']['en'],
-        'name_fr': link['link_name']['fr'],
-        'short_description': link['link_short_description']['en'],
-        'url': f"{config['graphsearch']['base_url']}/{link['link_type'].lower()}/{link['link_id']}"
+        'type': link.get('link_type', ''),
+        'id': link.get('link_id', ''),
+        'name_en': link.get('link_name', {}).get('en', ''),
+        'name_fr': link.get('link_name', {}).get('fr', ''),
+        'short_description_en': link.get('link_short_description', {}).get('en', ''),
+        'short_description_fr': link.get('link_short_description', {}).get('fr', ''),
+        'url': f"{config['graphsearch']['base_url']}/{link.get('link_type', '').lower()}/{link.get('link_id', '')}"
     }
 
     return link
@@ -22,15 +23,15 @@ def clean_link(link):
 
 def clean_links(links, node_types):
     # Split node links between semantic and organisational
-    semantic_links = [link for link in links if link['link_subtype'] == 'Semantic']
-    organisational_links = [link for link in links if link['link_subtype'] != 'Semantic']
+    semantic_links = [link for link in links if link.get('link_subtype', '') == 'Semantic']
+    organisational_links = [link for link in links if link.get('link_subtype', '') != 'Semantic']
 
     # Clean all the organisational ones
     organisational_links = [clean_link(link) for link in organisational_links]
 
     # Define node_types properly and how many links of a given node_type we may have
     if node_types is None:
-        node_types = [link['link_type'] for link in semantic_links]
+        node_types = [link.get('link_type', '') for link in semantic_links]
         node_types = list(dict.fromkeys(node_types))  # Remove duplicates. This is like list(set(x)) but preserving the order, otherwise we have issues with the cache.
         limit = 5
     else:
@@ -41,7 +42,7 @@ def clean_links(links, node_types):
     # Clean up semantic links and keep only links of the given node types, and up to the defined limit
     clean_semantic_links = []
     for node_type in node_types:
-        node_type_semantic_links = [link for link in semantic_links if link['link_type'] == node_type]
+        node_type_semantic_links = [link for link in semantic_links if link.get('link_type', '') == node_type]
         clean_semantic_links += [clean_link(link) for link in node_type_semantic_links[:limit]]
 
     return organisational_links, clean_semantic_links
@@ -49,11 +50,14 @@ def clean_links(links, node_types):
 
 def clean_node(node, node_types):
     # Clean node links and separate into organisational vs. semantic
-    organisational_links, semantic_links = clean_links(node['links'], node_types)
+    organisational_links, semantic_links = clean_links(node.get('links', []), node_types)
 
     organisational_fields = {}
     for link in organisational_links:
-        organisational_field_details = get_organisational_field_details(node['doc_type'], link['type'])
+        organisational_field_details = get_organisational_field_details(node.get('doc_type', ''), link.get('type', ''))
+
+        if not organisational_fields:
+            continue
 
         field = organisational_field_details['field']
         limit = organisational_field_details['limit']
@@ -68,12 +72,13 @@ def clean_node(node, node_types):
                 organisational_fields[field] = [link]
 
     node = {
-        'type': node['doc_type'],
-        'id': node['doc_id'],
-        'name_en': node['name']['en'],
-        'name_fr': node['name']['fr'],
-        'short_description': node['short_description']['en'],
-        'url': f"{config['graphsearch']['base_url']}/{node['doc_type'].lower()}/{node['doc_id']}",
+        'type': node.get('doc_type', ''),
+        'id': node.get('doc_id', ''),
+        'name_en': node.get('name', {}).get('en', ''),
+        'name_fr': node.get('name', {}).get('fr', ''),
+        'short_description_en': node.get('short_description', {}).get('en', ''),
+        'short_description_fr': node.get('short_description', {}).get('fr', ''),
+        'url': f"{config['graphsearch']['base_url']}/{node.get('doc_type', '').lower()}/{node.get('doc_id', '')}",
         **organisational_fields,
         'nearest_nodes': semantic_links,
     }

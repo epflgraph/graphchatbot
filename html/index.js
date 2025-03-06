@@ -1,3 +1,12 @@
+function generateRandomString(length) {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return result;
+}
+
 function parseLinks(text) {
     const markdownLinkRegex = /(\[.*?\])(\(.*\))/gm;
     const pieces = text.split(markdownLinkRegex);
@@ -65,13 +74,15 @@ function sendMessage() {
         chatInput.value = '';
 
         let xhr = new XMLHttpRequest();
-        xhr.open("POST", "/chat", true);
+        xhr.open("POST", "/stream_chat", true);
         xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.send(JSON.stringify({conversation_id: "1234567890abcdef", human_input: message}));
+        xhr.send(JSON.stringify({conversation_id: conversation_id, human_input: message}));
 
         xhr.onload = function() {
             try {
-                let response = JSON.parse(this.responseText);
+                text = this.responseText.split(/\r?\n/).filter(Boolean).pop();
+                console.log(text);
+                let response = JSON.parse(text);
                 console.log(response);
 
                 if (response.hasOwnProperty('error_code')) {
@@ -87,6 +98,7 @@ function sendMessage() {
                 }
             } catch (error) {
                 appendMessage('error-message', "ERROR: Something went wrong");
+                console.log(error);
             }
         }
     }
@@ -98,3 +110,6 @@ document.getElementById('chat-input').addEventListener('keyup', function(event) 
         sendMessage();
     }
 });
+
+conversation_id = generateRandomString(16);
+console.log(conversation_id);

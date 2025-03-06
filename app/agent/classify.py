@@ -121,7 +121,7 @@ response_format = {
 
 # Instantiate chat model and parser
 model_name = 'gpt-4o-mini'
-model = ChatOpenAI(model=model_name, temperature=0, openai_api_key=config['openai']['api_key'], request_timeout=30).bind(response_format=response_format)
+model = ChatOpenAI(model=model_name, temperature=0, openai_api_key=config['openai']['api_key'], request_timeout=60).bind(response_format=response_format)
 parser = PydanticOutputParser(pydantic_object=ConversationType)
 
 

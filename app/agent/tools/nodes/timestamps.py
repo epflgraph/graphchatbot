@@ -8,7 +8,7 @@ from datetime import timedelta
 import pandas as pd
 
 from app.agent.tools.nodes.organisational_links import get_organisational_field_names
-from app.interfaces.db import db_manager
+from app.interfaces.db import get_db_manager
 
 
 def get_timestamp_pairs(nodes, top_concept_or_category):
@@ -60,7 +60,7 @@ def get_timestamps(pairs):
             'field_name': 'primary_timestamp',
             '(to_object_type, to_object_id, from_object_id)': pairs,
         }
-        timestamps = pd.DataFrame(db_manager.db.find(table_name=table, fields=fields, conditions=conditions), columns=columns)
+        timestamps = pd.DataFrame(get_db_manager().db.find(table_name=table, fields=fields, conditions=conditions), columns=columns)
     except Exception as e:
         print("Cannot connect to table `graph_lectures.Data_N_Object_N_Object_T_CalculatedFields` to find timestamps, returning no timestamps.")
         print(e)
