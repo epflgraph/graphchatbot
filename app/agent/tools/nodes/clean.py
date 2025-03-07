@@ -56,7 +56,7 @@ def clean_node(node, node_types):
     for link in organisational_links:
         organisational_field_details = get_organisational_field_details(node.get('doc_type', ''), link.get('type', ''))
 
-        if not organisational_fields:
+        if not organisational_field_details:
             continue
 
         field = organisational_field_details['field']
