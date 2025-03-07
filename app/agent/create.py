@@ -202,7 +202,11 @@ def create_agent():
                     print('[TOOLS]', f"Storing tool call result for `{tool_call['name']}`")
 
                     if isinstance(tool_message.content, str):
-                        tool_response = json.loads(tool_message.content)
+                        try:
+                            tool_response = json.loads(tool_message.content)
+                        except json.decoder.JSONDecodeError as e:
+                            print('[TOOLS]', f"WARNING: Could not retrieve tool response: {e}")
+                            tool_response = []
                     else:
                         # Oddly enough, when tool returns empty list, content is not a string '[]' but an actual empty list
                         tool_response = tool_message.content
