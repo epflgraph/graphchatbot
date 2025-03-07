@@ -13,6 +13,7 @@ organisational_fields_mapping = {
         'Publication': {'field': 'publications', 'limit': None},
         'Course': {'field': 'teaching_courses', 'limit': None},
         'MOOC': {'field': 'teaching_moocs', 'limit': None},
+        'Lecture': {'field': 'lectures_in_teaching_courses', 'limit': None},
     },
     'Publication': {
         'Person': {'field': 'authors', 'limit': None},
@@ -34,6 +35,7 @@ organisational_fields_mapping = {
     'Lecture': {
         'Course': {'field': 'courses', 'limit': None},
         'MOOC': {'field': 'MOOCs', 'limit': None},
+        'Person': {'field': 'instructors_in_lecture_courses', 'limit': None},
     }
 }
 

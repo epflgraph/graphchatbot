@@ -74,14 +74,14 @@ def search_nodes(keywords: list[str] = None, node_type: list[str] | str = None) 
     nodes = clean_nodes(nodes, allowed_node_types)
     print('[NODES TOOL]', f"Kept nodes ({[(node['type'], node['id'], node['name_en']) for node in nodes]}) with {[len(node['nearest_nodes']) for node in nodes]} nearest nodes after cleanup")
 
-    # Add timestamps to lectures wherever needed
-    # For that, we need the top matching concept or person, in case there are Lecture-Concept or Lecture-Category edges in the results
-    top_concept_or_category = search(keywords, node_type=['Concept', 'Category'], limit=1, return_links=False, return_scores=False)
-    if top_concept_or_category:
-        [top_concept_or_category] = top_concept_or_category
-    else:
-        top_concept_or_category = None
-    nodes = add_lecture_timestamps(nodes, top_concept_or_category)
+    # # Add timestamps to lectures wherever needed
+    # # For that, we need the top matching concept or person, in case there are Lecture-Concept or Lecture-Category edges in the results
+    # top_concept_or_category = search(keywords, node_type=['Concept', 'Category'], limit=1, return_links=False, return_scores=False)
+    # if top_concept_or_category:
+    #     [top_concept_or_category] = top_concept_or_category
+    # else:
+    #     top_concept_or_category = None
+    # nodes = add_lecture_timestamps(nodes, top_concept_or_category)
 
     return nodes
 
