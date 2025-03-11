@@ -23,7 +23,7 @@ def init_agent():
     agent = create_agent()
 
 
-def send_message(conversation_id: str, prompt: str) -> dict:
+def send_message(conversation_id: str, prompt: str, integrations: list[str] = None) -> dict:
     """
     Sends a new message to the chatbot in the context of a given conversation.
 
@@ -31,6 +31,7 @@ def send_message(conversation_id: str, prompt: str) -> dict:
         conversation_id (str): ID of a conversation. Subsequent calls to the same conversation will keep the message history.
         If no conversation is found for the given ID, a new one will be created.
         prompt (str): Message written by the user to be sent to the chatbot.
+        integrations (list[str]): A list of the available integrations for the interaction.
 
     Returns:
         dict: Dictionary with keys `message` and `results`, containing the answer of the chatbot to the user's message and information about the
@@ -45,7 +46,7 @@ def send_message(conversation_id: str, prompt: str) -> dict:
     # Invoke model with given prompt and conversation_id
     agent_output = agent.invoke(
         input={'messages': [HumanMessage(content=prompt)]},
-        config={'configurable': {'thread_id': conversation_id}},
+        config={'configurable': {'thread_id': conversation_id, 'integrations': integrations}},
         debug=False
     )
 
@@ -74,7 +75,7 @@ def ndjson(d: dict):
     return json.dumps(d) + '\n'
 
 
-async def stream_send_message(conversation_id: str, prompt: str) -> AsyncGenerator:
+async def stream_send_message(conversation_id: str, prompt: str, integrations: list[str] = None) -> AsyncGenerator:
     """
     Sends a new message to the chatbot in the context of a given conversation and streams the events.
 
@@ -82,6 +83,7 @@ async def stream_send_message(conversation_id: str, prompt: str) -> AsyncGenerat
         conversation_id (str): ID of a conversation. Subsequent calls to the same conversation will keep the message history.
         If no conversation is found for the given ID, a new one will be created.
         prompt (str): Message written by the user to be sent to the chatbot.
+        integrations (list[str]): A list of the available integrations for the interaction.
 
     Returns:
         AsyncGenerator: Each item is a dict containing the key 'state' and possibly 'content'.
@@ -94,7 +96,7 @@ async def stream_send_message(conversation_id: str, prompt: str) -> AsyncGenerat
 
     # Set up agent input
     agent_input = {'messages': [HumanMessage(content=prompt)]}
-    agent_config = {'configurable': {'thread_id': conversation_id}}
+    agent_config = {'configurable': {'thread_id': conversation_id, 'integrations': integrations}}
 
     # Define states to be checked
     node_names = ['supervisor', 'classify', 'model', 'tools', 'check', 'cleanup']
@@ -155,23 +157,25 @@ if __name__ == '__main__':
     init_agent()
 
     conversation_id = '1234'
+    integrations = ['lex']
+
     method = 'sync'
 
-    prompt = "Courses about genomics"
+    prompt = "How many days off am I entitled to if I have a baby?"
 
     followup = False
-    followup_prompt = "And who are the vice presidents?"
+    followup_prompt = "Where do you get that information from?"
 
     if method == 'sync':
-        message = send_message(conversation_id, prompt)['message']
+        message = send_message(conversation_id, prompt, integrations)['message']
         print(message)
 
         if followup:
-            message = send_message(conversation_id, followup_prompt)['message']
+            message = send_message(conversation_id, followup_prompt, integrations)['message']
             print(message)
     elif method == 'async':
         async def async_run(prompt):
-            async for update in stream_send_message(conversation_id, prompt):
+            async for update in stream_send_message(conversation_id, prompt, integrations):
                 print(update)
 
         asyncio.run(async_run(prompt))

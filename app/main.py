@@ -52,6 +52,7 @@ app = FastAPI(
 class ChatInput(BaseModel):
     conversation_id: str
     human_input: str
+    integrations: Optional[list[str]] = None
 
 
 class ChatOutput(BaseModel):
@@ -75,18 +76,11 @@ async def chat(input: ChatInput, response: Response):
         ChatOutput: Output object containing either an error_code, if there was a problem, or a message and a results object, if everything was fine.
     """
 
-    conversation_id = input.conversation_id
-    prompt = input.human_input
+    integrations = []
+    if input.integrations is not None:
+        integrations = input.integrations
 
-    # Ensure text not too long
-    if len(prompt) > 5000:
-        response.status_code = 500  # Internal server error
-        return ChatOutput(error_code=ERR_INPUT_TOO_LONG)
-
-    # Main call to generate results
-    output = send_message(conversation_id, prompt)
-
-    return output
+    return send_message(input.conversation_id, input.human_input, integrations)
 
 
 @app.post('/stream_chat')
@@ -101,10 +95,11 @@ async def stream_chat(input: ChatInput):
         StreamingResponse: Streams bits of the response asynchronously as they become available.
     """
 
-    conversation_id = input.conversation_id
-    prompt = input.human_input
+    integrations = []
+    if input.integrations is not None:
+        integrations = input.integrations
 
-    return StreamingResponse(stream_send_message(conversation_id, prompt), media_type='application/x-ndjson')
+    return StreamingResponse(stream_send_message(input.conversation_id, input.human_input, integrations), media_type='application/x-ndjson')
 
 
 ################################################################

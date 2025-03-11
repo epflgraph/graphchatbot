@@ -18,7 +18,7 @@ from app.config import config
 from app.agent.prompt import get_system_prompt
 from app.agent.cache import get_from_cache, set_to_cache
 from app.agent.tool_interactions import append_tool_interaction
-from app.agent.tools import search_nodes, search_exercises, search_news, search_plan
+from app.agent.tools import search_nodes, search_exercises, search_news, search_plan, search_lex
 from app.agent.classify import classify_conversation, get_category_tool, category_needs_orgchart, get_category_system_prompt
 from app.agent.orgchart import get_orgchart_system_prompt
 from app.agent.hallucinations import get_hallucinated_links
@@ -66,12 +66,18 @@ def create_agent():
     # Tools                                                        #
     ################################################################
 
-    tools = [
-        StructuredTool.from_function(name='search_nodes', func=search_nodes),
-        StructuredTool.from_function(name='search_exercises', func=search_exercises),
-        StructuredTool.from_function(name='search_news', func=search_news),
-        StructuredTool.from_function(name='search_plan', func=search_plan),
-    ]
+    def get_tools(integrations):
+        tools = [
+            StructuredTool.from_function(name='search_nodes', func=search_nodes),
+            StructuredTool.from_function(name='search_exercises', func=search_exercises),
+            StructuredTool.from_function(name='search_news', func=search_news),
+            StructuredTool.from_function(name='search_plan', func=search_plan),
+        ]
+
+        if 'lex' in integrations:
+            tools.append(StructuredTool.from_function(name='search_lex', func=search_lex))
+
+        return tools
 
     ################################################################
     # Memory                                                       #
@@ -127,12 +133,15 @@ def create_agent():
     # Classify node                                                #
     ################################################################
 
-    def classify_node(state: State):
+    def classify_node(state: State, config: RunnableConfig):
         messages = state['messages']
 
-        category = classify_conversation(messages)
+        # Classify conversation
+        integrations = config.get('configurable', {}).get('integrations', [])
+        category = classify_conversation(messages, integrations)
         print('[CLASSIFY]', f"Classified conversation as `{category}`")
 
+        # Fetch category-specific system prompt, if any
         category_system_prompt = get_category_system_prompt(category)
 
         if category_system_prompt is None:
@@ -164,11 +173,14 @@ def create_agent():
         if response is None:
             print('[MODEL]', "Couldn't find cached response for the given message list, calling LLM")
 
+            integrations = config.get('configurable', {}).get('integrations', [])
+            tools = get_tools(integrations)
+
             # Force tool call if there has not been any
             if state.get('have_used_tools'):
                 model_with_tools = model.bind_tools(tools)
             else:
-                tool_name = get_category_tool(state.get('request_type'))
+                tool_name = get_category_tool(state.get('request_type'), integrations)
                 model_with_tools = model.bind_tools(tools, tool_choice=tool_name)
 
             messages_with_system_prompt = [SystemMessage(content=get_system_prompt())] + messages
@@ -192,6 +204,8 @@ def create_agent():
         last_message = messages[-1]
 
         # Execute all tool calls in the last message
+        integrations = config.get('configurable', {}).get('integrations', [])
+        tools = get_tools(integrations)
         tool_messages = ToolNode(tools).invoke([last_message])
 
         # Store tool interactions (unobfuscated)
@@ -205,7 +219,7 @@ def create_agent():
                         try:
                             tool_response = json.loads(tool_message.content)
                         except json.decoder.JSONDecodeError as e:
-                            print('[TOOLS]', f"WARNING: Could not retrieve tool response: {e}")
+                            print('[TOOLS]', f"WARNING: Could not parse tool response: {e}. Tool result: {tool_message.content}")
                             tool_response = []
                     else:
                         # Oddly enough, when tool returns empty list, content is not a string '[]' but an actual empty list
