@@ -10,6 +10,7 @@ from app.interfaces.graphai import GraphAIClient
 def search_lex(query: str, lang: Optional[Literal['en', 'fr']] = None, limit: Optional[int] = 10) -> list:
     """
     Performs a search in the current legal documents of EPFL about rules and regulations. It searches in the given `lang` (or in all languages if unspecified) and returns up to `limit` results.
+    The `query` parameter should be a natural language description of what the user requests.
     """
 
     print("[LEX TOOL]", f"Called the `search_lex` tool with input=`{query}`, lang=`{lang}` and limit=`{limit}`")
