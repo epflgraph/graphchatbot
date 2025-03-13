@@ -16,7 +16,6 @@ from langgraph.types import Command
 
 from app.config import config
 from app.agent.prompt import get_system_prompt
-from app.agent.cache import get_from_cache, set_to_cache
 from app.agent.tool_interactions import append_tool_interaction
 from app.agent.tools import search_nodes, search_exercises, search_news, search_plan, search_lex
 from app.agent.classify import classify_conversation, get_category_tool, category_needs_orgchart, get_category_system_prompt
@@ -166,30 +165,20 @@ def create_agent():
             new_messages.append(orgchart_message)
             have_fetched_orgchart = True
 
-        # Try to fetch response from cache
-        response = get_from_cache(messages)
+        print('[MODEL]', "Calling LLM")
 
-        # Call LLM otherwise
-        if response is None:
-            print('[MODEL]', "Couldn't find cached response for the given message list, calling LLM")
+        integrations = config.get('configurable', {}).get('integrations', [])
+        tools = get_tools(integrations)
 
-            integrations = config.get('configurable', {}).get('integrations', [])
-            tools = get_tools(integrations)
-
-            # Force tool call if there has not been any
-            if state.get('have_used_tools'):
-                model_with_tools = model.bind_tools(tools)
-            else:
-                tool_name = get_category_tool(state.get('request_type'), integrations)
-                model_with_tools = model.bind_tools(tools, tool_choice=tool_name)
-
-            messages_with_system_prompt = [SystemMessage(content=get_system_prompt())] + messages
-            response = model_with_tools.invoke(messages_with_system_prompt, config)
+        # Force tool call if there has not been any
+        if state.get('have_used_tools'):
+            model_with_tools = model.bind_tools(tools)
         else:
-            print('[MODEL]', "Found cached response for the given message list, skipping LLM")
+            tool_name = get_category_tool(state.get('request_type'), integrations)
+            model_with_tools = model.bind_tools(tools, tool_choice=tool_name)
 
-        # Set result to cache
-        set_to_cache(messages, response)
+        messages_with_system_prompt = [SystemMessage(content=get_system_prompt())] + messages
+        response = model_with_tools.invoke(messages_with_system_prompt, config)
 
         new_messages.append(response)
 
