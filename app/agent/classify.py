@@ -217,55 +217,13 @@ Currently there is no information available about the study plan in the system. 
 }
 
 
-def get_category_description(category):
-    # Return description for the given category
-    return categories.get(category, {}).get('description', '')
-
-
-def category_is_restricted(category):
-    # Return whether a category is restricted
-    return categories.get(category, {}).get('restricted', False)
-
-
-def get_category_integration(category):
-    # Return specific integration for the given category
-    return categories.get(category, {}).get('integration')
-
-
-def get_category_tool(category, integrations):
-    category_integration = get_category_integration(category)
-
-    # If category does not have any integration, it is unrestricted, we return its tool directly
-    if not category_integration:
-        return categories.get(category, {}).get('tool', 'search_nodes')
-
-    # If category has an integration, and it is allowed, we return its tool directly
-    if category_integration in integrations:
-        return categories.get(category, {}).get('tool', 'search_nodes')
-
-    # If category has an integration, but it is not allowed, we default to `search_nodes`
-    return 'search_nodes'
-
-
-def category_needs_orgchart(category):
-    # Return whether a category needs the orgchart
-    return categories.get(category, {}).get('needs_orgchart', False)
-
-
-def get_category_system_prompt(category):
-    # Return specific system prompt for the given category or default to None
-    return categories.get(category, {}).get('system_prompt')
+def get_category_details(integration, category_name):
+    return categories.get(integration, {}).get(category_name, {})
 
 
 ################################################################
 
-def classify_conversation(conversation, integrations):
-    # Pick the first integration TODO: Allow for multiple integrations if that's what we want
-    if integrations:
-        integration = integrations[0]
-    else:
-        integration = 'base'
-
+def classify_conversation(conversation, integration):
     # Select category integrations to send to the LLM
     if integration in categories:
         integration_categories = categories[integration]
@@ -343,6 +301,6 @@ if __name__ == '__main__':
         HumanMessage(content="Ah, I need holidays. Tell me how many holidays I am entitled to"),
     ]
 
-    category = classify_conversation(messages, integrations=['lex'])
+    category = classify_conversation(messages, integration='lex')
 
     print(category)
