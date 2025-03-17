@@ -23,6 +23,14 @@ def init_agent():
     agent = create_agent()
 
 
+def log_message(message):
+    display_message = message.replace('\n', ' ')
+    if len(display_message) <= 100:
+        print("[WRAPPER]", f"Got response message `{display_message}` from agent system")
+    else:
+        print("[WRAPPER]", f"Got response message `{display_message[:100]}...` from agent system")
+
+
 def send_message(conversation_id: str, prompt: str, integrations: list[str] = None) -> dict:
     """
     Sends a new message to the chatbot in the context of a given conversation.
@@ -44,29 +52,29 @@ def send_message(conversation_id: str, prompt: str, integrations: list[str] = No
     clear_tool_interactions(conversation_id)
 
     # Invoke model with given prompt and conversation_id
-    agent_output = agent.invoke(
+    agent_state = agent.invoke(
         input={'messages': [HumanMessage(content=prompt)]},
         config={'configurable': {'thread_id': conversation_id, 'integrations': integrations}},
         debug=False
     )
 
     # Extract response message
-    message = agent_output['messages'][-1].content
+    message = agent_state['messages'][-1].content
 
     # Log the response message
-    display_message = message.replace('\n', ' ')
-    if len(display_message) <= 100:
-        print("[WRAPPER]", f"Got response message `{display_message}` from agent system")
-    else:
-        print("[WRAPPER]", f"Got response message `{display_message[:100]}...` from agent system")
+    log_message(message)
 
     # Fetch results obtained in the tools
     tool_interactions = get_tool_interactions(conversation_id)
     print("[WRAPPER]", f"Found {len(tool_interactions)} tool interactions")
 
     return {
+        'conversation_id': conversation_id,
         'message': message,
         'tool_interactions': tool_interactions,
+        'integration': agent_state['integration'],
+        'category': agent_state['category'],
+        'hallucinated_links': agent_state['hallucinated_links'],
     }
 
 
@@ -120,11 +128,10 @@ async def stream_send_message(conversation_id: str, prompt: str, integrations: l
         # Yield when we exit a node
         if event['name'] in node_names and event['event'] == 'on_chain_end':
             if event['name'] == 'classify':
-                yield ndjson({'name': event['name'], 'event': 'end', 'request_type': event['data']['output'].update['request_type']})
+                yield ndjson({'name': event['name'], 'event': 'end', 'request_type': event['data']['output'].update['category']})
             elif event['name'] == 'check':
-                messages = event['data']['output'].update.get('messages')
-                need_to_regenerate = bool(messages)
-                yield ndjson({'name': event['name'], 'event': 'end', 'need_to_regenerate': need_to_regenerate})
+                hallucinated_links = event['data']['output'].update['hallucinated_links']   # TODO return this list instead of `need_to_regenerate`
+                yield ndjson({'name': event['name'], 'event': 'end', 'need_to_regenerate': False})
             else:
                 yield ndjson({'name': event['name'], 'event': 'end'})
 
@@ -132,14 +139,11 @@ async def stream_send_message(conversation_id: str, prompt: str, integrations: l
         last_event = event
 
     # Extract response message
-    content = last_event['data']['output']['messages'][-1].content
+    agent_state = last_event['data']['output']
+    message = agent_state['messages'][-1].content
 
     # Log the response message
-    display_content = content.replace('\n', ' ')
-    if len(content) <= 100:
-        print("[WRAPPER]", f"Got response message `{display_content}` from agent system")
-    else:
-        print("[WRAPPER]", f"Got response message `{display_content[:100]}...` from agent system")
+    log_message(message)
 
     # Fetch results obtained in the tools
     tool_interactions = get_tool_interactions(conversation_id)
@@ -148,8 +152,12 @@ async def stream_send_message(conversation_id: str, prompt: str, integrations: l
     # Yield last update with the final message complete and the tool interactions
     yield ndjson({
         'name': 'report',
-        'message': content,
+        'conversation_id': conversation_id,
+        'message': message,
         'tool_interactions': tool_interactions,
+        'integration': agent_state['integration'],
+        'category': agent_state['category'],
+        'hallucinated_links': agent_state['hallucinated_links'],
     })
 
 
@@ -159,7 +167,7 @@ if __name__ == '__main__':
     conversation_id = '1234'
     integrations = ['lex']
 
-    method = 'sync'
+    method = 'async'
 
     prompt = "How many days off am I entitled to if I have a baby?"
 

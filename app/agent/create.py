@@ -4,6 +4,7 @@ import json
 from langchain_core.messages import (
     SystemMessage,
     AIMessage,
+    RemoveMessage,
 )
 from langchain_core.runnables import RunnableConfig
 from langchain.tools import StructuredTool
@@ -17,7 +18,7 @@ from langgraph.types import Command
 from app.config import config
 from app.agent.prompt import get_system_prompt
 from app.agent.tool_interactions import append_tool_interaction
-from app.agent.tools import search_nodes, search_exercises, search_news, search_plan, search_lex
+from app.agent.tools import search_nodes, search_exercises, search_news, search_plan, search_integration
 from app.agent.classify import classify_conversation, get_category_details
 from app.agent.hallucinations import get_hallucinated_links
 from app.agent.cleanup import clean_system_messages, clean_tool_calls_and_responses
@@ -37,6 +38,7 @@ class State(MessagesState):
     integration: Optional[str]
     category: Optional[str]
     tools_queue: Optional[list[str]]
+    hallucinated_links: Optional[list[str]]
 
 
 ################################################################
@@ -70,8 +72,8 @@ def create_agent():
             StructuredTool.from_function(name='search_plan', func=search_plan),
         ]
 
-        if integration == 'lex':
-            tools.append(StructuredTool.from_function(name='search_lex', func=search_lex))
+        if integration:
+            tools.append(StructuredTool.from_function(name='search_integration', func=search_integration))
 
         return tools
 
@@ -93,50 +95,19 @@ def create_agent():
     ################################################################
 
     def supervisor_node(state: State, config: RunnableConfig):
-        # Pick the first integration TODO: Allow for multiple integrations if that's what we want
         integrations = config.get('configurable', {}).get('integrations', [])
+
         if integrations:
+            # Pick the first integration TODO: Allow for multiple integrations (if that's what we want to do)
             integration = integrations[0]
+            # If the integration has an associated tool, queue it so that we force it later
+            tools_queue = ['search_integration']
         else:
             integration = 'base'
-
-        # If the integration has an associated tool, queue it
-        if integration == 'lex':
-            tools_queue = ['search_lex']
-        else:
+            # Base integration does not have a fixed tool to be forced
             tools_queue = []
 
         return Command(goto='classify', update={'integration': integration, 'tools_queue': tools_queue})
-
-        ################################################################
-
-        # If request has not been classified, do so
-        if state.get('request_type') is None:
-            print('[SUPERVISOR]', "Request has not been classified, handing to `classify` state")
-            return Command(goto='classify')
-
-        # If the last message is not an AIMessage, we generate one
-        if last_message.type != 'ai':
-            print('[SUPERVISOR]', f"Last message is {last_message.type}, handing to `model` state")
-            return Command(goto='model')
-
-        # If the last message is an AIMessage and there are tool calls, we execute them
-        if last_message.tool_calls:
-            print('[SUPERVISOR]', "Last message contains some tool calls, handing to `tools` state")
-            return Command(goto='tools')
-
-        # If the last message is an AIMessage with no tool calls, we check for hallucinations
-        if not state.get('have_checked_hallucinations'):
-            print('[SUPERVISOR]', "We need to check for hallucinated links, handing to `check` state")
-            return Command(goto='check')
-
-        # If the last message is an AIMessage with no tool calls, and we have checked for hallucinations, we clean up
-        if not state.get('have_cleaned_up'):
-            print('[SUPERVISOR]', "Need to clean up, handing to `cleanup` state")
-            return Command(goto='cleanup')
-
-        print('[SUPERVISOR]', "Finishing execution")
-        return Command(goto=END, update={'request_type': None, 'have_used_tools': False, 'have_fetched_orgchart': False, 'have_checked_hallucinations': False, 'have_cleaned_up': False})
 
     ################################################################
     # Classify node                                                #
@@ -148,7 +119,7 @@ def create_agent():
 
         # Classify conversation
         category = classify_conversation(messages, integration)
-        print('[CLASSIFY]', f"Classified conversation as `{integration}`/`{category}`")
+        print('[CLASSIFY]', f"Classified conversation as `{integration}` - `{category}`")
 
         # Get category details and plan category-specific actions (system prompt, tools, etc.)
         category_details = get_category_details(integration, category)
@@ -201,11 +172,11 @@ def create_agent():
     def tools_node(state: State, config: RunnableConfig):
         messages = state['messages']
         last_message = messages[-1]
+        integration = state['integration']
 
         # Execute all tool calls in the last message
-        integrations = config.get('configurable', {}).get('integrations', [])
-        tools = get_tools(integrations)
-        tool_messages = ToolNode(tools).invoke([last_message])
+        tools = get_tools(integration)
+        tool_messages = ToolNode(tools).invoke(state)['messages']
 
         # Store tool interactions (unobfuscated)
         tool_calls = last_message.tool_calls
@@ -231,7 +202,7 @@ def create_agent():
         # TODO: Obfuscate result if needed
         pass
 
-        return Command(goto='supervisor', update={'messages': tool_messages, 'have_used_tools': True})
+        return Command(goto='model', update={'messages': tool_messages})
 
     ################################################################
     # Check node                                                   #
@@ -244,32 +215,33 @@ def create_agent():
         ai_sys_messages = [message for message in messages if isinstance(message, AIMessage) or isinstance(message, SystemMessage)]
         hallucinated_links = get_hallucinated_links(thread_id, ai_sys_messages)
 
-        if not hallucinated_links:
+        if hallucinated_links:
+            print('[CHECK]', f"Found hallucinated links (e.g. {hallucinated_links[0]}). Will return them along with the response.")
+        else:
             print('[CHECK]', "Did not find any hallucinated link")
-            return Command(goto='supervisor', update={'have_checked_hallucinations': True})
 
-        # Delete last message because it contains hallucinations
-        state['messages'] = state['messages'][:-1]
-
-        # Return new system message warning about the hallucination
-        print('[CHECK]', f"Found hallucinated link {hallucinated_links[0]}. Replacing last AI message with system message warning about hallucinations.")
-        system_message = SystemMessage(f"Make sure you only include urls present in the results from the tools. For instance, {hallucinated_links[0]} is not a valid url.")
-        return Command(goto='supervisor', update={'messages': [system_message], 'have_checked_hallucinations': True})
+        return Command(goto='cleanup', update={'hallucinated_links': hallucinated_links})
 
     ################################################################
     # Cleanup node                                                 #
     ################################################################
 
     def cleanup_node(state: State):
+        messages = state['messages']
+
         # Delete intermediate System messages
         print('[CLEANUP]', "Deleting intermediate system messages")
-        state['messages'] = clean_system_messages(state['messages'])
+        messages = clean_system_messages(messages)
 
         # Delete AI messages with tool requests and their corresponding tool messages
         print('[CLEANUP]', "Deleting tool call requests and responses")
-        state['messages'] = clean_tool_calls_and_responses(state['messages'])
+        messages = clean_tool_calls_and_responses(messages)
 
-        return Command(goto='supervisor', update={'have_cleaned_up': True})
+        # Get a list of ids of messages to remove
+        keep_message_ids = [message.id for message in messages]
+        remove_message_ids = [message.id for message in state['messages'] if message.id not in keep_message_ids]
+
+        return Command(goto=END, update={'messages': [RemoveMessage(id=remove_message_id) for remove_message_id in remove_message_ids]})
 
     ################################################################
     # State graph                                                  #
