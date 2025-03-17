@@ -53,6 +53,20 @@ Currently there is no information available about the study plan in the system. 
 """
 
 
+course_categories = {
+    'help-with-assignment': {
+        'description': "Requests that present an exercise or question and want help with its solution.",
+        'system_prompt': base_help_with_assignment_sysprompt,
+        'tools': ['search_nodes'],
+    },
+    'explain-concept': {
+        'description': "Requests that ask a question about some specific concept or domain.",
+        'system_prompt': base_explain_concept_sysprompt,
+        'tools': ['search_nodes'],
+    },
+    'other': {'description': "Other requests."},
+}
+
 categories = {
     'base': {
         'help-with-assignment': {
@@ -134,7 +148,24 @@ categories = {
         'equipment': {'description': "Requests about equipment or material at EPFL, like purchasing some piece of equipment for research in a lab or regulations on office material."},
         'absences': {'description': "Requests about absences at EPFL, including paid leaves (holidays, medical leaves, maternity or paternity leaves, accidents, etc.) unpaid leaves, teleworking or other absences."},
     },
+    'servicedesk': {
+        'epfl': {'description': "Requests about EPFL."},
+        'public': {'description': "Requests about Public."},
+        'finances': {'description': "Requests about Finances."},
+        'research': {'description': "Requests about Research."},
+        'human-resources': {'description': "Requests about Human Resources."},
+        'servicedesk': {'description': "Requests about Service Desk."},
+    },
+    'sac': {
+        'guidelines': {'description': "Requests about guidelines and regulations."},
+        'studies': {'description': "Requests about studies."},
+        'other': {'description': "Other requests."},
+    },
+    'COURSE-1': course_categories,
+    'COURSE-2': course_categories,
+    'COURSE-3': course_categories,
 }
+
 
 
 def get_category_details(integration, category_name):

@@ -68,6 +68,8 @@ def send_message(conversation_id: str, prompt: str, integrations: list[str] = No
     tool_interactions = get_tool_interactions(conversation_id)
     print("[WRAPPER]", f"Found {len(tool_interactions)} tool interactions")
 
+    print("[WRAPPER]", "Finishing execution")
+
     return {
         'conversation_id': conversation_id,
         'message': message,
@@ -159,6 +161,8 @@ async def stream_send_message(conversation_id: str, prompt: str, integrations: l
         'category': agent_state['category'],
         'hallucinated_links': agent_state['hallucinated_links'],
     })
+
+    print("[WRAPPER]", "Finishing execution")
 
 
 if __name__ == '__main__':

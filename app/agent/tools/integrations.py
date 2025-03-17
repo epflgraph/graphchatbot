@@ -52,8 +52,9 @@ def search_integration(state: Annotated[dict, InjectedState], query: str, limit:
 
 
 if __name__ == '__main__':
-    query = "EPFL parental leave policy"
-    state = {'integration': 'lex'}
+    query = "epfl"
+    state = {'integration': 'servicedesk'}
 
     results = search_integration(state=state, query=query, limit=10)
-    print(results)
+    for result in results:
+        print(result)

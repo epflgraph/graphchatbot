@@ -107,6 +107,10 @@ def create_agent():
             # Base integration does not have a fixed tool to be forced
             tools_queue = []
 
+        # Normalise some of the integration names TODO Coordinate with Thijs and Ramtin so that this parameter is exactly the index name
+        if integration == 'service-desk':
+            integration = 'servicedesk'
+
         return Command(goto='classify', update={'integration': integration, 'tools_queue': tools_queue})
 
     ################################################################
