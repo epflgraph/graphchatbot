@@ -4,6 +4,7 @@ import json
 from langchain_core.messages import (
     SystemMessage,
     AIMessage,
+    RemoveMessage,
 )
 from langchain_core.runnables import RunnableConfig
 from langchain.tools import StructuredTool
@@ -16,11 +17,9 @@ from langgraph.types import Command
 
 from app.config import config
 from app.agent.prompt import get_system_prompt
-from app.agent.cache import get_from_cache, set_to_cache
 from app.agent.tool_interactions import append_tool_interaction
-from app.agent.tools import search_nodes, search_exercises, search_news, search_plan
-from app.agent.classify import classify_conversation, get_category_tool, category_needs_orgchart, get_category_system_prompt
-from app.agent.orgchart import get_orgchart_system_prompt
+from app.agent.tools import search_nodes, search_exercises, search_news, search_plan, search_integration
+from app.agent.classify import classify_conversation, get_category_details
 from app.agent.hallucinations import get_hallucinated_links
 from app.agent.cleanup import clean_system_messages, clean_tool_calls_and_responses
 
@@ -36,11 +35,10 @@ class State(MessagesState):
         * Other variables that keep track of the status of the execution
     """
 
-    request_type: Optional[str]
-    have_fetched_orgchart: Optional[bool]
-    have_used_tools: Optional[bool]
-    have_checked_hallucinations: Optional[bool]
-    have_cleaned_up: Optional[bool]
+    integration: Optional[str]
+    category: Optional[str]
+    tools_queue: Optional[list[str]]
+    hallucinated_links: Optional[list[str]]
 
 
 ################################################################
@@ -66,12 +64,18 @@ def create_agent():
     # Tools                                                        #
     ################################################################
 
-    tools = [
-        StructuredTool.from_function(name='search_nodes', func=search_nodes),
-        StructuredTool.from_function(name='search_exercises', func=search_exercises),
-        StructuredTool.from_function(name='search_news', func=search_news),
-        StructuredTool.from_function(name='search_plan', func=search_plan),
-    ]
+    def get_tools(integration):
+        tools = [
+            StructuredTool.from_function(name='search_nodes', func=search_nodes),
+            StructuredTool.from_function(name='search_exercises', func=search_exercises),
+            StructuredTool.from_function(name='search_news', func=search_news),
+            StructuredTool.from_function(name='search_plan', func=search_plan),
+        ]
+
+        if integration:
+            tools.append(StructuredTool.from_function(name='search_integration', func=search_integration))
+
+        return tools
 
     ################################################################
     # Memory                                                       #
@@ -90,38 +94,24 @@ def create_agent():
     # Supervisor node                                              #
     ################################################################
 
-    def supervisor_node(state: State):
-        # Extract list of messages and last message from state
-        messages = state['messages']
-        last_message = messages[-1]
+    def supervisor_node(state: State, config: RunnableConfig):
+        integrations = config.get('configurable', {}).get('integrations', [])
 
-        # If request has not been classified, do so
-        if state.get('request_type') is None:
-            print('[SUPERVISOR]', "Request has not been classified, handing to `classify` state")
-            return Command(goto='classify')
+        if integrations:
+            # Pick the first integration TODO: Allow for multiple integrations (if that's what we want to do)
+            integration = integrations[0]
+            # If the integration has an associated tool, queue it so that we force it later
+            tools_queue = ['search_integration']
+        else:
+            integration = 'base'
+            # Base integration does not have a fixed tool to be forced
+            tools_queue = []
 
-        # If the last message is not an AIMessage, we generate one
-        if last_message.type != 'ai':
-            print('[SUPERVISOR]', f"Last message is {last_message.type}, handing to `model` state")
-            return Command(goto='model')
+        # Normalise some of the integration names TODO Coordinate with Thijs and Ramtin so that this parameter is exactly the index name
+        if integration == 'service-desk':
+            integration = 'servicedesk'
 
-        # If the last message is an AIMessage and there are tool calls, we execute them
-        if last_message.tool_calls:
-            print('[SUPERVISOR]', "Last message contains some tool calls, handing to `tools` state")
-            return Command(goto='tools')
-
-        # If the last message is an AIMessage with no tool calls, we check for hallucinations
-        if not state.get('have_checked_hallucinations'):
-            print('[SUPERVISOR]', "We need to check for hallucinated links, handing to `check` state")
-            return Command(goto='check')
-
-        # If the last message is an AIMessage with no tool calls, and we have checked for hallucinations, we clean up
-        if not state.get('have_cleaned_up'):
-            print('[SUPERVISOR]', "Need to clean up, handing to `cleanup` state")
-            return Command(goto='cleanup')
-
-        print('[SUPERVISOR]', "Finishing execution")
-        return Command(goto=END, update={'request_type': None, 'have_used_tools': False, 'have_fetched_orgchart': False, 'have_checked_hallucinations': False, 'have_cleaned_up': False})
+        return Command(goto='classify', update={'integration': integration, 'tools_queue': tools_queue})
 
     ################################################################
     # Classify node                                                #
@@ -129,16 +119,24 @@ def create_agent():
 
     def classify_node(state: State):
         messages = state['messages']
+        integration = state['integration']
 
-        category = classify_conversation(messages)
-        print('[CLASSIFY]', f"Classified conversation as `{category}`")
+        # Classify conversation
+        category = classify_conversation(messages, integration)
+        print('[CLASSIFY]', f"Classified conversation as `{integration}` - `{category}`")
 
-        category_system_prompt = get_category_system_prompt(category)
+        # Get category details and plan category-specific actions (system prompt, tools, etc.)
+        category_details = get_category_details(integration, category)
 
-        if category_system_prompt is None:
-            return Command(goto='supervisor', update={'request_type': category})
-        else:
-            return Command(goto='supervisor', update={'messages': [SystemMessage(content=category_system_prompt)], 'request_type': category})
+        update = {'category': category}
+
+        if 'system_prompt' in category_details:
+            update['messages'] = [SystemMessage(content=category_details['system_prompt'])]
+
+        if 'tools' in category_details:
+            update['tools_queue'] = state['tools_queue'] + category_details['tools']
+
+        return Command(goto='model', update=update)
 
     ################################################################
     # Model node                                                   #
@@ -147,41 +145,29 @@ def create_agent():
     def model_node(state: State, config: RunnableConfig):
         # Extract the list of messages from conversation history
         messages = state['messages']
-        new_messages = []
+        integration = state['integration']
 
-        # If it is request about people, and we haven't done it already, add a message with the organizational chart
-        have_fetched_orgchart = state.get('have_fetched_orgchart')
-        if category_needs_orgchart(state['request_type']) and not have_fetched_orgchart:
-            orgchart_message = SystemMessage(content=get_orgchart_system_prompt())
-            messages.append(orgchart_message)
-            new_messages.append(orgchart_message)
-            have_fetched_orgchart = True
+        tools = get_tools(integration)
 
-        # Try to fetch response from cache
-        response = get_from_cache(messages)
-
-        # Call LLM otherwise
-        if response is None:
-            print('[MODEL]', "Couldn't find cached response for the given message list, calling LLM")
-
-            # Force tool call if there has not been any
-            if state.get('have_used_tools'):
-                model_with_tools = model.bind_tools(tools)
-            else:
-                tool_name = get_category_tool(state.get('request_type'))
-                model_with_tools = model.bind_tools(tools, tool_choice=tool_name)
-
-            messages_with_system_prompt = [SystemMessage(content=get_system_prompt())] + messages
-            response = model_with_tools.invoke(messages_with_system_prompt, config)
+        # Force tool call if there is any in the queue
+        tools_queue = state['tools_queue']
+        if tools_queue:
+            tool_name = tools_queue.pop(0)  # Returns first element and removes it from tools_queue
+            model_with_tools = model.bind_tools(tools, tool_choice=tool_name)
+            print('[MODEL]', f"Calling LLM forcing tool call `{tool_name}`")
         else:
-            print('[MODEL]', "Found cached response for the given message list, skipping LLM")
+            model_with_tools = model.bind_tools(tools)
+            print('[MODEL]', "Calling LLM without forcing any tool call")
 
-        # Set result to cache
-        set_to_cache(messages, response)
+        # Generate new ai message
+        messages_with_system_prompt = [SystemMessage(content=get_system_prompt())] + messages
+        ai_message = model_with_tools.invoke(messages_with_system_prompt, config)
 
-        new_messages.append(response)
-
-        return Command(goto='supervisor', update={'messages': new_messages, 'have_fetched_orgchart': have_fetched_orgchart})
+        # Hand over to 'tools' if the ai message contains tool calls or proceed to 'check' otherwise
+        if ai_message.tool_calls:
+            return Command(goto='tools', update={'messages': [ai_message], 'tools_queue': tools_queue})
+        else:
+            return Command(goto='check', update={'messages': [ai_message], 'tools_queue': tools_queue})
 
     ################################################################
     # Tools node                                                   #
@@ -190,9 +176,11 @@ def create_agent():
     def tools_node(state: State, config: RunnableConfig):
         messages = state['messages']
         last_message = messages[-1]
+        integration = state['integration']
 
         # Execute all tool calls in the last message
-        tool_messages = ToolNode(tools).invoke([last_message])
+        tools = get_tools(integration)
+        tool_messages = ToolNode(tools).invoke(state)['messages']
 
         # Store tool interactions (unobfuscated)
         tool_calls = last_message.tool_calls
@@ -205,7 +193,7 @@ def create_agent():
                         try:
                             tool_response = json.loads(tool_message.content)
                         except json.decoder.JSONDecodeError as e:
-                            print('[TOOLS]', f"WARNING: Could not retrieve tool response: {e}")
+                            print('[TOOLS]', f"WARNING: Could not parse tool response: {e}. Tool result: {tool_message.content}")
                             tool_response = []
                     else:
                         # Oddly enough, when tool returns empty list, content is not a string '[]' but an actual empty list
@@ -218,7 +206,7 @@ def create_agent():
         # TODO: Obfuscate result if needed
         pass
 
-        return Command(goto='supervisor', update={'messages': tool_messages, 'have_used_tools': True})
+        return Command(goto='model', update={'messages': tool_messages})
 
     ################################################################
     # Check node                                                   #
@@ -231,32 +219,33 @@ def create_agent():
         ai_sys_messages = [message for message in messages if isinstance(message, AIMessage) or isinstance(message, SystemMessage)]
         hallucinated_links = get_hallucinated_links(thread_id, ai_sys_messages)
 
-        if not hallucinated_links:
+        if hallucinated_links:
+            print('[CHECK]', f"Found hallucinated links (e.g. {hallucinated_links[0]}). Will return them along with the response.")
+        else:
             print('[CHECK]', "Did not find any hallucinated link")
-            return Command(goto='supervisor', update={'have_checked_hallucinations': True})
 
-        # Delete last message because it contains hallucinations
-        state['messages'] = state['messages'][:-1]
-
-        # Return new system message warning about the hallucination
-        print('[CHECK]', f"Found hallucinated link {hallucinated_links[0]}. Replacing last AI message with system message warning about hallucinations.")
-        system_message = SystemMessage(f"Make sure you only include urls present in the results from the tools. For instance, {hallucinated_links[0]} is not a valid url.")
-        return Command(goto='supervisor', update={'messages': [system_message], 'have_checked_hallucinations': True})
+        return Command(goto='cleanup', update={'hallucinated_links': hallucinated_links})
 
     ################################################################
     # Cleanup node                                                 #
     ################################################################
 
     def cleanup_node(state: State):
+        messages = state['messages']
+
         # Delete intermediate System messages
         print('[CLEANUP]', "Deleting intermediate system messages")
-        state['messages'] = clean_system_messages(state['messages'])
+        messages = clean_system_messages(messages)
 
         # Delete AI messages with tool requests and their corresponding tool messages
         print('[CLEANUP]', "Deleting tool call requests and responses")
-        state['messages'] = clean_tool_calls_and_responses(state['messages'])
+        messages = clean_tool_calls_and_responses(messages)
 
-        return Command(goto='supervisor', update={'have_cleaned_up': True})
+        # Get a list of ids of messages to remove
+        keep_message_ids = [message.id for message in messages]
+        remove_message_ids = [message.id for message in state['messages'] if message.id not in keep_message_ids]
+
+        return Command(goto=END, update={'messages': [RemoveMessage(id=remove_message_id) for remove_message_id in remove_message_ids]})
 
     ################################################################
     # State graph                                                  #

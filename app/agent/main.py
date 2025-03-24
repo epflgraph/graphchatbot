@@ -23,7 +23,15 @@ def init_agent():
     agent = create_agent()
 
 
-def send_message(conversation_id: str, prompt: str) -> dict:
+def log_message(message):
+    display_message = message.replace('\n', ' ')
+    if len(display_message) <= 100:
+        print("[WRAPPER]", f"Got response message `{display_message}` from agent system")
+    else:
+        print("[WRAPPER]", f"Got response message `{display_message[:100]}...` from agent system")
+
+
+def send_message(conversation_id: str, prompt: str, integrations: list[str] = None) -> dict:
     """
     Sends a new message to the chatbot in the context of a given conversation.
 
@@ -31,6 +39,7 @@ def send_message(conversation_id: str, prompt: str) -> dict:
         conversation_id (str): ID of a conversation. Subsequent calls to the same conversation will keep the message history.
         If no conversation is found for the given ID, a new one will be created.
         prompt (str): Message written by the user to be sent to the chatbot.
+        integrations (list[str]): A list of the available integrations for the interaction.
 
     Returns:
         dict: Dictionary with keys `message` and `results`, containing the answer of the chatbot to the user's message and information about the
@@ -43,29 +52,31 @@ def send_message(conversation_id: str, prompt: str) -> dict:
     clear_tool_interactions(conversation_id)
 
     # Invoke model with given prompt and conversation_id
-    agent_output = agent.invoke(
+    agent_state = agent.invoke(
         input={'messages': [HumanMessage(content=prompt)]},
-        config={'configurable': {'thread_id': conversation_id}},
+        config={'configurable': {'thread_id': conversation_id, 'integrations': integrations}},
         debug=False
     )
 
     # Extract response message
-    message = agent_output['messages'][-1].content
+    message = agent_state['messages'][-1].content
 
     # Log the response message
-    display_message = message.replace('\n', ' ')
-    if len(display_message) <= 100:
-        print("[WRAPPER]", f"Got response message `{display_message}` from agent system")
-    else:
-        print("[WRAPPER]", f"Got response message `{display_message[:100]}...` from agent system")
+    log_message(message)
 
     # Fetch results obtained in the tools
     tool_interactions = get_tool_interactions(conversation_id)
     print("[WRAPPER]", f"Found {len(tool_interactions)} tool interactions")
 
+    print("[WRAPPER]", "Finishing execution")
+
     return {
+        'conversation_id': conversation_id,
         'message': message,
         'tool_interactions': tool_interactions,
+        'integration': agent_state['integration'],
+        'category': agent_state['category'],
+        'hallucinated_links': agent_state['hallucinated_links'],
     }
 
 
@@ -74,7 +85,7 @@ def ndjson(d: dict):
     return json.dumps(d) + '\n'
 
 
-async def stream_send_message(conversation_id: str, prompt: str) -> AsyncGenerator:
+async def stream_send_message(conversation_id: str, prompt: str, integrations: list[str] = None) -> AsyncGenerator:
     """
     Sends a new message to the chatbot in the context of a given conversation and streams the events.
 
@@ -82,6 +93,7 @@ async def stream_send_message(conversation_id: str, prompt: str) -> AsyncGenerat
         conversation_id (str): ID of a conversation. Subsequent calls to the same conversation will keep the message history.
         If no conversation is found for the given ID, a new one will be created.
         prompt (str): Message written by the user to be sent to the chatbot.
+        integrations (list[str]): A list of the available integrations for the interaction.
 
     Returns:
         AsyncGenerator: Each item is a dict containing the key 'state' and possibly 'content'.
@@ -94,7 +106,7 @@ async def stream_send_message(conversation_id: str, prompt: str) -> AsyncGenerat
 
     # Set up agent input
     agent_input = {'messages': [HumanMessage(content=prompt)]}
-    agent_config = {'configurable': {'thread_id': conversation_id}}
+    agent_config = {'configurable': {'thread_id': conversation_id, 'integrations': integrations}}
 
     # Define states to be checked
     node_names = ['supervisor', 'classify', 'model', 'tools', 'check', 'cleanup']
@@ -118,11 +130,10 @@ async def stream_send_message(conversation_id: str, prompt: str) -> AsyncGenerat
         # Yield when we exit a node
         if event['name'] in node_names and event['event'] == 'on_chain_end':
             if event['name'] == 'classify':
-                yield ndjson({'name': event['name'], 'event': 'end', 'request_type': event['data']['output'].update['request_type']})
+                yield ndjson({'name': event['name'], 'event': 'end', 'request_type': event['data']['output'].update['category']})
             elif event['name'] == 'check':
-                messages = event['data']['output'].update.get('messages')
-                need_to_regenerate = bool(messages)
-                yield ndjson({'name': event['name'], 'event': 'end', 'need_to_regenerate': need_to_regenerate})
+                hallucinated_links = event['data']['output'].update['hallucinated_links']   # TODO return this list instead of `need_to_regenerate`
+                yield ndjson({'name': event['name'], 'event': 'end', 'need_to_regenerate': False})
             else:
                 yield ndjson({'name': event['name'], 'event': 'end'})
 
@@ -130,14 +141,11 @@ async def stream_send_message(conversation_id: str, prompt: str) -> AsyncGenerat
         last_event = event
 
     # Extract response message
-    content = last_event['data']['output']['messages'][-1].content
+    agent_state = last_event['data']['output']
+    message = agent_state['messages'][-1].content
 
     # Log the response message
-    display_content = content.replace('\n', ' ')
-    if len(content) <= 100:
-        print("[WRAPPER]", f"Got response message `{display_content}` from agent system")
-    else:
-        print("[WRAPPER]", f"Got response message `{display_content[:100]}...` from agent system")
+    log_message(message)
 
     # Fetch results obtained in the tools
     tool_interactions = get_tool_interactions(conversation_id)
@@ -146,32 +154,40 @@ async def stream_send_message(conversation_id: str, prompt: str) -> AsyncGenerat
     # Yield last update with the final message complete and the tool interactions
     yield ndjson({
         'name': 'report',
-        'message': content,
+        'conversation_id': conversation_id,
+        'message': message,
         'tool_interactions': tool_interactions,
+        'integration': agent_state['integration'],
+        'category': agent_state['category'],
+        'hallucinated_links': agent_state['hallucinated_links'],
     })
+
+    print("[WRAPPER]", "Finishing execution")
 
 
 if __name__ == '__main__':
     init_agent()
 
     conversation_id = '1234'
-    method = 'sync'
+    integrations = ['lex']
 
-    prompt = "Courses about genomics"
+    method = 'async'
+
+    prompt = "How many days off am I entitled to if I have a baby?"
 
     followup = False
-    followup_prompt = "And who are the vice presidents?"
+    followup_prompt = "Where do you get that information from?"
 
     if method == 'sync':
-        message = send_message(conversation_id, prompt)['message']
+        message = send_message(conversation_id, prompt, integrations)['message']
         print(message)
 
         if followup:
-            message = send_message(conversation_id, followup_prompt)['message']
+            message = send_message(conversation_id, followup_prompt, integrations)['message']
             print(message)
     elif method == 'async':
         async def async_run(prompt):
-            async for update in stream_send_message(conversation_id, prompt):
+            async for update in stream_send_message(conversation_id, prompt, integrations):
                 print(update)
 
         asyncio.run(async_run(prompt))

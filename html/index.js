@@ -76,7 +76,7 @@ function sendMessage() {
         let xhr = new XMLHttpRequest();
         xhr.open("POST", "/stream_chat", true);
         xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.send(JSON.stringify({conversation_id: conversation_id, human_input: message}));
+        xhr.send(JSON.stringify({conversation_id: conversation_id, human_input: message, integrations: ["lex"]}));
 
         xhr.onload = function() {
             try {
