@@ -167,7 +167,6 @@ categories = {
 }
 
 
-
 def get_category_details(integration, category_name):
     return categories.get(integration, {}).get(category_name, {})
 
