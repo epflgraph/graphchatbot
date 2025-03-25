@@ -18,7 +18,7 @@ from langgraph.types import Command
 from app.config import config
 from app.agent.prompt import get_system_prompt
 from app.agent.tool_interactions import append_tool_interaction
-from app.agent.tools import search_nodes, search_exercises, search_news, search_plan, epfl_orgchart, search_integration
+from app.agent.tools import search_nodes, search_exercises, search_news, search_plan, get_orgchart, search_integration
 from app.agent.classify import classify_conversation, get_category_details
 from app.agent.hallucinations import get_hallucinated_links
 from app.agent.cleanup import clean_system_messages, clean_tool_calls_and_responses
@@ -70,7 +70,7 @@ def create_agent():
             StructuredTool.from_function(name='search_exercises', func=search_exercises),
             StructuredTool.from_function(name='search_news', func=search_news),
             StructuredTool.from_function(name='search_plan', func=search_plan),
-            StructuredTool.from_function(name='epfl_orgchart', func=epfl_orgchart),
+            StructuredTool.from_function(name='get_orgchart', func=get_orgchart),
         ]
 
         if integration:

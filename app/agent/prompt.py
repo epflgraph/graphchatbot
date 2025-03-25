@@ -40,9 +40,10 @@ Builds a link to the EPFL plan website.
 * Use this tool only when the user requests information about EPFL's infrastructure explicitly, like buildings, rooms or related services.
 * When you use this tool, do not answer the request but instead redirect the user to the EPFL plan's website through the link coming from the tool. 
 
-## `epfl_orgchart`
+## `get_orgchart`
 Retrieves the current orgchart of EPFL.
-* Use this tool only when the user requests information about management positions at EPFL or about people you think can hold a management position at EPFL. 
+* Use this tool only when the user requests information about management positions at EPFL or about people you think can hold a management position at EPFL.
+* The EPFL has one "President" and 6 "Vice Presidents" (VPA, VPF, VPI, VPO, VPS and VPH), not to be confused with "Associate Vice Presidents", who are NOT "Vice Presidents" themselves.
 * The results of this tool include EPFL staff from certain upper-management units, but it is not an exhaustive list of EPFL members.
 * The results of this tool are up-to-date.  
 

@@ -71,7 +71,7 @@ def fetch_from_ldap():
     return orgchart
 
 
-def epfl_orgchart() -> list:
+def get_orgchart() -> list:
     """
     Retrieves the current organisational chart of management positions at EPFL, as of today.
     """
@@ -103,7 +103,7 @@ def epfl_orgchart() -> list:
 
 # FIXME Delete this deprecated function
 def get_orgchart_system_prompt():
-    orgchart = epfl_orgchart()
+    orgchart = get_orgchart()
 
     today = datetime.now().strftime("%Y-%m-%d")
 
