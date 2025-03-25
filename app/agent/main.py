@@ -68,15 +68,22 @@ def send_message(conversation_id: str, prompt: str, integrations: list[str] = No
     tool_interactions = get_tool_interactions(conversation_id)
     print("[WRAPPER]", f"Found {len(tool_interactions)} tool interactions")
 
+    # Extract RAG sources from tool interactions
+    rag_sources = []
+    for tool_interaction in tool_interactions:
+        if tool_interaction['tool_call']['name'] == 'search_integration':
+            rag_sources.extend(tool_interaction['tool_response'])
+
     print("[WRAPPER]", "Finishing execution")
 
     return {
         'conversation_id': conversation_id,
         'message': message,
-        'tool_interactions': tool_interactions,
         'integration': agent_state['integration'],
         'category': agent_state['category'],
         'hallucinated_links': agent_state['hallucinated_links'],
+        'sources': rag_sources,
+        'tool_interactions': tool_interactions,
     }
 
 
@@ -151,15 +158,22 @@ async def stream_send_message(conversation_id: str, prompt: str, integrations: l
     tool_interactions = get_tool_interactions(conversation_id)
     print("[WRAPPER]", f"Found {len(tool_interactions)} tool interactions")
 
+    # Extract RAG sources from tool interactions
+    rag_sources = []
+    for tool_interaction in tool_interactions:
+        if tool_interaction['tool_call']['name'] == 'search_integration':
+            rag_sources.extend(tool_interaction['tool_response'])
+
     # Yield last update with the final message complete and the tool interactions
     yield ndjson({
         'name': 'report',
         'conversation_id': conversation_id,
         'message': message,
-        'tool_interactions': tool_interactions,
         'integration': agent_state['integration'],
         'category': agent_state['category'],
         'hallucinated_links': agent_state['hallucinated_links'],
+        'sources': rag_sources,
+        'tool_interactions': tool_interactions,
     })
 
     print("[WRAPPER]", "Finishing execution")
