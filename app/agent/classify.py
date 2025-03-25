@@ -147,6 +147,16 @@ categories = {
         'internal-processes': {'description': "Requests about internal processes at EPFL, like mandatory trainings or electing people for management positions."},
         'equipment': {'description': "Requests about equipment or material at EPFL, like purchasing some piece of equipment for research in a lab or regulations on office material."},
         'absences': {'description': "Requests about absences at EPFL, including paid leaves (holidays, medical leaves, maternity or paternity leaves, accidents, etc.) unpaid leaves, teleworking or other absences."},
+        'epfl-presidency': {
+            'description': "Explicit requests about the presidency of EPFL.",
+            'system_prompt': base_epfl_presidency_sysprompt,
+            'tools': ['get_orgchart', 'search_news'],
+        },
+        'epfl-vice-presidencies': {
+            'description': "Explicit requests about the vice-presidencies of EPFL.",
+            'system_prompt': base_epfl_presidency_sysprompt,
+            'tools': ['get_orgchart', 'search_news'],
+        },
     },
     'servicedesk': {
         'epfl': {'description': "Requests about EPFL."},
@@ -165,7 +175,6 @@ categories = {
     'COURSE-2': course_categories,
     'COURSE-3': course_categories,
 }
-
 
 
 def get_category_details(integration, category_name):
