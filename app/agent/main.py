@@ -12,7 +12,7 @@ from langchain_core.messages import (
     HumanMessage,
 )
 
-from app.main import ChatInput
+from app.schemas import ChatInput
 from app.agent.tool_interactions import get_tool_interactions, clear_tool_interactions
 from app.agent.create import create_agent
 
