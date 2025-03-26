@@ -36,6 +36,7 @@ class State(MessagesState):
     """
 
     integration: Optional[str]
+    style: Optional[str]
     category: Optional[str]
     tools_queue: Optional[list[str]]
     hallucinated_links: Optional[list[str]]
@@ -97,6 +98,7 @@ def create_agent():
 
     def supervisor_node(state: State, config: RunnableConfig):
         integrations = config.get('configurable', {}).get('integrations', [])
+        style = config.get('configurable', {}).get('style')
 
         if integrations:
             # Pick the first integration TODO: Allow for multiple integrations (if that's what we want to do)
@@ -112,7 +114,7 @@ def create_agent():
         if integration == 'service-desk':
             integration = 'servicedesk'
 
-        return Command(goto='classify', update={'integration': integration, 'tools_queue': tools_queue})
+        return Command(goto='classify', update={'integration': integration, 'style': style, 'tools_queue': tools_queue})
 
     ################################################################
     # Classify node                                                #
@@ -121,13 +123,15 @@ def create_agent():
     def classify_node(state: State):
         messages = state['messages']
         integration = state['integration']
+        style = state['style']
 
         # Classify conversation
         category = classify_conversation(messages, integration)
         print('[CLASSIFY]', f"Classified conversation as `{integration}` - `{category}`")
 
         # Get category details and plan category-specific actions (system prompt, tools, etc.)
-        category_details = get_category_details(integration, category)
+        category_details = get_category_details(category, integration, style)
+        print(category_details)
 
         update = {'category': category}
 

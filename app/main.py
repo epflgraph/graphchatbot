@@ -4,16 +4,14 @@ It defines the input and output models and creates the endpoints.
 """
 
 from contextlib import asynccontextmanager
-from typing import Optional, Literal, Union
-
-from pydantic import BaseModel
+from typing import Union
 
 from fastapi import FastAPI, Response
 from fastapi.responses import StreamingResponse, FileResponse
 
+from app.schemas import ChatInput, ChatOutput, GenerateTextExerciseInput, GenerateLectureExerciseInput
 from app.agent import init_agent, send_message, stream_send_message
 import app.exercises as exercises
-from app.errors import ERR_INPUT_TOO_LONG
 
 
 @asynccontextmanager
@@ -49,20 +47,6 @@ app = FastAPI(
 )
 
 
-class ChatInput(BaseModel):
-    conversation_id: str
-    human_input: str
-    integrations: Optional[list[str]] = None
-
-
-class ChatOutput(BaseModel):
-    message: Optional[str] = None
-    tool_interactions: Optional[list] = None
-    error_code: Optional[str] = None
-    tokens: Optional[int] = None
-    price: Optional[float] = None
-
-
 @app.post('/chat', response_model=ChatOutput, response_model_exclude_unset=True)
 async def chat(input: ChatInput, response: Response):
     """
@@ -76,11 +60,7 @@ async def chat(input: ChatInput, response: Response):
         ChatOutput: Output object containing either an error_code, if there was a problem, or a message and a results object, if everything was fine.
     """
 
-    integrations = []
-    if input.integrations is not None:
-        integrations = input.integrations
-
-    return send_message(input.conversation_id, input.human_input, integrations)
+    return send_message(input)
 
 
 @app.post('/stream_chat')
@@ -95,11 +75,7 @@ async def stream_chat(input: ChatInput):
         StreamingResponse: Streams bits of the response asynchronously as they become available.
     """
 
-    integrations = []
-    if input.integrations is not None:
-        integrations = input.integrations
-
-    return StreamingResponse(stream_send_message(input.conversation_id, input.human_input, integrations), media_type='application/x-ndjson')
+    return StreamingResponse(stream_send_message(input), media_type='application/x-ndjson')
 
 
 ################################################################
@@ -133,26 +109,6 @@ async def index_js():
 
 
 ################################################################
-
-
-class GenerateTextExerciseInput(BaseModel):
-    text: str
-    description: str
-    bloom_level: Literal[None, 1, 2, 3, 4, 5, 6] = None
-    include_solution: bool = True
-    output_format: Literal['plain-text', 'markdown', 'latex'] = 'plain-text'
-    llm_model: Literal['gpt-4o-mini', 'gpt-4o'] = 'gpt-4o-mini'
-    openai_api_key: str
-
-
-class GenerateLectureExerciseInput(BaseModel):
-    lecture_id: str
-    description: str
-    bloom_level: Literal[None, 1, 2, 3, 4, 5, 6] = None
-    include_solution: bool = True
-    output_format: Literal['plain-text', 'markdown', 'latex'] = 'markdown'
-    llm_model: Literal['gpt-4o-mini', 'gpt-4o'] = 'gpt-4o-mini'
-    openai_api_key: str
 
 
 @app.post('/generate_exercise')
