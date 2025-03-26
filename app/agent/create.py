@@ -131,7 +131,6 @@ def create_agent():
 
         # Get category details and plan category-specific actions (system prompt, tools, etc.)
         category_details = get_category_details(category, integration, style)
-        print(category_details)
 
         update = {'category': category}
 
