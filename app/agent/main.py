@@ -12,6 +12,7 @@ from langchain_core.messages import (
     HumanMessage,
 )
 
+from app.schemas import ChatInput
 from app.agent.tool_interactions import get_tool_interactions, clear_tool_interactions
 from app.agent.create import create_agent
 
@@ -31,32 +32,40 @@ def log_message(message):
         print("[WRAPPER]", f"Got response message `{display_message[:100]}...` from agent system")
 
 
-def send_message(conversation_id: str, prompt: str, integrations: list[str] = None) -> dict:
+def send_message(chat_input: ChatInput) -> dict:
     """
     Sends a new message to the chatbot in the context of a given conversation.
 
     Args:
-        conversation_id (str): ID of a conversation. Subsequent calls to the same conversation will keep the message history.
-        If no conversation is found for the given ID, a new one will be created.
-        prompt (str): Message written by the user to be sent to the chatbot.
-        integrations (list[str]): A list of the available integrations for the interaction.
+        chat_input (ChatInput): Object with the chat input data, containing:
+            conversation_id (str): ID of a conversation. Subsequent calls to the same conversation will keep the message history.
+            If no conversation is found for the given ID, a new one will be created.
+            prompt (str): Message written by the user to be sent to the chatbot.
+            integrations (Optional[list[str]]): A list of the available integrations for the interaction.
+            style (Optional[str]): A key identifier for the available tutoring styles.
 
     Returns:
-        dict: Dictionary with keys `message` and `results`, containing the answer of the chatbot to the user's message and information about the
-        returned nodes if applicable, respectively.
+        dict: Dictionary with the output data, containing the answer of the chatbot to the user's message and other information like tool interactions, hallucinated links, etc.
     """
 
+    # Extract input data
+    conversation_id = chat_input.conversation_id
+    prompt = chat_input.human_input
+    integrations = chat_input.integrations if chat_input.integrations else []
+    style = chat_input.style
+
     print("[WRAPPER]", f"Received chat request for conversation `{conversation_id}` with input `{prompt}`")
+    print("[WRAPPER]", f"Enabled integrations {integrations}, and style `{style}`")
 
     # Reset tools results
     clear_tool_interactions(conversation_id)
 
+    # Set up agent input
+    agent_input = {'messages': [HumanMessage(content=prompt)]}
+    agent_config = {'configurable': {'thread_id': conversation_id, 'integrations': integrations, 'style': style}}
+
     # Invoke model with given prompt and conversation_id
-    agent_state = agent.invoke(
-        input={'messages': [HumanMessage(content=prompt)]},
-        config={'configurable': {'thread_id': conversation_id, 'integrations': integrations}},
-        debug=False
-    )
+    agent_state = agent.invoke(input=agent_input, config=agent_config, debug=False)
 
     # Extract response message
     message = agent_state['messages'][-1].content
@@ -80,6 +89,7 @@ def send_message(conversation_id: str, prompt: str, integrations: list[str] = No
         'conversation_id': conversation_id,
         'message': message,
         'integration': agent_state['integration'],
+        'style': agent_state['style'],
         'category': agent_state['category'],
         'hallucinated_links': agent_state['hallucinated_links'],
         'sources': rag_sources,
@@ -92,28 +102,37 @@ def ndjson(d: dict):
     return json.dumps(d) + '\n'
 
 
-async def stream_send_message(conversation_id: str, prompt: str, integrations: list[str] = None) -> AsyncGenerator:
+async def stream_send_message(chat_input: ChatInput) -> AsyncGenerator:
     """
     Sends a new message to the chatbot in the context of a given conversation and streams the events.
 
     Args:
-        conversation_id (str): ID of a conversation. Subsequent calls to the same conversation will keep the message history.
-        If no conversation is found for the given ID, a new one will be created.
-        prompt (str): Message written by the user to be sent to the chatbot.
-        integrations (list[str]): A list of the available integrations for the interaction.
+        chat_input (ChatInput): Object with the chat input data, containing:
+            conversation_id (str): ID of a conversation. Subsequent calls to the same conversation will keep the message history.
+            If no conversation is found for the given ID, a new one will be created.
+            prompt (str): Message written by the user to be sent to the chatbot.
+            integrations (Optional[list[str]]): A list of the available integrations for the interaction.
+            style (Optional[str]): A key identifier for the available tutoring styles.
 
     Returns:
-        AsyncGenerator: Each item is a dict containing the key 'state' and possibly 'content'.
+        AsyncGenerator: Each item is a dict containing the key `name`, `event` and other event-specific keys.
     """
 
+    # Extract input data
+    conversation_id = chat_input.conversation_id
+    prompt = chat_input.human_input
+    integrations = chat_input.integrations if chat_input.integrations else []
+    style = chat_input.style
+
     print("[WRAPPER]", f"Received stream chat request for conversation `{conversation_id}` with input `{prompt}`")
+    print("[WRAPPER]", f"Enabled integrations {integrations}, and style `{style}`")
 
     # Reset tools results
     clear_tool_interactions(conversation_id)
 
     # Set up agent input
     agent_input = {'messages': [HumanMessage(content=prompt)]}
-    agent_config = {'configurable': {'thread_id': conversation_id, 'integrations': integrations}}
+    agent_config = {'configurable': {'thread_id': conversation_id, 'integrations': integrations, 'style': style}}
 
     # Define states to be checked
     node_names = ['supervisor', 'classify', 'model', 'tools', 'check', 'cleanup']
@@ -170,6 +189,7 @@ async def stream_send_message(conversation_id: str, prompt: str, integrations: l
         'conversation_id': conversation_id,
         'message': message,
         'integration': agent_state['integration'],
+        'style': agent_state['style'],
         'category': agent_state['category'],
         'hallucinated_links': agent_state['hallucinated_links'],
         'sources': rag_sources,
@@ -182,29 +202,37 @@ async def stream_send_message(conversation_id: str, prompt: str, integrations: l
 if __name__ == '__main__':
     init_agent()
 
+    ################################################################
+
+    # Params
+    method = 'sync'
     conversation_id = '1234'
-    integrations = ['lex']
+    integrations = []
+    style = 'iterative'
 
-    method = 'async'
-
-    prompt = "How many days off am I entitled to if I have a baby?"
-
+    prompt = "Help me understand matrix diagonalisation."
     followup = False
     followup_prompt = "Where do you get that information from?"
 
+    ################################################################
+
+    chat_input = ChatInput(conversation_id=conversation_id, human_input=prompt, integrations=integrations, style=style)
+
     if method == 'sync':
-        message = send_message(conversation_id, prompt, integrations)['message']
+        message = send_message(chat_input)['message']
         print(message)
 
         if followup:
-            message = send_message(conversation_id, followup_prompt, integrations)['message']
+            chat_input.human_input = followup_prompt
+            message = send_message(chat_input)['message']
             print(message)
     elif method == 'async':
-        async def async_run(prompt):
-            async for update in stream_send_message(conversation_id, prompt, integrations):
+        async def async_run(chat_input):
+            async for update in stream_send_message(chat_input):
                 print(update)
 
-        asyncio.run(async_run(prompt))
+        asyncio.run(async_run(chat_input))
 
         if followup:
-            asyncio.run(async_run(followup_prompt))
+            chat_input.human_input = followup_prompt
+            asyncio.run(async_run(chat_input))

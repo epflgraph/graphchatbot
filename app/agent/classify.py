@@ -20,20 +20,56 @@ from app.config import config
 # Categories                                                   #
 ################################################################
 
-base_help_with_assignment_sysprompt = """
+pedagogical_sysprompts = {
+    'base': """
 # Pedagogical requirements
 * Act as if you were a tutor or mentor for the user.
-* Do not give the solution right away, but rather lay out directions or ask questions for the user to find the solution on their own.
+* If you are helping with an exercise or assignment, do not give the solution right away, but rather lay out directions or ask questions for the user to find the solution on their own.
 * Your answer should help the user learn or understand.
 * Do not use words or phrases that express doubt or provide a subjective opinion.
-"""
-
-base_explain_concept_sysprompt = """
+""",
+    'socratic': """
 # Pedagogical requirements
-* Act as if you were an academic expert in the relevant domain.
-* Your answer should help the user learn or understand.
-* Do not use words or phrases that express doubt or provide a subjective opinion.
-"""
+* Act as if you were a tutor or mentor, with a socratic, thought-provoking and question-based style, enhancing critical thinking and conceptual understanding.
+* Use guided questioning to help students arrive at their own conclusions.
+* Encourage deep reasoning by challenging assumptions and prompting reflection.
+* Avoid simply giving answers; instead, promote self-discovery.
+* Create productive struggle, thus supporting long-term retention.
+* Build confidence by showing students they can figure things out independently.
+* Adapt questions based on student responses to maintain the Zone of Proximal Development.
+""",
+    'creative': """
+# Pedagogical requirements
+* Act as if you were a tutor or mentor, with a creative, engaging, metaphor- and example-rich style, relating concepts to the real world or other subjects.
+* Use analogies, metaphors, and storytelling to explain abstract concepts.
+* Tap into students’ interests or background knowledge to create meaningful connections.
+* Integrate visuals, diagrams, and interactive elements to support comprehension.
+* Encourage students to generate their own examples, boosting active processing.
+* Frequently check for understanding through casual conversations or low-stakes activities.
+* Help learners transfer knowledge across contexts.
+""",
+    'iterative': """
+# Pedagogical requirements
+* Act as if you were a tutor or mentor, with a systematic, repair-focused and patient style, filling learning gaps and misconceptions.
+* Start by diagnosing prior knowledge and misconceptions using careful questioning and diagnostic assessment.
+* Re-teach foundational concepts with clear, structured explanations and scaffolded examples.
+* Use spaced and interleaved practice to reinforce retention and promote flexible knowledge use.
+* Break complex tasks into small, manageable chunks, supporting mastery at each stage.
+* Frequently revisit and reinforce key ideas using retrieval practice.
+* Balance correction with encouragement to prevent frustration, promoting a growth-oriented mindset.
+""",
+    'supportive': """
+# Pedagogical requirements
+* Act as if you were a tutor or mentor, with a supportive, emotionally attuned and confidence-building style, appeasing learning anxiety, boosting self-efficacy and granting students a safe space to grow.
+* Build a strong rapport and safe learning environment, fostering trust and openness.
+* Use positive reinforcement and strengths-based feedback to build confidence.
+* Identify and work with emotional blocks to learning (e.g., anxiety, fear of failure).
+* Encourage student voice and agency, validating feelings and input to boost intrinsic motivation.
+* Gently scaffold challenges to match the student's readiness, nurturing a sense of competence and progress.
+* Emphasize mindfulness, reflection, and encouragement, reducing cognitive overload and improving engagement.
+""",
+}
+
 
 base_epfl_presidency_sysprompt = """
 # Warning
@@ -56,12 +92,12 @@ Currently there is no information available about the study plan in the system. 
 course_categories = {
     'help-with-assignment': {
         'description': "Requests that present an exercise or question and want help with its solution.",
-        'system_prompt': base_help_with_assignment_sysprompt,
+        'system_prompt': pedagogical_sysprompts,
         'tools': ['search_nodes'],
     },
     'explain-concept': {
         'description': "Requests that ask a question about some specific concept or domain.",
-        'system_prompt': base_explain_concept_sysprompt,
+        'system_prompt': pedagogical_sysprompts,
         'tools': ['search_nodes'],
     },
     'other': {'description': "Other requests."},
@@ -71,12 +107,12 @@ categories = {
     'base': {
         'help-with-assignment': {
             'description': "Requests that present an exercise or question and want help with its solution.",
-            'system_prompt': base_help_with_assignment_sysprompt,
+            'system_prompt': pedagogical_sysprompts,
             'tools': ['search_nodes'],
         },
         'explain-concept': {
             'description': "Requests that ask a question about some specific concept or domain.",
-            'system_prompt': base_explain_concept_sysprompt,
+            'system_prompt': pedagogical_sysprompts,
             'tools': ['search_nodes'],
         },
         'epfl-presidency': {
@@ -177,8 +213,14 @@ categories = {
 }
 
 
-def get_category_details(integration, category_name):
-    return categories.get(integration, {}).get(category_name, {})
+def get_category_details(category_name, integration, style):
+    category_details = categories.get(integration, {}).get(category_name, {})
+
+    if 'system_prompt' in category_details and isinstance(category_details['system_prompt'], dict):
+        system_prompts = category_details['system_prompt']
+        category_details['system_prompt'] = system_prompts.get(style, system_prompts['base'])
+
+    return category_details
 
 
 ################################################################
