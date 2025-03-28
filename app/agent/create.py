@@ -36,7 +36,10 @@ class State(MessagesState):
     """
 
     integration: Optional[str]
+    use_tools: Optional[bool]
     style: Optional[str]
+    style_prompt: Optional[str]
+    ####
     category: Optional[str]
     tools_queue: Optional[list[str]]
     hallucinated_links: Optional[list[str]]
@@ -65,16 +68,19 @@ def create_agent():
     # Tools                                                        #
     ################################################################
 
-    def get_tools(integration):
-        tools = [
-            StructuredTool.from_function(name='search_nodes', func=search_nodes),
-            StructuredTool.from_function(name='search_exercises', func=search_exercises),
-            StructuredTool.from_function(name='search_news', func=search_news),
-            StructuredTool.from_function(name='search_plan', func=search_plan),
-            StructuredTool.from_function(name='get_orgchart', func=get_orgchart),
-        ]
+    def get_tools(state):
+        if state['use_tools']:
+            tools = [
+                StructuredTool.from_function(name='search_nodes', func=search_nodes),
+                StructuredTool.from_function(name='search_exercises', func=search_exercises),
+                StructuredTool.from_function(name='search_news', func=search_news),
+                StructuredTool.from_function(name='search_plan', func=search_plan),
+                StructuredTool.from_function(name='get_orgchart', func=get_orgchart),
+            ]
+        else:
+            tools = []
 
-        if integration:
+        if state['integration'] and state['integration'] != 'base':
             tools.append(StructuredTool.from_function(name='search_integration', func=search_integration))
 
         return tools
@@ -98,7 +104,11 @@ def create_agent():
 
     def supervisor_node(state: State, config: RunnableConfig):
         integrations = config.get('configurable', {}).get('integrations', [])
+        use_tools = config.get('configurable', {}).get('use_tools', True)
         style = config.get('configurable', {}).get('style')
+        style_prompt = config.get('configurable', {}).get('style_prompt')
+
+        print('[CLASSIFY]', f"Params: integrations {integrations}, use_tools {use_tools}, style `{style}`, style_prompt `{style_prompt}`")
 
         if integrations:
             # Pick the first integration TODO: Allow for multiple integrations (if that's what we want to do)
@@ -114,7 +124,15 @@ def create_agent():
         if integration == 'service-desk':
             integration = 'servicedesk'
 
-        return Command(goto='classify', update={'integration': integration, 'style': style, 'tools_queue': tools_queue})
+        update = {
+            'integration': integration,
+            'use_tools': use_tools,
+            'style': style,
+            'style_prompt': style_prompt,
+            'tools_queue': tools_queue,
+        }
+
+        return Command(goto='classify', update=update)
 
     ################################################################
     # Classify node                                                #
@@ -123,21 +141,23 @@ def create_agent():
     def classify_node(state: State):
         messages = state['messages']
         integration = state['integration']
+        use_tools = state['use_tools']
         style = state['style']
+        style_prompt = state['style_prompt']
 
         # Classify conversation
         category = classify_conversation(messages, integration)
-        print('[CLASSIFY]', f"Classified conversation as `{integration}` - `{category}`")
+        print('[CLASSIFY]', f"Classified conversation as `{category}`")
 
         # Get category details and plan category-specific actions (system prompt, tools, etc.)
-        category_details = get_category_details(category, integration, style)
+        category_details = get_category_details(category, integration, style, style_prompt)
 
         update = {'category': category}
 
         if 'system_prompt' in category_details:
             update['messages'] = [SystemMessage(content=category_details['system_prompt'])]
 
-        if 'tools' in category_details:
+        if use_tools and 'tools' in category_details:
             update['tools_queue'] = state['tools_queue'] + category_details['tools']
 
         return Command(goto='model', update=update)
@@ -150,8 +170,9 @@ def create_agent():
         # Extract the list of messages from conversation history
         messages = state['messages']
         integration = state['integration']
+        use_tools = state['use_tools']
 
-        tools = get_tools(integration)
+        tools = get_tools(state)
 
         # Force tool call if there is any in the queue
         tools_queue = state['tools_queue']
@@ -164,7 +185,7 @@ def create_agent():
             print('[MODEL]', "Calling LLM without forcing any tool call")
 
         # Generate new ai message
-        messages_with_system_prompt = [SystemMessage(content=get_system_prompt(integration))] + messages
+        messages_with_system_prompt = [SystemMessage(content=get_system_prompt(integration, use_tools))] + messages
         ai_message = model_with_tools.invoke(messages_with_system_prompt, config)
 
         # Hand over to 'tools' if the ai message contains tool calls or proceed to 'check' otherwise
@@ -180,10 +201,9 @@ def create_agent():
     def tools_node(state: State, config: RunnableConfig):
         messages = state['messages']
         last_message = messages[-1]
-        integration = state['integration']
 
         # Execute all tool calls in the last message
-        tools = get_tools(integration)
+        tools = get_tools(state)
         tool_messages = ToolNode(tools).invoke(state)['messages']
 
         # Store tool interactions (unobfuscated)

@@ -5,7 +5,7 @@ This module defines the system prompt for the agent of the chatbot.
 from datetime import datetime
 
 
-def get_system_prompt(integration):
+def get_system_prompt(integration, use_tools):
     today = datetime.now().strftime("%Y-%m-%d")
 
     intros = {
@@ -15,41 +15,67 @@ def get_system_prompt(integration):
         'sac': "You are the assistant of EPFL Graph, the project of the knowledge graph of EPFL. You also have access to a document base from Service Académique at EPFL, covering aspects like admissions, registrations, record-keeping and resource management processes for all training courses. Your task is to answer questions from EPFL students, researchers or staff members.",
     }
 
-    tools = """
-# Tools
-To do that, use the tools at your disposal to produce a response that is correct, relevant and pertinent. They are the following:
-
+    available_tools = {
+        'search_nodes': """
 ## `search_nodes`
 Searches and retrieves a few nodes (and their related nodes) from the EPFL knowledge graph. 
 * Use this tool almost always, so you have the context of the knowledge graph, and blend the relevant nodes into your answer. 
 * Be precise when you choose the `node_type` for the tool. Choose one or more of the following node types: `Lecture`, `Course`, `MOOC`, `Concept`, `Category`, `Person`, `Publication`, `Unit` and `Startup`.
 * Never use mathematical formulas in the input of this tool.
 * In your response, blend in the most relevant nodes or their `nearest_nodes` in your answer as Markdown links.
+""",
 
+        'search_exercises': """
 ## `search_exercises`
 Searches and retrieves exercises from EXOSET, a hand-curated database of exercises and exam problems from EPFL.
 * Use this tool only when the user requests "exercises" or "problems" explicitly.
 * When you use this tool, set the `language` parameter to the language the user is using.
+""",
 
+        'search_news': """
 ## `search_news`
 Searches and retrieves news from the EPFL news website.
 * Use this tool only when the user requests "news" explicitly.
+""",
 
+        'search_plan': """
 ## `search_plan`
 Builds a link to the EPFL plan website.
 * Use this tool only when the user requests information about EPFL's infrastructure explicitly, like buildings, rooms or related services.
-* When you use this tool, do not answer the request but instead redirect the user to the EPFL plan's website through the link coming from the tool. 
+* When you use this tool, do not answer the request but instead redirect the user to the EPFL plan's website through the link coming from the tool.
+""",
 
+        'get_orgchart': """
 ## `get_orgchart`
 Retrieves the current orgchart of EPFL.
 * Use this tool only when the user requests information about management positions at EPFL or about people you think can hold a management position at EPFL.
 * The EPFL has one "President" and 6 "Vice Presidents" (VPA, VPF, VPI, VPO, VPS and VPH), not to be confused with "Associate Vice Presidents", who are NOT "Vice Presidents" themselves.
 * The results of this tool include EPFL staff from certain upper-management units, but it is not an exhaustive list of EPFL members.
-* The results of this tool are up-to-date.  
+* The results of this tool are up-to-date.
+""",
 
+        'search_integration': """
 ## `search_integration`
 Retrieves pieces of relevant documents depending on the selected integration.
-* Make sure to always include the relevant resources returned by this tool, as they are the results with the highest quality."""
+* Make sure to always include the relevant resources returned by this tool, as they are the results with the highest quality.
+""",
+    }
+
+    if not use_tools:
+        available_tools = {'search_integration': available_tools['search_integration']}
+
+    if not integration or integration == 'base':
+        del available_tools['search_integration']
+
+    if available_tools:
+        tools = """
+# Tools
+To do that, use the tools at your disposal to produce a response that is correct, relevant and pertinent. They are the following:
+"""
+        for tool in available_tools:
+            tools += available_tools[tool]
+    else:
+        tools = ""
 
     format = """
 # Format
@@ -78,6 +104,9 @@ Here are some examples:
         'sac': "",
     }
 
+    if not use_tools:
+        examples['base'] = ""
+
     considerations = f"""
 # General considerations
 * Be proactive and helpful when you answer: Give specific suggestions about what you can do next in relation with your response. For example, if you present course nodes, you could ask the user if they want to see lectures from this course.
@@ -101,4 +130,4 @@ Here are some examples:
 
 
 if __name__ == '__main__':
-    print(get_system_prompt('sac'))
+    print(get_system_prompt('sac', True))

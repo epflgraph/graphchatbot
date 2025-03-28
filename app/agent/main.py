@@ -12,7 +12,6 @@ from langchain_core.messages import (
     HumanMessage,
 )
 
-from app.schemas import ChatInput
 from app.agent.tool_interactions import get_tool_interactions, clear_tool_interactions
 from app.agent.create import create_agent
 
@@ -32,37 +31,33 @@ def log_message(message):
         print("[WRAPPER]", f"Got response message `{display_message[:100]}...` from agent system")
 
 
-def send_message(chat_input: ChatInput) -> dict:
+def send_message(params: dict) -> dict:
     """
     Sends a new message to the chatbot in the context of a given conversation.
 
     Args:
-        chat_input (ChatInput): Object with the chat input data, containing:
-            conversation_id (str): ID of a conversation. Subsequent calls to the same conversation will keep the message history.
-            If no conversation is found for the given ID, a new one will be created.
-            prompt (str): Message written by the user to be sent to the chatbot.
-            integrations (Optional[list[str]]): A list of the available integrations for the interaction.
-            style (Optional[str]): A key identifier for the available tutoring styles.
+        params (dict): Object with the chat input data as a dict.
 
     Returns:
         dict: Dictionary with the output data, containing the answer of the chatbot to the user's message and other information like tool interactions, hallucinated links, etc.
     """
 
-    # Extract input data
-    conversation_id = chat_input.conversation_id
-    prompt = chat_input.human_input
-    integrations = chat_input.integrations if chat_input.integrations else []
-    style = chat_input.style
-
-    print("[WRAPPER]", f"Received chat request for conversation `{conversation_id}` with input `{prompt}`")
-    print("[WRAPPER]", f"Enabled integrations {integrations}, and style `{style}`")
+    print("[WRAPPER]", f"Received chat request for conversation `{params.get('conversation_id')}` with input `{params.get('human_input')}`")
 
     # Reset tools results
-    clear_tool_interactions(conversation_id)
+    clear_tool_interactions(params.get('conversation_id'))
 
     # Set up agent input
-    agent_input = {'messages': [HumanMessage(content=prompt)]}
-    agent_config = {'configurable': {'thread_id': conversation_id, 'integrations': integrations, 'style': style}}
+    agent_input = {'messages': [HumanMessage(content=params.get('human_input'))]}
+    agent_config = {
+        'configurable': {
+            'thread_id': params.get('conversation_id'),
+            'integrations': params.get('integrations'),
+            'use_tools': params.get('use_tools'),
+            'style': params.get('style'),
+            'style_prompt': params.get('style_prompt'),
+        }
+    }
 
     # Invoke model with given prompt and conversation_id
     agent_state = agent.invoke(input=agent_input, config=agent_config, debug=False)
@@ -74,7 +69,7 @@ def send_message(chat_input: ChatInput) -> dict:
     log_message(message)
 
     # Fetch results obtained in the tools
-    tool_interactions = get_tool_interactions(conversation_id)
+    tool_interactions = get_tool_interactions(params.get('conversation_id'))
     print("[WRAPPER]", f"Found {len(tool_interactions)} tool interactions")
 
     # Extract RAG sources from tool interactions
@@ -86,7 +81,7 @@ def send_message(chat_input: ChatInput) -> dict:
     print("[WRAPPER]", "Finishing execution")
 
     return {
-        'conversation_id': conversation_id,
+        'conversation_id': params.get('conversation_id'),
         'message': message,
         'integration': agent_state['integration'],
         'style': agent_state['style'],
@@ -102,37 +97,38 @@ def ndjson(d: dict):
     return json.dumps(d) + '\n'
 
 
-async def stream_send_message(chat_input: ChatInput) -> AsyncGenerator:
+def un_ndjson(s: str):
+    """Converts a str into a dict by decoding it from json."""
+    return json.loads(s)
+
+
+async def stream_send_message(params: dict) -> AsyncGenerator:
     """
     Sends a new message to the chatbot in the context of a given conversation and streams the events.
 
     Args:
-        chat_input (ChatInput): Object with the chat input data, containing:
-            conversation_id (str): ID of a conversation. Subsequent calls to the same conversation will keep the message history.
-            If no conversation is found for the given ID, a new one will be created.
-            prompt (str): Message written by the user to be sent to the chatbot.
-            integrations (Optional[list[str]]): A list of the available integrations for the interaction.
-            style (Optional[str]): A key identifier for the available tutoring styles.
+        params (dict): Object with the chat input data as a dict.
 
     Returns:
         AsyncGenerator: Each item is a dict containing the key `name`, `event` and other event-specific keys.
     """
 
-    # Extract input data
-    conversation_id = chat_input.conversation_id
-    prompt = chat_input.human_input
-    integrations = chat_input.integrations if chat_input.integrations else []
-    style = chat_input.style
-
-    print("[WRAPPER]", f"Received stream chat request for conversation `{conversation_id}` with input `{prompt}`")
-    print("[WRAPPER]", f"Enabled integrations {integrations}, and style `{style}`")
+    print("[WRAPPER]", f"Received stream chat request for conversation `{params.get('conversation_id')}` with input `{params.get('human_input')}`")
 
     # Reset tools results
-    clear_tool_interactions(conversation_id)
+    clear_tool_interactions(params.get('conversation_id'))
 
     # Set up agent input
-    agent_input = {'messages': [HumanMessage(content=prompt)]}
-    agent_config = {'configurable': {'thread_id': conversation_id, 'integrations': integrations, 'style': style}}
+    agent_input = {'messages': [HumanMessage(content=params.get('human_input'))]}
+    agent_config = {
+        'configurable': {
+            'thread_id': params.get('conversation_id'),
+            'integrations': params.get('integrations'),
+            'use_tools': params.get('use_tools'),
+            'style': params.get('style'),
+            'style_prompt': params.get('style_prompt'),
+        }
+    }
 
     # Define states to be checked
     node_names = ['supervisor', 'classify', 'model', 'tools', 'check', 'cleanup']
@@ -174,7 +170,7 @@ async def stream_send_message(chat_input: ChatInput) -> AsyncGenerator:
     log_message(message)
 
     # Fetch results obtained in the tools
-    tool_interactions = get_tool_interactions(conversation_id)
+    tool_interactions = get_tool_interactions(params.get('conversation_id'))
     print("[WRAPPER]", f"Found {len(tool_interactions)} tool interactions")
 
     # Extract RAG sources from tool interactions
@@ -186,7 +182,7 @@ async def stream_send_message(chat_input: ChatInput) -> AsyncGenerator:
     # Yield last update with the final message complete and the tool interactions
     yield ndjson({
         'name': 'report',
-        'conversation_id': conversation_id,
+        'conversation_id': params.get('conversation_id'),
         'message': message,
         'integration': agent_state['integration'],
         'style': agent_state['style'],
@@ -205,34 +201,35 @@ if __name__ == '__main__':
     ################################################################
 
     # Params
-    method = 'sync'
-    conversation_id = '1234'
-    integrations = []
-    style = 'iterative'
+    method = 'async'
+    params = {
+        'conversation_id': '1234',
+        'integrations': ['COURSE-2'],
+        'use_tools': False,
+        'style': 'custom',
+        'style_prompt': "Talk like a pirate",
+    }
 
-    prompt = "Help me understand matrix diagonalisation."
-    followup = False
-    followup_prompt = "Where do you get that information from?"
+    prompts = [
+        "Tell me about the A* algorithm and show me lectures teaching it",
+        "Where do you get that information from?",
+    ]
 
     ################################################################
 
-    chat_input = ChatInput(conversation_id=conversation_id, human_input=prompt, integrations=integrations, style=style)
+    for prompt in prompts:
+        params['human_input'] = prompt
 
-    if method == 'sync':
-        message = send_message(chat_input)['message']
+        if method == 'sync':
+            message = send_message(params)['message']
+        else:
+            async def async_run(chat_input):
+                async for update in stream_send_message(chat_input):
+                    update = un_ndjson(update)
+
+                    if update['name'] == 'report':
+                        return update['message']
+
+            message = asyncio.run(async_run(params))
+
         print(message)
-
-        if followup:
-            chat_input.human_input = followup_prompt
-            message = send_message(chat_input)['message']
-            print(message)
-    elif method == 'async':
-        async def async_run(chat_input):
-            async for update in stream_send_message(chat_input):
-                print(update)
-
-        asyncio.run(async_run(chat_input))
-
-        if followup:
-            chat_input.human_input = followup_prompt
-            asyncio.run(async_run(chat_input))

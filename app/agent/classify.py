@@ -93,12 +93,10 @@ course_categories = {
     'help-with-assignment': {
         'description': "Requests that present an exercise or question and want help with its solution.",
         'system_prompt': pedagogical_sysprompts,
-        'tools': ['search_nodes'],
     },
     'explain-concept': {
         'description': "Requests that ask a question about some specific concept or domain.",
         'system_prompt': pedagogical_sysprompts,
-        'tools': ['search_nodes'],
     },
     'other': {'description': "Other requests."},
 }
@@ -213,12 +211,19 @@ categories = {
 }
 
 
-def get_category_details(category_name, integration, style):
+def get_category_details(category_name, integration, style, style_prompt):
     category_details = categories.get(integration, {}).get(category_name, {})
 
     if 'system_prompt' in category_details and isinstance(category_details['system_prompt'], dict):
         system_prompts = category_details['system_prompt']
         category_details['system_prompt'] = system_prompts.get(style, system_prompts['base'])
+
+    if style_prompt:
+        style_prompt = style_prompt.strip()
+
+    if style == 'custom' and style_prompt:
+        category_details['system_prompt'] = f"""# Pedagogical requirements
+{style_prompt}"""
 
     return category_details
 
