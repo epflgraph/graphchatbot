@@ -205,14 +205,15 @@ categories = {
         'studies': {'description': "Requests about studies."},
         'other': {'description': "Other requests."},
     },
-    'COURSE-1': course_categories,
-    'COURSE-2': course_categories,
-    'COURSE-3': course_categories,
+    'COURSE-X': course_categories,
 }
 
 
 def get_category_details(category_name, integration, style, style_prompt):
-    category_details = categories.get(integration, {}).get(category_name, {})
+    if integration.startswith('COURSE-'):
+        category_details = categories.get('COURSE-X', {}).get(category_name, {})
+    else:
+        category_details = categories.get(integration, {}).get(category_name, {})
 
     if 'system_prompt' in category_details and isinstance(category_details['system_prompt'], dict):
         system_prompts = category_details['system_prompt']
