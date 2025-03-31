@@ -155,7 +155,7 @@ async def stream_send_message(params: dict) -> AsyncGenerator:
                 yield ndjson({'name': event['name'], 'event': 'end', 'request_type': event['data']['output'].update['category']})
             elif event['name'] == 'check':
                 hallucinated_links = event['data']['output'].update['hallucinated_links']   # TODO return this list instead of `need_to_regenerate`
-                yield ndjson({'name': event['name'], 'event': 'end', 'need_to_regenerate': False})
+                yield ndjson({'name': event['name'], 'event': 'end', 'hallucinated_links': hallucinated_links})
             else:
                 yield ndjson({'name': event['name'], 'event': 'end'})
 
