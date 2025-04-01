@@ -215,6 +215,9 @@ def get_category_details(category_name, integration, style, style_prompt):
     else:
         category_details = categories.get(integration, {}).get(category_name, {})
 
+    # Deep copy category details not to overwrite the global object
+    category_details = {**category_details}
+
     if 'system_prompt' in category_details and isinstance(category_details['system_prompt'], dict):
         system_prompts = category_details['system_prompt']
         category_details['system_prompt'] = system_prompts.get(style, system_prompts['base'])
