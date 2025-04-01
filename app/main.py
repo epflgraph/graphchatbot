@@ -60,7 +60,7 @@ async def chat(input: ChatInput, response: Response):
         ChatOutput: Output object containing either an error_code, if there was a problem, or a message and a results object, if everything was fine.
     """
 
-    return send_message(input)
+    return send_message(input.to_dict())
 
 
 @app.post('/stream_chat')
@@ -75,7 +75,7 @@ async def stream_chat(input: ChatInput):
         StreamingResponse: Streams bits of the response asynchronously as they become available.
     """
 
-    return StreamingResponse(stream_send_message(input), media_type='application/x-ndjson')
+    return StreamingResponse(stream_send_message(input.to_dict()), media_type='application/x-ndjson')
 
 
 ################################################################
