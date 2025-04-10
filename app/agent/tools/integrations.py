@@ -11,7 +11,7 @@ from app.interfaces.graphai import GraphAIClient
 
 def search_integration(state: Annotated[dict, InjectedState], keywords: list, limit: Optional[int] = 10) -> list:
     """
-    Performs a search in a relevant document store with the given `keywords`. It returns up to `limit` document chunks.
+    Performs a search in a relevant document store with the given `keywords`.
     """
 
     integration = state['integration']
@@ -71,8 +71,8 @@ def search_integration(state: Annotated[dict, InjectedState], keywords: list, li
     # Sort the results in a list by descending score (which is an integer between 1 and n_keywords)
     results = sorted(results.values(), key=lambda result: result['.score'], reverse=True)
 
-    # Keep up to `limit` results
-    results = results[:limit]
+    # # Keep up to `limit` results
+    # results = results[:limit]
 
     return results
 
