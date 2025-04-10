@@ -204,15 +204,14 @@ if __name__ == '__main__':
     method = 'async'
     params = {
         'conversation_id': '1234',
-        'integrations': ['COURSE-2'],
-        'use_tools': False,
-        'style': 'custom',
-        'style_prompt': "Talk like a pirate",
+        'integrations': ['servicedesk'],
+        'use_tools': True,
+        # 'style': 'custom',
+        # 'style_prompt': "Talk like a pirate",
     }
 
     prompts = [
-        "Tell me about the A* algorithm and show me lectures teaching it",
-        "Where do you get that information from?",
+        "L'ordinateur de Martin Vetterli ne fonctionne pas",
     ]
 
     ################################################################
