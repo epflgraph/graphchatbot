@@ -7,7 +7,9 @@ import requests
 
 import pandas as pd
 
-from app.interfaces.es import search
+from elasticsearch_interface.es import ESGraphSearch
+
+from app.config import config
 
 API_URL = f"https://exoset.epfl.ch/graphapi"
 TEST_API_URL = f"https://test-exoset.epfl.ch/graphapi"
@@ -78,7 +80,8 @@ def search_exercises(query: str, language: str = 'EN') -> list:
         print("[EXOSET TOOL]", f"Found {len(cache[query])} cached exercises for query `{query}` and language `{language}`, returning those")
         return cache[query]
 
-    nodes = search(query, node_type='Concept', limit=50, return_links=False, return_scores=True)
+    es = ESGraphSearch(config['elasticsearch'], config['elasticsearch']['index'])
+    nodes = es.search(query, node_type='Concept', limit=50, return_links=False, return_scores=True)
 
     print("[EXOSET TOOL]", f"Got {len(nodes)} concepts to query for exercises: {[node['name']['en'] for node in nodes]}")
 
