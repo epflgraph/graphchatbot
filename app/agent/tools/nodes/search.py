@@ -10,8 +10,9 @@ from app.agent.tools.nodes.timestamps import (
     add_lecture_timestamps,
 )
 
+from elasticsearch_interface.es import ESGraphSearch
 
-from app.interfaces.es import search
+from app.config import config
 
 
 def get_allowed_node_types(node_types: list | str):
@@ -67,7 +68,8 @@ def search_nodes(keywords: list[str] = None, node_type: list[str] | str = None) 
     # We override the behavior above because of the Osterwalder example
     allowed_node_types = None
 
-    nodes = search(keywords, node_type=allowed_node_types, limit=3, return_links=True, return_scores=False)
+    es = ESGraphSearch(config['elasticsearch'], config['elasticsearch']['index'])
+    nodes = es.search(keywords, node_type=allowed_node_types, limit=3, return_links=True, return_scores=False)
     print('[NODES TOOL]', f"Got nodes ({[(node['doc_type'], node['doc_id'], node['name']['en']) for node in nodes]}) with {[len(node['links']) for node in nodes]} links from elasticsearch")
 
     # Build a nodes object by renaming, cleaning and filtering some fields
