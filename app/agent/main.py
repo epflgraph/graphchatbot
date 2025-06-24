@@ -6,6 +6,7 @@ It also provides the entry point function to interact with it.
 
 import asyncio
 import json
+import time
 from typing import AsyncGenerator
 
 from langchain_core.messages import (
@@ -22,6 +23,75 @@ def init_agent():
     global agent
     agent = create_agent()
 
+
+def generate_completion(chat_request) -> dict:
+    print(chat_request)
+
+    # Set up agent input
+    agent_input = {'messages':  chat_request['messages']}
+    agent_config = {
+        'configurable': {
+            'integrations': [],
+            'use_tools': True,
+            'style': None,
+            'style_prompt': None,
+        }
+    }
+
+    # Invoke model with given prompt and conversation_id
+    agent_state = agent.invoke(input=agent_input, config=agent_config)
+
+    # Extract last message
+    content = agent_state['messages'][-1].content
+
+    return {
+        "id": "1",
+        "object": "chat.completion",
+        "created": time.time(),
+        "model": chat_request['model'],
+        "choices": [{"message": {'role': 'assistant', 'content': content}}],
+    }
+
+
+async def agenerate_completion(chat_request) -> AsyncGenerator:
+    print(chat_request)
+
+    # Set up agent input
+    agent_input = {'messages':  chat_request['messages']}
+    agent_config = {
+        'configurable': {
+            'integrations': [],
+            'use_tools': True,
+            'style': None,
+            'style_prompt': None,
+        }
+    }
+
+    # Launch agent and iterate over the event updates
+    content = ''
+    async for event in agent.astream_events(input=agent_input, config=agent_config, version='v2'):
+        # Yield in the model node when there is a message chunk
+        if event['metadata'].get('langgraph_node') == 'model' and event['name'] == 'ChatOpenAI' and event['event'] == 'on_chat_model_stream':
+            chunk_content = event['data']['chunk'].content
+
+            chunk = {
+                'id': "1",
+                'object': "chat.completion.chunk",
+                'created': time.time(),
+                'model': chat_request['model'],
+                'choices': [{'delta': {'content': chunk_content}}],
+            }
+
+            content += chunk_content
+            yield f"data: {json.dumps(chunk)}\n\n"
+
+    print(content)
+    yield "data: [DONE]\n\n"
+
+
+################################################################
+
+# TODO: DELETE THIS BLOCK
 
 def log_message(message):
     display_message = message.replace('\n', ' ')
@@ -193,6 +263,9 @@ async def stream_send_message(params: dict) -> AsyncGenerator:
     })
 
     print("[WRAPPER]", "Finishing execution")
+
+
+################################################################
 
 
 if __name__ == '__main__':

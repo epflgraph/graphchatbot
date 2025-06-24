@@ -9,8 +9,9 @@ from typing import Union
 from fastapi import FastAPI, Response
 from fastapi.responses import StreamingResponse, FileResponse
 
-from app.schemas import ChatInput, ChatOutput, GenerateTextExerciseInput, GenerateLectureExerciseInput
-from app.agent import init_agent, send_message, stream_send_message
+from app.schemas import ChatRequest
+from app.old_schemas import GenerateTextExerciseInput, GenerateLectureExerciseInput
+from app.agent import init_agent, generate_completion, agenerate_completion
 import app.exercises as exercises
 
 
@@ -47,65 +48,41 @@ app = FastAPI(
 )
 
 
-@app.post('/chat', response_model=ChatOutput, response_model_exclude_unset=True)
-async def chat(input: ChatInput, response: Response):
+@app.post('/chat/completions')
+async def chat(chat_request: ChatRequest):
     """
-    Sends a new message to the chatbot in the context of a given conversation. This is the main endpoint to interact with the chatbot.
+    Creates a model response for the given chat conversation.
 
     Args:
-        input (ChatInput): Input object containing the conversation_id and the new piece of human_input. This is the payload of the request.
-        response (Response): Actual response object provided by FastAPI. Do not provide this parameter, as it is handled automatically by FastAPI.
+        chat_request (ChatRequest): Input object containing the payload of the request.
 
     Returns:
-        ChatOutput: Output object containing either an error_code, if there was a problem, or a message and a results object, if everything was fine.
+        ChatResponse: Output object containing a chat completion based on the provided input.
     """
 
-    return send_message(input.to_dict())
+    if chat_request.stream:
+        return StreamingResponse(
+            agenerate_completion(chat_request.dict()),
+            media_type="application/x-ndjson"
+        )
+    else:
+        return generate_completion(chat_request.dict())
 
 
-@app.post('/stream_chat')
-async def stream_chat(input: ChatInput):
-    """
-    Sends a new message to the chatbot in the context of a given conversation. This is the stream version of the main endpoint to interact with the chatbot.
+@app.get('/models')
+async def models():
 
-    Args:
-        input (ChatInput): Input object containing the conversation_id and the new piece of human_input. This is the payload of the request.
-
-    Returns:
-        StreamingResponse: Streams bits of the response asynchronously as they become available.
-    """
-
-    return StreamingResponse(stream_send_message(input.to_dict()), media_type='application/x-ndjson')
-
-
-################################################################
-
-
-@app.get('/')
-async def index():
-    """
-    Serves the HTML file for the chatbot's frontend.
-    """
-
-    return FileResponse('../html/index.html')
-
-
-@app.get('/index.css')
-async def index_css():
-    """
-    Serves the CSS file for the chatbot's frontend.
-    """
-
-    return FileResponse('../html/index.css')
-
-
-@app.get('/index.js')
-async def index_js():
-    """
-    Serves the JS file for the chatbot's frontend.
-    """
-
-    return FileResponse('../html/index.js')
+    return {
+      "object": "list",
+      "data": [
+        {
+          "id": "chatbot",
+          "object": "model",
+          "created": 1686935002,
+          "owned_by": "epfl-graph-cede"
+        },
+      ],
+    }
 
 
 ################################################################

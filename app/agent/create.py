@@ -10,7 +10,6 @@ from langchain_core.runnables import RunnableConfig
 from langchain.tools import StructuredTool
 from langchain_openai import ChatOpenAI
 
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import StateGraph, MessagesState, END
 from langgraph.prebuilt.tool_node import ToolNode
 from langgraph.types import Command
@@ -84,12 +83,6 @@ def create_agent():
             tools.append(StructuredTool.from_function(name='search_integration', func=search_integration))
 
         return tools
-
-    ################################################################
-    # Memory                                                       #
-    ################################################################
-
-    memory = MemorySaver()
 
     ################################################################
     # Model                                                        #
@@ -206,29 +199,29 @@ def create_agent():
         tools = get_tools(state)
         tool_messages = ToolNode(tools).invoke(state)['messages']
 
-        # Store tool interactions (unobfuscated)
-        tool_calls = last_message.tool_calls
-        for tool_call in tool_calls:
-            for tool_message in tool_messages:
-                if tool_call['id'] == tool_message.tool_call_id:
-                    print('[TOOLS]', f"Storing tool call result for `{tool_call['name']}`")
-
-                    if isinstance(tool_message.content, str):
-                        try:
-                            tool_response = json.loads(tool_message.content)
-                        except json.decoder.JSONDecodeError as e:
-                            print('[TOOLS]', f"WARNING: Could not parse tool response: {e}. Tool result: {tool_message.content}")
-                            tool_response = []
-                    else:
-                        # Oddly enough, when tool returns empty list, content is not a string '[]' but an actual empty list
-                        tool_response = tool_message.content
-
-                    tool_interaction = {'tool_call': tool_call, 'tool_response': tool_response}
-                    append_tool_interaction(config['configurable']['thread_id'], tool_interaction)
-                    break
-
-        # TODO: Obfuscate result if needed
-        pass
+        # # Store tool interactions (unobfuscated)
+        # tool_calls = last_message.tool_calls
+        # for tool_call in tool_calls:
+        #     for tool_message in tool_messages:
+        #         if tool_call['id'] == tool_message.tool_call_id:
+        #             print('[TOOLS]', f"Storing tool call result for `{tool_call['name']}`")
+        #
+        #             if isinstance(tool_message.content, str):
+        #                 try:
+        #                     tool_response = json.loads(tool_message.content)
+        #                 except json.decoder.JSONDecodeError as e:
+        #                     print('[TOOLS]', f"WARNING: Could not parse tool response: {e}. Tool result: {tool_message.content}")
+        #                     tool_response = []
+        #             else:
+        #                 # Oddly enough, when tool returns empty list, content is not a string '[]' but an actual empty list
+        #                 tool_response = tool_message.content
+        #
+        #             tool_interaction = {'tool_call': tool_call, 'tool_response': tool_response}
+        #             append_tool_interaction(config['configurable']['thread_id'], tool_interaction)
+        #             break
+        #
+        # # TODO: Obfuscate result if needed
+        # pass
 
         return Command(goto='model', update={'messages': tool_messages})
 
@@ -239,9 +232,10 @@ def create_agent():
     def check_node(state: State, config: RunnableConfig):
         messages = state['messages']
 
-        thread_id = config['configurable']['thread_id']
-        ai_sys_messages = [message for message in messages if isinstance(message, AIMessage) or isinstance(message, SystemMessage)]
-        hallucinated_links = get_hallucinated_links(thread_id, ai_sys_messages)
+        # thread_id = config['configurable']['thread_id']
+        # ai_sys_messages = [message for message in messages if isinstance(message, AIMessage) or isinstance(message, SystemMessage)]
+        # hallucinated_links = get_hallucinated_links(thread_id, ai_sys_messages)
+        hallucinated_links = []
 
         if hallucinated_links:
             print('[CHECK]', f"Found hallucinated links (e.g. {hallucinated_links[0]}). Will return them along with the response.")
@@ -290,7 +284,7 @@ def create_agent():
     workflow.set_entry_point('supervisor')
 
     # Compile the StateGraph into a Langchain Runnable, so it can be invoked, streamed, batched and run asynchronously
-    agent = workflow.compile(checkpointer=memory, debug=False)
+    agent = workflow.compile()
     agent.step_timeout = 600
 
     return agent
