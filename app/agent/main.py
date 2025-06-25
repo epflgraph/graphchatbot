@@ -12,11 +12,25 @@ from typing import AsyncGenerator
 from langchain_core.messages import (
     HumanMessage,
 )
+from langfuse import Langfuse
+from langfuse.langchain import CallbackHandler
 
 from app.agent.tool_interactions import get_tool_interactions, clear_tool_interactions
 from app.agent.create import create_agent
 
+from app.config import config
+
 agent = None
+
+# Initialise langfuse client and callback handler
+langfuse = Langfuse(
+    host=config.get('langfuse', {}).get('host'),
+    secret_key=config.get('langfuse', {}).get('secret_key'),
+    public_key=config.get('langfuse', {}).get('public_key'),
+    environment=config.get('langfuse', {}).get('environment'),
+)
+
+langfuse_handler = CallbackHandler()
 
 
 def init_agent():
@@ -31,11 +45,13 @@ def generate_completion(chat_request) -> dict:
     agent_input = {'messages':  chat_request['messages']}
     agent_config = {
         'configurable': {
-            'integrations': [],
+            'integrations': [chat_request['model']],
             'use_tools': True,
             'style': None,
             'style_prompt': None,
-        }
+        },
+        'callbacks': [langfuse_handler],
+        'metadata': {'langfuse_tags': [chat_request['model']]},
     }
 
     # Invoke model with given prompt and conversation_id
@@ -60,11 +76,13 @@ async def agenerate_completion(chat_request) -> AsyncGenerator:
     agent_input = {'messages':  chat_request['messages']}
     agent_config = {
         'configurable': {
-            'integrations': [],
+            'integrations': [chat_request['model']],
             'use_tools': True,
             'style': None,
             'style_prompt': None,
-        }
+        },
+        'callbacks': [langfuse_handler],
+        'metadata': {'langfuse_tags': [chat_request['model']]},
     }
 
     # Launch agent and iterate over the event updates
