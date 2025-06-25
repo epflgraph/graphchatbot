@@ -11,6 +11,9 @@ from fastapi.responses import StreamingResponse, FileResponse
 
 from app.schemas import ChatRequest
 from app.old_schemas import GenerateTextExerciseInput, GenerateLectureExerciseInput
+
+from app.integrations import IntegrationConfig
+
 from app.agent import init_agent, generate_completion, agenerate_completion
 import app.exercises as exercises
 
@@ -71,17 +74,19 @@ async def chat(chat_request: ChatRequest):
 
 @app.get('/models')
 async def models():
+    model_names = IntegrationConfig.list_integrations()
 
     return {
-      "object": "list",
-      "data": [
-        {
-          "id": "chatbot",
-          "object": "model",
-          "created": 1686935002,
-          "owned_by": "epfl-graph-cede"
-        },
-      ],
+        "object": "list",
+        "data": [
+            {
+                "id": model_name,
+                "object": "model",
+                "created": 1686935002,
+                "owned_by": "epfl-graph-cede"
+            }
+            for model_name in model_names
+        ],
     }
 
 
