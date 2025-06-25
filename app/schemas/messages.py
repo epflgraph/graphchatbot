@@ -42,7 +42,7 @@ class RequestAssistantMessage(BaseModel):
     ] = None
     refusal: Optional[str] = None
     name: Optional[str] = None
-    audio: Optional[RequestAssistantMessageAudioReference] = None
+    # audio: Optional[RequestAssistantMessageAudioReference] = None     # This seems to break even when it is None, perhaps a LangChain bug
     tool_calls: Optional[List[RequestAssistantMessageToolCall]] = None
 
 
