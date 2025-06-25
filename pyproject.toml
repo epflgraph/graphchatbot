@@ -25,6 +25,7 @@ dependencies = [
     "langchain-community",
     "langchain-openai",
     "langgraph",
+    "langfuse",
     "openai",
     "python-ldap",
     "elasticsearch-interface",
