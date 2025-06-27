@@ -20,6 +20,7 @@ dependencies = [
     "uvicorn",
     "pydantic",
     "requests",
+    "levenshtein",
     "langchain",
     "langchain-core",
     "langchain-community",
