@@ -15,6 +15,8 @@ from langchain_core.messages import (
 from langfuse import Langfuse
 from langfuse.langchain import CallbackHandler
 
+from app.integrations import IntegrationConfig
+
 from app.agent.tool_interactions import get_tool_interactions, clear_tool_interactions
 from app.agent.create import create_agent
 
@@ -45,10 +47,7 @@ def generate_completion(chat_request) -> dict:
     agent_input = {'messages':  chat_request['messages']}
     agent_config = {
         'configurable': {
-            'integrations': [chat_request['model']],
-            'use_tools': True,
-            'style': None,
-            'style_prompt': None,
+            'integration': IntegrationConfig.from_name(chat_request['model']),
         },
         'callbacks': [langfuse_handler],
         'metadata': {'langfuse_tags': [chat_request['model']]},
@@ -76,10 +75,7 @@ async def agenerate_completion(chat_request) -> AsyncGenerator:
     agent_input = {'messages':  chat_request['messages']}
     agent_config = {
         'configurable': {
-            'integrations': [chat_request['model']],
-            'use_tools': True,
-            'style': None,
-            'style_prompt': None,
+            'integration': IntegrationConfig.from_name(chat_request['model']),
         },
         'callbacks': [langfuse_handler],
         'metadata': {'langfuse_tags': [chat_request['model']]},
@@ -292,34 +288,19 @@ if __name__ == '__main__':
     ################################################################
 
     # Params
-    method = 'async'
-    params = {
-        'conversation_id': '1234',
-        'integrations': ['servicedesk'],
-        'use_tools': True,
-        # 'style': 'custom',
-        # 'style_prompt': "Talk like a pirate",
+    method = 'sync'
+    chat_request = {
+        'model': 'lex',
+        'messages': [{'role': 'user', 'content': 'Heeeeello'}]
     }
-
-    prompts = [
-        "L'ordinateur de Martin Vetterli ne fonctionne pas",
-    ]
 
     ################################################################
 
-    for prompt in prompts:
-        params['human_input'] = prompt
+    if method == 'sync':
+        print(generate_completion(chat_request))
+    else:
+        async def async_run(chat_request):
+            async for update in agenerate_completion(chat_request):
+                print(update)
 
-        if method == 'sync':
-            message = send_message(params)['message']
-        else:
-            async def async_run(chat_input):
-                async for update in stream_send_message(chat_input):
-                    update = un_ndjson(update)
-
-                    if update['name'] == 'report':
-                        return update['message']
-
-            message = asyncio.run(async_run(params))
-
-        print(message)
+        asyncio.run(async_run(chat_request))
