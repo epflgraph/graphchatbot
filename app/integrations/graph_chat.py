@@ -12,7 +12,7 @@ class GraphChatConfig(IntegrationConfig):
 
         today = datetime.now().strftime("%Y-%m-%d")
 
-        self.system_prompt = f"""
+        self.system_prompt = rf"""
 You are the assistant of EPFL Graph, the project of the knowledge graph of EPFL. Your task is to answer questions from EPFL students, researchers or staff members.
 
 # Format

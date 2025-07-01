@@ -1,4 +1,4 @@
-FROM python:3.11
+FROM python:slim
 ENV PYTHONUNBUFFERED=1
 
 # Install OS dependencies
