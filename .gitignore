@@ -12,6 +12,9 @@ config.ini
 config-prod.ini
 config-test.ini
 
+# Certificates
+*.crt
+
 # Data files
 data
 
