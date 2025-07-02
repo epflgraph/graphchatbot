@@ -1,5 +1,18 @@
 from abc import ABC, abstractmethod
 
+from typing import Literal
+from pydantic import BaseModel
+
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import (
+    SystemMessage,
+    HumanMessage,
+)
+from langchain.output_parsers import PydanticOutputParser
+
+
+from app.config import config
+
 
 class IntegrationConfig(ABC):
     name = None
@@ -26,3 +39,77 @@ class IntegrationConfig(ABC):
     def list_integrations(cls):
         return [subclass.name for subclass in cls.__subclasses__()]
 
+    def request_type_tools(self, request_type):
+        return self.request_types.get(request_type, {}).get('tools', [])
+
+    def request_type_instructions(self, request_type):
+        return self.request_types.get(request_type, {}).get('instructions')
+
+    def classify(self, messages):
+        # Return if no request types or messages
+        if not self.request_types or not messages:
+            return None
+
+        # Prepare system prompt
+        categories_prompt = '\n'.join(
+            [f"* {request_type}: {self.request_types[request_type]['description']}" for request_type in self.request_types])
+        system_prompt = f"""
+You will be given a conversation between a Human and an AI system.
+Your task is to classify the conversation based on the last request.
+The possible categories are the following:
+{categories_prompt}
+"""
+
+        # Prepare human prompt
+        human_prompt = '\n\n'.join([f'{message.type}: {message.content}' for message in messages])
+
+        # Prepare response format
+        categories = self.request_types.keys()
+
+        class ConversationType(BaseModel, extra='allow'):
+            model_config = {'json_schema_extra': {'additionalProperties': False}}
+
+            category: Literal[*list(categories)]
+
+        response_format = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "conversation_type",
+                "strict": True,
+                "schema": ConversationType.model_json_schema()
+            }
+        }
+
+        # Instantiate chat model and output parser
+        model_name = 'gpt-4o-mini'
+        model = ChatOpenAI(model=model_name, temperature=0, openai_api_key=config['openai']['api_key'], request_timeout=60)
+        model = model.bind(response_format=response_format)
+        parser = PydanticOutputParser(pydantic_object=ConversationType)
+
+        # Gather the messages for the LLM input
+        input_messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=human_prompt),
+        ]
+
+        # Send request to LLM
+        try:
+            output = model.invoke(input=input_messages)
+        except Exception as e:
+            print('[CLASSIFY]', "ERROR: LLM API call failed")
+            print('[CLASSIFY]', e)
+            return None
+
+        # Parse output
+        try:
+            conversation_type = parser.parse(output.content)
+        except Exception as e:
+            print('[CLASSIFY]', "ERROR: Parsing LLM response failed")
+            print('[CLASSIFY]', output.content)
+            print('[CLASSIFY]', e)
+            return None
+
+        return conversation_type.category
+
+    def build_tools(self):
+        return []

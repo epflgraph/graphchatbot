@@ -1,14 +1,19 @@
 from datetime import datetime
+from typing import Optional
+
+from langchain.tools import StructuredTool
 
 from app.integrations.abc import IntegrationConfig
 from app.integrations.common import pedagogical_sysprompts
 
+from app.interfaces.graphai import GraphAIClient
+
 
 class Micro452Config(IntegrationConfig):
-    name = 'course_micro452'
+    name = 'MICRO-452'
 
     def __init__(self):
-        self.available_tools = []
+        self.available_tools = ['search_micro452']
 
         today = datetime.now().strftime("%Y-%m-%d")
 
@@ -82,11 +87,36 @@ Ex cathedra, case studies, exercises, work on mobile robots, group project
         self.request_types = {
             'help-with-assignment': {
                 'description': "Requests that present an exercise or question and want help with its solution.",
-                'system_prompt': pedagogical_sysprompts['base'],
+                'instructions': pedagogical_sysprompts['base'],
+                'tools': ['search_micro452'],
             },
             'explain-concept': {
                 'description': "Requests that ask a question about some specific concept or domain.",
-                'system_prompt': pedagogical_sysprompts['base'],
+                'instructions': pedagogical_sysprompts['base'],
+                'tools': ['search_micro452'],
             },
-            'other': {'description': "Other requests."},
+            'other': {
+                'description': "Other requests.",
+                'tools': ['search_micro452'],
+            },
         }
+
+    @staticmethod
+    def search_micro452(keywords: list[str], limit: Optional[int] = 10):
+        """
+        Performs a search in the material for the course MICRO-452 at EPFL with the given `keywords`.
+        The course material includes slides and exercises.
+        Returns a list of the document chunks that best match the keywords, up to `limit` chunks.
+        """
+
+        print("[MICRO-452 TOOL]", f"Called the `search_micro452` tool with keywords=`{keywords}` and limit=`{limit}`")
+
+        gac = GraphAIClient()
+        results = gac.rag_retrieve(index='course_micro452', texts=keywords, limit=limit)
+
+        print("[MICRO-452 TOOL]", f"Retrieved {len(results)} document chunks.")
+
+        return results
+
+    def build_tools(self):
+        return [StructuredTool.from_function(name='search_micro452', func=self.search_micro452)]

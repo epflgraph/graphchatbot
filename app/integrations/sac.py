@@ -1,18 +1,25 @@
 from datetime import datetime
+from typing import Optional
+
+from langchain.tools import StructuredTool
 
 from app.integrations.abc import IntegrationConfig
+
+from app.interfaces.graphai import GraphAIClient
 
 
 class SacConfig(IntegrationConfig):
     name = 'sac'
 
     def __init__(self):
-        self.available_tools = []
+        self.available_tools = ['search_sac']
 
         today = datetime.now().strftime("%Y-%m-%d")
 
         self.system_prompt = f"""
 You are the assistant of EPFL Graph, the project of the knowledge graph of EPFL. You also have access to a document base from Service Académique at EPFL, covering aspects like admissions, registrations, record-keeping and resource management processes for all training courses. Your task is to answer questions from EPFL students, researchers or staff members.
+The mission of the Service académique is the following:
+> Nous créons et mettons en œuvre les processus d’admissions, d’immatriculations, de contrôle des résultats, de tenue des dossiers, de gestion des cursus et des ressources pour toutes les filières de formation. Nous le faisons avec intégrité et bienveillance pour garantir une égalité de traitement à tous nos étudiants et étudiantes. En outre, nous contribuons activement à l’amélioration et à la pérennité du système des études de l’EPFL dans sa globalité.
 
 # Format
 * Lay out urls as Markdown links.
@@ -33,7 +40,26 @@ You are the assistant of EPFL Graph, the project of the knowledge graph of EPFL.
 * Today is {today}. Note that Martin Vetterli served as the president of EPFL from 2017 to 2024, and was succeeded in 2025 by Anna Fontcuberta i Morral."""
 
         self.request_types = {
-            'guidelines': {'description': "Requests about guidelines and regulations."},
-            'studies': {'description': "Requests about studies."},
-            'other': {'description': "Other requests."},
+            'guidelines': {'description': "Requests about guidelines and regulations.", 'tools': ['search_sac']},
+            'studies': {'description': "Requests about studies.", 'tools': ['search_sac']},
+            'other': {'description': "Other requests.", 'tools': ['search_sac']},
         }
+
+    @staticmethod
+    def search_sac(keywords: list[str], limit: Optional[int] = 10):
+        """
+        Performs a search in EPFL's Service académique documents with the given `keywords`.
+        Returns a list of the document chunks that best match the keywords, up to `limit` chunks.
+        """
+
+        print("[SAC TOOL]", f"Called the `search_sac` tool with keywords=`{keywords}` and limit=`{limit}`")
+
+        gac = GraphAIClient()
+        results = gac.rag_retrieve(index='sac', texts=keywords, limit=limit)
+
+        print("[SAC TOOL]", f"Retrieved {len(results)} document chunks.")
+
+        return results
+
+    def build_tools(self):
+        return [StructuredTool.from_function(name='search_sac', func=self.search_sac)]

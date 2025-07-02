@@ -1,13 +1,18 @@
 from datetime import datetime
+from typing import Optional
+
+from langchain.tools import StructuredTool
 
 from app.integrations.abc import IntegrationConfig
+
+from app.interfaces.graphai import GraphAIClient
 
 
 class ServicedeskConfig(IntegrationConfig):
     name = 'servicedesk'
 
     def __init__(self):
-        self.available_tools = []
+        self.available_tools = ['search_servicedesk']
 
         today = datetime.now().strftime("%Y-%m-%d")
 
@@ -33,10 +38,29 @@ You are the assistant of EPFL Graph, the project of the knowledge graph of EPFL.
 * Today is {today}. Note that Martin Vetterli served as the president of EPFL from 2017 to 2024, and was succeeded in 2025 by Anna Fontcuberta i Morral."""
 
         self.request_types = {
-            'epfl': {'description': "Requests about EPFL."},
-            'public': {'description': "Requests about Public."},
-            'finances': {'description': "Requests about Finances."},
-            'research': {'description': "Requests about Research."},
-            'human-resources': {'description': "Requests about Human Resources."},
-            'servicedesk': {'description': "Requests about Service Desk."},
+            'epfl': {'description': "Requests about EPFL.", 'tools': ['search_servicedesk']},
+            'public': {'description': "Requests about Public.", 'tools': ['search_servicedesk']},
+            'finances': {'description': "Requests about Finances.", 'tools': ['search_servicedesk']},
+            'research': {'description': "Requests about Research.", 'tools': ['search_servicedesk']},
+            'human-resources': {'description': "Requests about Human Resources.", 'tools': ['search_servicedesk']},
+            'servicedesk': {'description': "Requests about Service Desk.", 'tools': ['search_servicedesk']},
         }
+
+    @staticmethod
+    def search_servicedesk(keywords: list[str], limit: Optional[int] = 10):
+        """
+        Performs a search in EPFL's IT Service Desk documents with the given `keywords`.
+        Returns a list of the document chunks that best match the keywords, up to `limit` chunks.
+        """
+
+        print("[SERVICEDESK TOOL]", f"Called the `search_servicedesk` tool with keywords=`{keywords}` and limit=`{limit}`")
+
+        gac = GraphAIClient()
+        results = gac.rag_retrieve(index='servicedesk', texts=keywords, limit=limit)
+
+        print("[SERVICEDESK TOOL]", f"Retrieved {len(results)} document chunks.")
+
+        return results
+
+    def build_tools(self):
+        return [StructuredTool.from_function(name='search_servicedesk', func=self.search_servicedesk)]

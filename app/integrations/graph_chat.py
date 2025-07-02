@@ -47,29 +47,32 @@ Here are some examples:
 * Today is {today}. Note that Martin Vetterli served as the president of EPFL from 2017 to 2024, and was succeeded in 2025 by Anna Fontcuberta i Morral."""
 
         self.request_types = {
+            'greeting': {
+                'description': "Requests that are just a greeting or similar.",
+            },
             'help-with-assignment': {
                 'description': "Requests that present an exercise or question and want help with its solution.",
-                'system_prompt': pedagogical_sysprompts['base'],
+                'instructions': pedagogical_sysprompts['base'],
                 'tools': ['search_nodes'],
             },
             'explain-concept': {
                 'description': "Requests that ask a question about some specific concept or domain.",
-                'system_prompt': pedagogical_sysprompts['base'],
+                'instructions': pedagogical_sysprompts['base'],
                 'tools': ['search_nodes'],
             },
             'epfl-presidency': {
                 'description': "Explicit requests about the presidency of EPFL.",
-                'system_prompt': base_epfl_presidency_sysprompt,
+                'instructions': base_epfl_presidency_sysprompt,
                 'tools': ['get_orgchart', 'search_news'],
             },
             'epfl-vice-presidencies': {
                 'description': "Explicit requests about the vice-presidencies of EPFL.",
-                'system_prompt': base_epfl_presidency_sysprompt,
+                'instructions': base_epfl_presidency_sysprompt,
                 'tools': ['get_orgchart', 'search_news'],
             },
             'people': {
                 'description': "Requests about researchers or instructors at EPFL.",
-                'system_prompt': base_people_sysprompt,
+                'instructions': base_people_sysprompt,
                 'tools': ['get_orgchart', 'search_nodes'],
             },
             'lectures': {
@@ -86,7 +89,7 @@ Here are some examples:
             },
             'study-plan': {
                 'description': "Requests about the EPFL study plan, for example about credits, pre-requisites or the availability of courses in a given plan.",
-                'system_prompt': base_study_plan_sysprompt,
+                'instructions': base_study_plan_sysprompt,
                 'tools': ['search_nodes'],
             },
             'schedule': {

@@ -1,14 +1,19 @@
 from datetime import datetime
+from typing import Optional
+
+from langchain.tools import StructuredTool
 
 from app.integrations.abc import IntegrationConfig
 from app.integrations.common import base_epfl_presidency_sysprompt
+
+from app.interfaces.graphai import GraphAIClient
 
 
 class LexConfig(IntegrationConfig):
     name = 'lex'
 
     def __init__(self):
-        self.available_tools = ['get_orgchart', 'search_news']
+        self.available_tools = ['get_orgchart', 'search_news', 'search_lex']
 
         today = datetime.now().strftime("%Y-%m-%d")
 
@@ -34,19 +39,53 @@ You are the assistant of EPFL Graph, the project of the knowledge graph of EPFL.
 * Today is {today}. Note that Martin Vetterli served as the president of EPFL from 2017 to 2024, and was succeeded in 2025 by Anna Fontcuberta i Morral."""
 
         self.request_types = {
-            'recruiting': {'description': "Requests about recruitment at EPFL, including PhD students, postdocs, researchers or any other EPFL staff member."},
-            'contract-management': {'description': "Requests about the EPFL work contract for all kind of staff members."},
-            'internal-processes': {'description': "Requests about internal processes at EPFL, like mandatory trainings or electing people for management positions."},
-            'equipment': {'description': "Requests about equipment or material at EPFL, like purchasing some piece of equipment for research in a lab or regulations on office material."},
-            'absences': {'description': "Requests about absences at EPFL, including paid leaves (holidays, medical leaves, maternity or paternity leaves, accidents, etc.) unpaid leaves, teleworking or other absences."},
-            'epfl-presidency': {
-                'description': "Explicit requests about the presidency of EPFL.",
-                'system_prompt': base_epfl_presidency_sysprompt,
-                'tools': ['get_orgchart', 'search_news'],
+            "recruiting": {
+                "description": "Requests about recruitment at EPFL, including PhD students, postdocs, researchers or any other EPFL staff member.",
+                "tools": ["search_lex"],
             },
-            'epfl-vice-presidencies': {
-                'description': "Explicit requests about the vice-presidencies of EPFL.",
-                'system_prompt': base_epfl_presidency_sysprompt,
-                'tools': ['get_orgchart', 'search_news'],
+            "contract-management": {
+                "description": "Requests about the EPFL work contract for all kind of staff members.",
+                "tools": ["search_lex"],
+            },
+            "internal-processes": {
+                "description": "Requests about internal processes at EPFL, like mandatory trainings or electing people for management positions.",
+                "tools": ["search_lex"],
+            },
+            "equipment": {
+                "description": "Requests about equipment or material at EPFL, like purchasing some piece of equipment for research in a lab or regulations on office material.",
+                "tools": ["search_lex"],
+            },
+            "absences": {
+                "description": "Requests about absences at EPFL, including paid leaves (holidays, medical leaves, maternity or paternity leaves, accidents, etc.) unpaid leaves, teleworking or other absences.",
+                "tools": ["search_lex"],
+            },
+            "epfl-presidency": {
+                "description": "Explicit requests about the presidency of EPFL.",
+                "instructions": base_epfl_presidency_sysprompt,
+                "tools": ["get_orgchart", "search_news", "search_lex"],
+            },
+            "epfl-vice-presidencies": {
+                "description": "Explicit requests about the vice-presidencies of EPFL.",
+                "instructions": base_epfl_presidency_sysprompt,
+                "tools": ["get_orgchart", "search_news", "search_lex"],
             },
         }
+
+    @staticmethod
+    def search_lex(keywords: list[str], limit: Optional[int] = 10):
+        """
+        Performs a search in EPFL's Polylex documents (Electronic compendium of EPFL laws, ordinances, regulations and directives) with the given `keywords`.
+        Returns a list of the document chunks that best match the keywords, up to `limit` chunks.
+        """
+
+        print("[LEX TOOL]", f"Called the `search_lex` tool with keywords=`{keywords}` and limit=`{limit}`")
+
+        gac = GraphAIClient()
+        results = gac.rag_retrieve(index='lex', texts=keywords, limit=limit)
+
+        print("[LEX TOOL]", f"Retrieved {len(results)} document chunks.")
+
+        return results
+
+    def build_tools(self):
+        return [StructuredTool.from_function(name='search_lex', func=self.search_lex)]
