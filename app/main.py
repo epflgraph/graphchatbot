@@ -6,11 +6,11 @@ It defines the input and output models and creates the endpoints.
 from contextlib import asynccontextmanager
 from typing import Union
 
-from fastapi import FastAPI, Response
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 
 from app.schemas import ChatRequest
-from app.old_schemas import GenerateTextExerciseInput, GenerateLectureExerciseInput
+from app.exercises.schemas import GenerateTextExerciseInput, GenerateLectureExerciseInput
 
 from app.integrations import IntegrationConfig
 

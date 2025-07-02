@@ -1,6 +1,28 @@
+from typing import Literal
+
 from pydantic import BaseModel
 
 from langchain.output_parsers import PydanticOutputParser
+
+
+class GenerateTextExerciseInput(BaseModel):
+    text: str
+    description: str
+    bloom_level: Literal[None, 1, 2, 3, 4, 5, 6] = None
+    include_solution: bool = True
+    output_format: Literal['plain-text', 'markdown', 'latex'] = 'plain-text'
+    llm_model: Literal['gpt-4o-mini', 'gpt-4o'] = 'gpt-4o-mini'
+    openai_api_key: str
+
+
+class GenerateLectureExerciseInput(BaseModel):
+    lecture_id: str
+    description: str
+    bloom_level: Literal[None, 1, 2, 3, 4, 5, 6] = None
+    include_solution: bool = True
+    output_format: Literal['plain-text', 'markdown', 'latex'] = 'markdown'
+    llm_model: Literal['gpt-4o-mini', 'gpt-4o'] = 'gpt-4o-mini'
+    openai_api_key: str
 
 
 class ExerciseWithSolution(BaseModel, extra='allow'):
