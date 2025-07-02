@@ -10,7 +10,7 @@ RUN /usr/bin/apt-get update \
 WORKDIR /chatbot
 
 # Copy project metadata and expected directories before installing the package
-COPY pyproject.toml config.ini README.md .
+COPY pyproject.toml README.md .
 RUN mkdir -p ./app
 
 # Install python dependencies (from pyproject.toml)
@@ -18,6 +18,8 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir .
 
 # Copy application code
+COPY config.ini es.crt .
+COPY data data
 COPY ./app ./app
 
 # Document exposed port
