@@ -61,7 +61,16 @@ The possible categories are the following:
 """
 
         # Prepare human prompt
-        human_prompt = '\n\n'.join([f'{message.type}: {message.content}' for message in messages])
+        human_prompt = []
+        for message in messages:
+            # Extract only text from messages to send (otherwise images or other media types can fill the context window)
+            if isinstance(message.content, str):
+                message_content = message.content
+            else:
+                message_content = '\n'.join([content_piece['text'] for content_piece in message.content if content_piece['type'] == 'text'])
+
+            human_prompt.append(f'----{message.type.upper()}----\n{message_content}')
+        human_prompt = '\n\n'.join(human_prompt)
 
         # Prepare response format
         categories = self.request_types.keys()
