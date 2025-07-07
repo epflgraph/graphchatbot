@@ -4,18 +4,14 @@ It defines the input and output models and creates the endpoints.
 """
 
 from contextlib import asynccontextmanager
-from typing import Union
 
-from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
+import uvicorn
+from fastapi import FastAPI, Depends
 
-from app.schemas import ChatRequest
-from app.exercises.schemas import GenerateTextExerciseInput, GenerateLectureExerciseInput
+from app.auth import check_api_key
+from app.routers import secure, public
 
-from app.integrations import IntegrationConfig
-
-from app.agent import init_agent, generate_completion, agenerate_completion
-import app.exercises as exercises
+from app.agent import init_agent
 
 
 @asynccontextmanager
@@ -50,71 +46,13 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+app.include_router(
+    public.router,
+)
+app.include_router(
+    secure.router,
+    dependencies=[Depends(check_api_key)]
+)
 
-@app.post('/chat/completions')
-async def chat(chat_request: ChatRequest):
-    """
-    Creates a model response for the given chat conversation.
-
-    Args:
-        chat_request (ChatRequest): Input object containing the payload of the request.
-
-    Returns:
-        ChatResponse: Output object containing a chat completion based on the provided input.
-    """
-
-    if chat_request.stream:
-        return StreamingResponse(
-            agenerate_completion(chat_request.dict()),
-            media_type="application/x-ndjson"
-        )
-    else:
-        return generate_completion(chat_request.dict())
-
-
-@app.get('/models')
-async def models():
-    model_names = IntegrationConfig.list_integrations()
-
-    return {
-        "object": "list",
-        "data": [
-            {
-                "id": model_name,
-                "object": "model",
-                "created": 1686935002,
-                "owned_by": "epfl-graph-cede"
-            }
-            for model_name in model_names
-        ],
-    }
-
-
-################################################################
-
-
-@app.post('/generate_exercise')
-async def generate_exercise(input: Union[GenerateTextExerciseInput, GenerateLectureExerciseInput]):
-    """
-    Generates an exercise about some given text or lecture.
-
-    Args:
-        input (Union[GenerateTextExerciseInput, GenerateLectureExerciseInput]): Input object containing text or lecture_id, a description and some other parameters like the bloom level or whether to include a solution.
-
-    Returns:
-        dict: An object containing the different field for the exercise.
-    """
-
-    description = input.description
-    bloom_level = input.bloom_level
-    include_solution = input.include_solution
-    output_format = input.output_format
-    llm_model = input.llm_model
-    openai_api_key = input.openai_api_key
-
-    if isinstance(input, GenerateTextExerciseInput):
-        return exercises.generate_text_exercise(input.text, description, bloom_level, include_solution, output_format, llm_model, openai_api_key)
-    elif isinstance(input, GenerateLectureExerciseInput):
-        return exercises.generate_lecture_exercise(input.lecture_id, description, bloom_level, include_solution, output_format, llm_model, openai_api_key)
-
-    return {}
+if __name__ == "__main__":
+    uvicorn.run(app)
