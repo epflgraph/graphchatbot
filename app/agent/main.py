@@ -38,7 +38,7 @@ def init_agent():
 
 def generate_completion(chat_request) -> dict:
     print('[WRAPPER]', f"Received non-streaming request for model `{chat_request['model']}` with last message `{chat_request['messages'][-1]['content']}`")
-    print(chat_request)
+    # print(chat_request)
 
     # Set up agent input
     agent_input = {'messages':  chat_request['messages']}
@@ -67,7 +67,7 @@ def generate_completion(chat_request) -> dict:
 
 async def agenerate_completion(chat_request) -> AsyncGenerator:
     print('[WRAPPER]', f"Received streaming request for model `{chat_request['model']}` with last message `{chat_request['messages'][-1]['content']}`")
-    print(chat_request)
+    # print(chat_request)
 
     # Set up agent input
     agent_input = {'messages':  chat_request['messages']}
