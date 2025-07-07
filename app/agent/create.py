@@ -157,28 +157,8 @@ def create_agent():
     ################################################################
 
     def check_node(state: State, config: RunnableConfig):
-        return Command(goto='cleanup')
-
-    ################################################################
-    # Cleanup node                                                 #
-    ################################################################
-
-    def cleanup_node(state: State):
-        # messages = state['messages']
-        #
-        # # Delete intermediate System messages
-        # print('[CLEANUP]', "Deleting intermediate system messages")
-        # messages = clean_system_messages(messages)
-        #
-        # # Delete AI messages with tool requests and their corresponding tool messages
-        # print('[CLEANUP]', "Deleting tool call requests and responses")
-        # messages = clean_tool_calls_and_responses(messages)
-        #
-        # # Get a list of ids of messages to remove
-        # keep_message_ids = [message.id for message in messages]
-        # remove_message_ids = [message.id for message in state['messages'] if message.id not in keep_message_ids]
-        #
-        # return Command(goto=END, update={'messages': [RemoveMessage(id=remove_message_id) for remove_message_id in remove_message_ids]})
+        # Verify here the content of the generated message (e.g. hallucinations, etc.)
+        pass
 
         return Command(goto=END)
 
@@ -194,7 +174,6 @@ def create_agent():
     workflow.add_node('model', model_node)
     workflow.add_node('tools', tools_node)
     workflow.add_node('check', check_node)
-    workflow.add_node('cleanup', cleanup_node)
 
     # Define the entry point of the graph
     workflow.set_entry_point('classify')
