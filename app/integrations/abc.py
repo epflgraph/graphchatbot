@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
+import inspect
 
-from typing import Literal
+from typing import Optional, Literal
+
 from pydantic import BaseModel
 
 from langchain_openai import ChatOpenAI
@@ -15,19 +17,45 @@ from app.config import config
 
 
 class IntegrationConfig(ABC):
-    name = None
-    index = None
-    available_tools = None
-    system_prompt = None
-    request_types = None
+    # Class-level contract
+    name: Optional[str] = None
+    index: Optional[str] = None
+    available_tools: Optional[list[str]] = None
+    model: Optional[str] = 'gpt-4o-mini'
 
+    def __init_subclass__(cls):
+        super().__init_subclass__()
+        if not inspect.isabstract(cls):
+            if not isinstance(getattr(cls, 'name', None), str):
+                raise TypeError(f"{cls.__name__} must define a class variable 'name' of type str.")
+            if not isinstance(getattr(cls, 'index', None), str):
+                raise TypeError(f"{cls.__name__} must define a class variable 'index' of type str.")
+            if not isinstance(getattr(cls, 'available_tools', None), list):
+                raise TypeError(f"{cls.__name__} must define a class variable 'available_tools' of type list[str].")
+
+    # Instance-level abstract contract
+    @property
     @abstractmethod
-    def __init__(self):
+    def system_prompt(self) -> str:
         pass
+
+    @property
+    @abstractmethod
+    def request_types(self) -> dict:
+        pass
+
+    # Factory methods
+    @classmethod
+    def all_subclasses(cls):
+        subclasses = set()
+        for subclass in cls.__subclasses__():
+            subclasses.add(subclass)
+            subclasses.update(subclass.all_subclasses())
+        return subclasses
 
     @classmethod
     def from_name(cls, name):
-        subclasses = {subclass.name: subclass for subclass in cls.__subclasses__()}
+        subclasses = {subclass.name: subclass for subclass in cls.all_subclasses() if hasattr(subclass, 'name')}
         subclass = subclasses.get(name)
 
         if subclass is None:
@@ -40,12 +68,14 @@ class IntegrationConfig(ABC):
     def list_integrations(cls):
         return [subclass.name for subclass in cls.__subclasses__()]
 
+    # Convenience methods
     def request_type_tools(self, request_type):
         return self.request_types.get(request_type, {}).get('tools', [])
 
     def request_type_instructions(self, request_type):
         return self.request_types.get(request_type, {}).get('instructions')
 
+    # Common classify method
     def classify(self, messages):
         # Return if no request types or messages
         if not self.request_types or not messages:

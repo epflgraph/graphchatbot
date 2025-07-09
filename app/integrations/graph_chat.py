@@ -6,13 +6,14 @@ from app.integrations.common import pedagogical_sysprompts, base_epfl_presidency
 
 class GraphChatConfig(IntegrationConfig):
     name = 'graph-chat'
+    index = 'graph-chat'
+    available_tools = ['search_nodes', 'get_orgchart', 'search_news', 'search_exercises', 'search_plan']
 
-    def __init__(self):
-        self.available_tools = ['search_nodes', 'get_orgchart', 'search_news', 'search_exercises', 'search_plan']
-
+    @property
+    def system_prompt(self) -> str:
         today = datetime.now().strftime("%Y-%m-%d")
 
-        self.system_prompt = rf"""
+        return rf"""
 You are the assistant of EPFL Graph, the project of the knowledge graph of EPFL. Your task is to answer questions from EPFL students, researchers or staff members.
 
 # Format
@@ -46,7 +47,9 @@ Here are some examples:
 * If the user is at risk, point them to the EPFL's Trust and Support Network (https://www.epfl.ch/about/respect/trust-and-support-network/), and explain that it offers listening, guidance and support in complete confidentiality.
 * Today is {today}. Note that Martin Vetterli served as the president of EPFL from 2017 to 2024, and was succeeded in 2025 by Anna Fontcuberta i Morral."""
 
-        self.request_types = {
+    @property
+    def request_types(self) -> dict:
+        return {
             'greeting': {
                 'description': "Requests that are just a greeting or similar.",
             },

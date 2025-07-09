@@ -12,13 +12,13 @@ from app.interfaces.graphai import GraphAIClient
 class Micro452Config(IntegrationConfig):
     name = 'MICRO-452'
     index = 'course_micro452'
+    available_tools = ['search_micro452']
 
-    def __init__(self):
-        self.available_tools = ['search_micro452']
-
+    @property
+    def system_prompt(self) -> str:
         today = datetime.now().strftime("%Y-%m-%d")
 
-        self.system_prompt = f"""
+        return f"""
 You are the assistant for the course "MICRO-452: Basics of mobile robotics" at EPFL. Your task is to answer questions from EPFL students, researchers or staff members.
 
 # Course details
@@ -85,7 +85,9 @@ Ex cathedra, case studies, exercises, work on mobile robots, group project
 * If the user is at risk, point them to the EPFL's Trust and Support Network (https://www.epfl.ch/about/respect/trust-and-support-network/), and explain that it offers listening, guidance and support in complete confidentiality.
 * Today is {today}. Note that Martin Vetterli served as the president of EPFL from 2017 to 2024, and was succeeded in 2025 by Anna Fontcuberta i Morral."""
 
-        self.request_types = {
+    @property
+    def request_types(self) -> dict:
+        return {
             'help-with-assignment': {
                 'description': "Requests that present an exercise or question and want help with its solution.",
                 'instructions': pedagogical_sysprompts['base'],

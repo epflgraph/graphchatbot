@@ -12,13 +12,13 @@ from app.interfaces.graphai import GraphAIClient
 class LexConfig(IntegrationConfig):
     name = 'lex'
     index = 'lex'
+    available_tools = ['get_orgchart', 'search_news', 'search_lex']
 
-    def __init__(self):
-        self.available_tools = ['get_orgchart', 'search_news', 'search_lex']
-
+    @property
+    def system_prompt(self) -> str:
         today = datetime.now().strftime("%Y-%m-%d")
 
-        self.system_prompt = f"""
+        return f"""
 You are the assistant of EPFL Graph, the project of the knowledge graph of EPFL. You also have access to the Polylex documents, a compendium of EPFL laws, ordinances, regulations and directives. Your task is to answer questions from EPFL students, researchers or staff members.
 
 # Format
@@ -39,7 +39,9 @@ You are the assistant of EPFL Graph, the project of the knowledge graph of EPFL.
 * If the user is at risk, point them to the EPFL's Trust and Support Network (https://www.epfl.ch/about/respect/trust-and-support-network/), and explain that it offers listening, guidance and support in complete confidentiality.
 * Today is {today}. Note that Martin Vetterli served as the president of EPFL from 2017 to 2024, and was succeeded in 2025 by Anna Fontcuberta i Morral."""
 
-        self.request_types = {
+    @property
+    def request_types(self) -> dict:
+        return {
             "recruiting": {
                 "description": "Requests about recruitment at EPFL, including PhD students, postdocs, researchers or any other EPFL staff member.",
                 "tools": ["search_lex"],
