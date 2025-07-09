@@ -10,6 +10,7 @@ from app.interfaces.graphai import GraphAIClient
 
 class SacConfig(IntegrationConfig):
     name = 'sac'
+    index = 'sac'
 
     def __init__(self):
         self.available_tools = ['search_sac']
@@ -45,8 +46,7 @@ The mission of the Service académique is the following:
             'other': {'description': "Other requests.", 'tools': ['search_sac']},
         }
 
-    @staticmethod
-    def search_sac(keywords: list[str], limit: Optional[int] = 10):
+    def search_sac(self, keywords: list[str], limit: Optional[int] = 10):
         """
         Performs a search in EPFL's Service académique documents with the given `keywords`.
         Returns a list of the document chunks that best match the keywords, up to `limit` chunks.
@@ -55,7 +55,7 @@ The mission of the Service académique is the following:
         print("[SAC TOOL]", f"Called the `search_sac` tool with keywords=`{keywords}` and limit=`{limit}`")
 
         gac = GraphAIClient()
-        results = gac.rag_retrieve(index='sac', texts=keywords, limit=limit)
+        results = gac.rag_retrieve(index=self.index, texts=keywords, limit=limit)
 
         print("[SAC TOOL]", f"Retrieved {len(results)} document chunks.")
 

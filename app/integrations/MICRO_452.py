@@ -11,6 +11,7 @@ from app.interfaces.graphai import GraphAIClient
 
 class Micro452Config(IntegrationConfig):
     name = 'MICRO-452'
+    index = 'course_micro452'
 
     def __init__(self):
         self.available_tools = ['search_micro452']
@@ -101,8 +102,7 @@ Ex cathedra, case studies, exercises, work on mobile robots, group project
             },
         }
 
-    @staticmethod
-    def search_micro452(keywords: list[str], limit: Optional[int] = 10):
+    def search_micro452(self, keywords: list[str], limit: Optional[int] = 10):
         """
         Performs a search in the material for the course MICRO-452 at EPFL with the given `keywords`.
         The course material includes slides and exercises.
@@ -112,7 +112,7 @@ Ex cathedra, case studies, exercises, work on mobile robots, group project
         print("[MICRO-452 TOOL]", f"Called the `search_micro452` tool with keywords=`{keywords}` and limit=`{limit}`")
 
         gac = GraphAIClient()
-        results = gac.rag_retrieve(index='course_micro452', texts=keywords, limit=limit)
+        results = gac.rag_retrieve(index=self.index, texts=keywords, limit=limit)
 
         print("[MICRO-452 TOOL]", f"Retrieved {len(results)} document chunks.")
 

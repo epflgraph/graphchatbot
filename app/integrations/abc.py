@@ -16,6 +16,7 @@ from app.config import config
 
 class IntegrationConfig(ABC):
     name = None
+    index = None
     available_tools = None
     system_prompt = None
     request_types = None
