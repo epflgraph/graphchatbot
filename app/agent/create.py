@@ -11,7 +11,7 @@ from langgraph.graph import StateGraph, MessagesState, END
 from langgraph.prebuilt.tool_node import ToolNode
 from langgraph.types import Command
 
-from app.config import config
+from app.config import config as app_config
 from app.agent.tools import search_nodes, search_exercises, search_news, search_plan, get_orgchart
 
 
@@ -75,13 +75,6 @@ def create_agent():
         return tools
 
     ################################################################
-    # Model                                                        #
-    ################################################################
-
-    # Chat model
-    model = ChatOpenAI(model='gpt-4o-mini', temperature=0, openai_api_key=config['openai']['api_key'])
-
-    ################################################################
     # Classify node                                                #
     ################################################################
 
@@ -114,6 +107,9 @@ def create_agent():
 
         # Build tool functions to pass to the model based on those available to the integration
         tools = build_tools(integration)
+
+        # Instantiate chat model
+        model = ChatOpenAI(model=integration.model, temperature=0, openai_api_key=app_config['openai']['api_key'])
 
         # Force tool call if there is any in the queue
         tools_queue = state['tools_queue']
