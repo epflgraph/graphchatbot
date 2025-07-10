@@ -167,21 +167,21 @@ common_request_types = {
     'theory-question': {
         'description': "The user is asking a question about a certain concept, a course lecture or the course slides.",
         'instructions': "Remember to provide links to the relevant course slides, guiding them and referencing the source material.",
-        'tools': ['search_micro452'],
+        'tools': ['search_micro452_tutor'],
     },
     'exercise-question': {
         'description': "The user is asking a question about an exercise session or a course exercise or assignment, but not related to code.",
         'instructions': "Use the exercise number to retrieve the relevant documents. If unclear, ask the student to precise the exercise number.",
-        'tools': ['search_micro452'],
+        'tools': ['search_micro452_tutor'],
     },
     'coding-question': {
         'description': "The user is asking a question about an exercise session or a course exercise or assignment, related to code.",
         'instructions': "Use the exercise number to retrieve the relevant documents. If unclear, ask the student to precise the exercise number. Do not provide the full code solution.",
-        'tools': ['search_micro452'],
+        'tools': ['search_micro452_tutor'],
     },
     'other': {
         'description': "Other requests.",
-        'tools': ['search_micro452'],
+        'tools': ['search_micro452_tutor'],
     },
 }
 
