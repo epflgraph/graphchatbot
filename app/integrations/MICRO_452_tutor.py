@@ -34,14 +34,6 @@ class Micro452TutorConfig(IntegrationConfig, ABC):
     def build_tools(self):
         return [StructuredTool.from_function(name='search_micro452_tutor', func=self.search_micro452_tutor)]
 
-    def premodel(self, messages):
-        # print('[PREMODEL]', messages)
-        pass
-
-    def postmodel(self, messages):
-        # print('[POSTMODEL]', messages)
-        pass
-
 
 ################################################################
 # Common sysprompt pieces
@@ -200,87 +192,74 @@ def common_request_types():
         },
     }
 
+
+################################################################
+# Feedback and Socratic mixins
+
+class FeedbackMixin:
+    def premodel(self, messages):
+        print('[PREMODEL]', "Look, I'm giving feedback!")
+
+
+class NonFeedbackMixin:
+    def premodel(self, messages):
+        print('[PREMODEL]', "Look, I'm NOT giving feedback!")
+
+
+class SocraticMixin:
+    @property
+    def system_prompt(self) -> str:
+        return f"""
+    You are the tutor for the course "MICRO-452: Basics of mobile robotics" at EPFL. Your task is to help students learn the contents of the course by making them think, not just providing answers.
+    {course_details_sysprompt()}
+    {pedagogical_sysprompts()['socratic']}
+    {general_considerations_sysprompt()}"""
+
+    @property
+    def request_types(self) -> dict:
+        request_types = common_request_types()
+
+        request_types['theory-question']['instructions'] += " Remember to not provide direct answers, but rather guide students using socratic questioning."
+
+        return request_types
+
+
+class NonSocraticMixin:
+    @property
+    def system_prompt(self) -> str:
+        return f"""
+You are the tutor for the course "MICRO-452: Basics of mobile robotics" at EPFL. Your task is to help students learn the contents of the course by making them think, not just providing answers.
+{course_details_sysprompt()}
+{pedagogical_sysprompts()['base']}
+{general_considerations_sysprompt()}"""
+
+    @property
+    def request_types(self) -> dict:
+        request_types = common_request_types()
+
+        return request_types
+
 ################################################################
 
 
 # Feedback, socratic
-class Micro452TutorAConfig(Micro452TutorConfig):
+class Micro452TutorAConfig(FeedbackMixin, SocraticMixin, Micro452TutorConfig):
     name = 'MICRO-452-tutor-A'
-
-    @property
-    def system_prompt(self) -> str:
-        return f"""
-You are the tutor for the course "MICRO-452: Basics of mobile robotics" at EPFL. Your task is to help students learn the contents of the course by making them think, not just providing answers.
-{course_details_sysprompt()}
-{pedagogical_sysprompts()['socratic']}
-{general_considerations_sysprompt()}"""
-
-    @property
-    def request_types(self) -> dict:
-        request_types = common_request_types()
-
-        request_types['theory-question']['instructions'] += " Remember to not provide direct answers, but rather guide students using socratic questioning."
-
-        return request_types
 
 
 # No feedback, socratic
-class Micro452TutorBConfig(Micro452TutorConfig):
+class Micro452TutorBConfig(NonFeedbackMixin, SocraticMixin, Micro452TutorConfig):
     name = 'MICRO-452-tutor-B'
-
-    @property
-    def system_prompt(self) -> str:
-        return f"""
-You are the tutor for the course "MICRO-452: Basics of mobile robotics" at EPFL. Your task is to help students learn the contents of the course by making them think, not just providing answers.
-{course_details_sysprompt()}
-{pedagogical_sysprompts()['socratic']}
-{general_considerations_sysprompt()}"""
-
-    @property
-    def request_types(self) -> dict:
-        request_types = common_request_types()
-
-        request_types['theory-question']['instructions'] += " Remember to not provide direct answers, but rather guide students using socratic questioning."
-
-        return request_types
 
 
 # Feedback, no socratic
-class Micro452TutorCConfig(Micro452TutorConfig):
+class Micro452TutorCConfig(FeedbackMixin, NonSocraticMixin, Micro452TutorConfig):
     name = 'MICRO-452-tutor-C'
-
-    @property
-    def system_prompt(self) -> str:
-        return f"""
-You are the tutor for the course "MICRO-452: Basics of mobile robotics" at EPFL. Your task is to help students learn the contents of the course by making them think, not just providing answers.
-{course_details_sysprompt()}
-{pedagogical_sysprompts()['base']}
-{general_considerations_sysprompt()}"""
-
-    @property
-    def request_types(self) -> dict:
-        request_types = common_request_types()
-
-        return request_types
 
 
 # No feedback, no socratic
-class Micro452TutorDConfig(Micro452TutorConfig):
+class Micro452TutorDConfig(NonFeedbackMixin, NonSocraticMixin, Micro452TutorConfig):
     name = 'MICRO-452-tutor-D'
-
-    @property
-    def system_prompt(self) -> str:
-        return f"""
-You are the tutor for the course "MICRO-452: Basics of mobile robotics" at EPFL. Your task is to help students learn the contents of the course by making them think, not just providing answers.
-{course_details_sysprompt()}
-{pedagogical_sysprompts()['base']}
-{general_considerations_sysprompt()}"""
-
-    @property
-    def request_types(self) -> dict:
-        request_types = common_request_types()
-
-        return request_types
 
 
 if __name__ == '__main__':
