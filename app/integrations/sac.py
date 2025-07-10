@@ -9,8 +9,8 @@ from app.interfaces.graphai import GraphAIClient
 
 
 class SacConfig(IntegrationConfig):
-    name = 'lex'
-    index = 'lex'
+    name = 'sac'
+    index = 'sac'
     available_tools = ['search_sac']
 
     @property
