@@ -47,15 +47,15 @@ class IntegrationConfig(ABC):
     # Factory methods
     @classmethod
     def all_subclasses(cls):
-        subclasses = set()
+        subclasses = []
         for subclass in cls.__subclasses__():
-            subclasses.add(subclass)
-            subclasses.update(subclass.all_subclasses())
+            subclasses.append(subclass)
+            subclasses.extend(subclass.all_subclasses())
         return subclasses
 
     @classmethod
     def from_name(cls, name):
-        subclasses = {subclass.name: subclass for subclass in cls.all_subclasses() if hasattr(subclass, 'name')}
+        subclasses = {subclass.name: subclass for subclass in cls.all_subclasses() if subclass.name}
         subclass = subclasses.get(name)
 
         if subclass is None:
@@ -66,7 +66,7 @@ class IntegrationConfig(ABC):
 
     @classmethod
     def list_integrations(cls):
-        return [subclass.name for subclass in cls.__subclasses__()]
+        return [subclass.name for subclass in cls.all_subclasses() if subclass.name]
 
     # Convenience methods
     def request_type_tools(self, request_type):
