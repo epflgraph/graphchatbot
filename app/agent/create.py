@@ -79,7 +79,7 @@ def create_agent():
     ################################################################
 
     def classify_node(state: State, config: RunnableConfig):
-        # Recover interation config object from agent config
+        # Recover integration config object from agent config
         integration = config.get('configurable', {}).get('integration')
 
         # Classify request
@@ -95,14 +95,27 @@ def create_agent():
         if request_type_instructions:
             update['messages'] = [SystemMessage(content=request_type_instructions)]
 
-        return Command(goto='model', update=update)
+        return Command(goto='premodel', update=update)
+
+    ################################################################
+    # Custom premodel node                                         #
+    ################################################################
+
+    def premodel_node(state: State, config: RunnableConfig):
+        # Recover integration config object from agent config
+        integration = config.get('configurable', {}).get('integration')
+
+        # Run the custom premodel function from the integration
+        integration.premodel(state['messages'])
+
+        return Command(goto='model')
 
     ################################################################
     # Model node                                                   #
     ################################################################
 
     def model_node(state: State, config: RunnableConfig):
-        # Recover interation config object from agent config
+        # Recover integration config object from agent config
         integration = config.get('configurable', {}).get('integration')
 
         # Build tool functions to pass to the model based on those available to the integration
@@ -130,14 +143,14 @@ def create_agent():
         if ai_message.tool_calls:
             return Command(goto='tools', update={'messages': [ai_message], 'tools_queue': tools_queue})
         else:
-            return Command(goto='check', update={'messages': [ai_message], 'tools_queue': tools_queue})
+            return Command(goto='postmodel', update={'messages': [ai_message], 'tools_queue': tools_queue})
 
     ################################################################
     # Tools node                                                   #
     ################################################################
 
     def tools_node(state: State, config: RunnableConfig):
-        # Recover interation config object from agent config
+        # Recover integration config object from agent config
         integration = config.get('configurable', {}).get('integration')
 
         # Build tool functions to pass to the model based on those available to the integration
@@ -149,12 +162,15 @@ def create_agent():
         return Command(goto='model', update={'messages': tool_messages})
 
     ################################################################
-    # Check node                                                   #
+    # Custom postmodel node                                        #
     ################################################################
 
-    def check_node(state: State, config: RunnableConfig):
-        # Verify here the content of the generated message (e.g. hallucinations, etc.)
-        pass
+    def postmodel_node(state: State, config: RunnableConfig):
+        # Recover integration config object from agent config
+        integration = config.get('configurable', {}).get('integration')
+
+        # Run the custom postmodel function from the integration
+        integration.postmodel(state['messages'])
 
         return Command(goto=END)
 
@@ -167,9 +183,10 @@ def create_agent():
 
     # Define the nodes of the graph
     workflow.add_node('classify', classify_node)
+    workflow.add_node('premodel', premodel_node)
     workflow.add_node('model', model_node)
     workflow.add_node('tools', tools_node)
-    workflow.add_node('check', check_node)
+    workflow.add_node('postmodel', postmodel_node)
 
     # Define the entry point of the graph
     workflow.set_entry_point('classify')

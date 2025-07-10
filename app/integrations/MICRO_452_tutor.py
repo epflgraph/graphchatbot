@@ -34,6 +34,14 @@ class Micro452TutorConfig(IntegrationConfig, ABC):
     def build_tools(self):
         return [StructuredTool.from_function(name='search_micro452_tutor', func=self.search_micro452_tutor)]
 
+    def premodel(self, messages):
+        # print('[PREMODEL]', messages)
+        pass
+
+    def postmodel(self, messages):
+        # print('[POSTMODEL]', messages)
+        pass
+
 
 ################################################################
 # Common sysprompt pieces

@@ -153,3 +153,13 @@ The possible categories are the following:
 
     def build_tools(self):
         return []
+
+    # Default premodel method
+    def premodel(self, messages):
+        # Default logic for the premodel state of the agent
+        pass
+
+    # Default postmodel method
+    def postmodel(self, messages):
+        # Default logic for the postmodel state of the agent
+        pass
