@@ -11,7 +11,7 @@ from app.interfaces.graphai import GraphAIClient
 
 
 class Micro452TutorConfig(IntegrationConfig, ABC):
-    index = 'course_micro452_tutor'
+    index = 'course_micro452'
     available_tools = ['search_micro452_tutor']
     model = 'gpt-4o'
 
@@ -38,7 +38,8 @@ class Micro452TutorConfig(IntegrationConfig, ABC):
 ################################################################
 # Common sysprompt pieces
 
-course_details_sysprompt = """
+def course_details_sysprompt():
+    return """
 # Course details
 The course teaches the basics of autonomous mobile robots. Both hardware (energy, locomotion, sensors) and software (signal processing, control, localization, trajectory planning, high-level control) will be tackled. The students will apply the knowledge to program and control a real mobile robot.
 
@@ -84,7 +85,9 @@ Ex cathedra, case studies, exercises, work on mobile robots, group project
 * Project during the semester (60% of the grade). The project takes place during the semester and the report and presentation are done before the end of the semester, following the specific planning given by the teacher at the beginning of the semester.
 * Written exam (40% of the grade)"""
 
-pedadogical_sysprompts = {
+
+def pedagogical_sysprompts():
+    return {
     'base': """
 # Pedagogical requirements
 Your role is to support students in approaching and solving problems independently using the course material. The goal is to help students learn engaging with the provided course material.
@@ -147,8 +150,10 @@ Proceed as in the following examples:
 * You may give pieces of code related to exercise when requested, with gaps for the student to fill in on their own.""",
 }
 
-today = datetime.now().strftime("%Y-%m-%d")
-general_considerations_sysprompt = f"""
+
+def general_considerations_sysprompt():
+    today = datetime.now().strftime("%Y-%m-%d")
+    return f"""
 # General considerations
 * Lay out urls as Markdown links, with the link text being the document's `name` or `title`.
 * Never link to an url that does not come from the source documents.
@@ -157,10 +162,12 @@ general_considerations_sysprompt = f"""
 * If the user is at risk, point them to the EPFL's Trust and Support Network (https://www.epfl.ch/about/respect/trust-and-support-network/), and explain that it offers listening, guidance and support in complete confidentiality.
 * Today is {today}."""
 
+
 ################################################################
 # Common request type pieces
 
-common_request_types = {
+def common_request_types():
+    return {
     'greeting': {
         'description': "The user is just greeting the assistant or similar.",
     },
@@ -196,13 +203,13 @@ class Micro452TutorAConfig(Micro452TutorConfig):
     def system_prompt(self) -> str:
         return f"""
 You are the tutor for the course "MICRO-452: Basics of mobile robotics" at EPFL. Your task is to help students learn the contents of the course by making them think, not just providing answers.
-{course_details_sysprompt}
-{pedadogical_sysprompts['socratic']}
-{general_considerations_sysprompt}"""
+{course_details_sysprompt()}
+{pedagogical_sysprompts()['socratic']}
+{general_considerations_sysprompt()}"""
 
     @property
     def request_types(self) -> dict:
-        request_types = common_request_types.copy()
+        request_types = common_request_types()
 
         request_types['theory-question']['instructions'] += " Remember to not provide direct answers, but rather guide students using socratic questioning."
 
@@ -217,13 +224,13 @@ class Micro452TutorBConfig(Micro452TutorConfig):
     def system_prompt(self) -> str:
         return f"""
 You are the tutor for the course "MICRO-452: Basics of mobile robotics" at EPFL. Your task is to help students learn the contents of the course by making them think, not just providing answers.
-{course_details_sysprompt}
-{pedadogical_sysprompts['socratic']}
-{general_considerations_sysprompt}"""
+{course_details_sysprompt()}
+{pedagogical_sysprompts()['socratic']}
+{general_considerations_sysprompt()}"""
 
     @property
     def request_types(self) -> dict:
-        request_types = common_request_types.copy()
+        request_types = common_request_types()
 
         request_types['theory-question']['instructions'] += " Remember to not provide direct answers, but rather guide students using socratic questioning."
 
@@ -238,13 +245,13 @@ class Micro452TutorCConfig(Micro452TutorConfig):
     def system_prompt(self) -> str:
         return f"""
 You are the tutor for the course "MICRO-452: Basics of mobile robotics" at EPFL. Your task is to help students learn the contents of the course by making them think, not just providing answers.
-{course_details_sysprompt}
-{pedadogical_sysprompts['base']}
-{general_considerations_sysprompt}"""
+{course_details_sysprompt()}
+{pedagogical_sysprompts()['base']}
+{general_considerations_sysprompt()}"""
 
     @property
     def request_types(self) -> dict:
-        request_types = common_request_types.copy()
+        request_types = common_request_types()
 
         return request_types
 
@@ -257,13 +264,13 @@ class Micro452TutorDConfig(Micro452TutorConfig):
     def system_prompt(self) -> str:
         return f"""
 You are the tutor for the course "MICRO-452: Basics of mobile robotics" at EPFL. Your task is to help students learn the contents of the course by making them think, not just providing answers.
-{course_details_sysprompt}
-{pedadogical_sysprompts['base']}
-{general_considerations_sysprompt}"""
+{course_details_sysprompt()}
+{pedagogical_sysprompts()['base']}
+{general_considerations_sysprompt()}"""
 
     @property
     def request_types(self) -> dict:
-        request_types = common_request_types.copy()
+        request_types = common_request_types()
 
         return request_types
 
