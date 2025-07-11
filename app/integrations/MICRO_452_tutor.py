@@ -3,11 +3,21 @@ from abc import ABC
 from datetime import datetime
 from typing import Optional
 
+from pydantic import BaseModel, Field
+
 from langchain.tools import StructuredTool
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import (
+    SystemMessage,
+    HumanMessage,
+    AIMessage,
+)
 
 from app.integrations.abc import IntegrationConfig
 
 from app.interfaces.graphai import GraphAIClient
+
+from app.config import config
 
 
 class Micro452TutorConfig(IntegrationConfig, ABC):
@@ -199,6 +209,91 @@ def common_request_types():
 class FeedbackMixin:
     def premodel(self, messages):
         print('[PREMODEL]', "Look, I'm giving feedback!")
+
+        criteria = {
+            'clarity': "🔍 Clarity: Is the student clearly asking for a specific action? Is the request clear, direct and straightforward about what to do? Or on the contrary is it vague, open-ended or ambiguous?",
+            'understanding': "🧠 Understanding: Does the request reflect an attempt to grasp or clarify a concept? Does the student show a desire to learn or resolve confusion?",
+            'granularity': "📏 Granularity: Is the request detailed and specific or too general? Does it address an entire exercise or a part of it? Does it refer to variable names or certain lines of code?",
+            'reasoning': "🤔 Reasoning: Does it include reasoning, justification, or tentative explanations? Does the student explain their thinking, assumptions or reasoning?",
+        }
+
+        class RequestEvaluation(BaseModel):
+            """Evaluation of the user's request, intended as feedback to the user to improve their prompts."""
+            clarity: float = Field(description=criteria['clarity'], ge=0, le=10)
+            understanding: float = Field(description=criteria['understanding'], ge=0, le=10)
+            granularity: float = Field(description=criteria['granularity'], ge=0, le=10)
+            reasoning: float = Field(description=criteria['reasoning'], ge=0, le=10)
+
+        # Prepare system prompt
+        system_prompt = f"""
+You will be given a conversation between a student and an AI tutor.
+Your task is to rate the student's prompting abilities based on their last message, using the following criteria:
+* {criteria['clarity']}
+* {criteria['understanding']}
+* {criteria['granularity']}
+* {criteria['reasoning']}
+
+For each criterion, give a score from 0 (mostly absent) to 10 (present and well-executed). Be strict.
+The scores should only be based on the student's last message, the rest of the conversation is provided for context. 
+"""
+
+        # Prepare human prompt
+        human_prompt = []
+        for message in messages:
+            # Extract only text from messages to send (otherwise images or other media types can fill the context window)
+            if isinstance(message.content, str):
+                message_content = message.content
+            else:
+                message_content = '\n'.join([content_piece['text'] for content_piece in message.content if content_piece['type'] == 'text'])
+
+            human_prompt.append(f'----{message.type.upper()}----\n{message_content}')
+        human_prompt = '\n\n'.join(human_prompt)
+
+        # Gather the messages for the LLM input
+        input_messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=human_prompt),
+        ]
+
+        # Instantiate chat model and output parser
+        model_name = 'gpt-4o-mini'
+        model = ChatOpenAI(model=model_name, temperature=0, openai_api_key=config['openai']['api_key'], request_timeout=60)
+        model = model.with_structured_output(RequestEvaluation)
+
+        # Send request to LLM
+        try:
+            evaluation = model.invoke(input=input_messages)
+        except Exception as e:
+            print('[PREMODEL]', "ERROR: Feedback call failed")
+            print('[PREMODEL]', e)
+            return
+
+        print('[PREMODEL]', evaluation)
+
+        # Format evaluation with emojis
+        def emojify(evaluation):
+            # Define total bars and emoji labels
+            total_bars = 10
+            categories = [
+                ("🔍 Clarity:      ", evaluation.clarity),
+                ("🧠 Understanding:", evaluation.understanding),
+                ("📏 Granularity:  ", evaluation.granularity),
+                ("🤔 Reasoning:    ", evaluation.reasoning),
+            ]
+
+            result = "```\n"
+            result += "📊 Prompt Quality Breakdown:\n"
+            for label, value in categories:
+                filled_blocks = int(round(value))
+                empty_blocks = total_bars - filled_blocks
+                bar = "🟥" * filled_blocks + "⬜" * empty_blocks
+                percentage = int((value / 10) * 100)
+                result += f"{label} {bar} ({percentage}%)\n"
+            result += "```\n"
+
+            return result
+
+        return [AIMessage(content=emojify(evaluation))]
 
 
 class NonFeedbackMixin:

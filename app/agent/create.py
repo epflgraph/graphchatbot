@@ -106,9 +106,12 @@ def create_agent():
         integration = config.get('configurable', {}).get('integration')
 
         # Run the custom premodel function from the integration
-        integration.premodel(state['messages'])
+        message = integration.premodel(state['messages'])
 
-        return Command(goto='model')
+        if message:
+            return Command(goto='model', update={'messages': message})
+        else:
+            return Command(goto='model')
 
     ################################################################
     # Model node                                                   #

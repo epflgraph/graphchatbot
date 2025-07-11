@@ -82,6 +82,24 @@ async def agenerate_completion(chat_request) -> AsyncGenerator:
     # Launch agent and iterate over the event updates
     content = ''
     async for event in agent.astream_events(input=agent_input, config=agent_config, version='v2'):
+        # Yield for new messages in premodel or postmodel states
+        if event['metadata'].get('langgraph_node') in ['premodel', 'postmodel'] and event['name'] in ['premodel', 'postmodel'] and event['event'] == 'on_chain_end':
+            try:
+                chunk_content = event['data']['output'].update['messages'][-1].content
+
+                chunk = {
+                    'id': "1",
+                    'object': "chat.completion.chunk",
+                    'created': time.time(),
+                    'model': chat_request['model'],
+                    'choices': [{'delta': {'content': chunk_content}}],
+                }
+
+                content += chunk_content
+                yield f"data: {json.dumps(chunk)}\n\n"
+            except TypeError:
+                pass
+
         # Yield in the model node when there is a message chunk
         if event['metadata'].get('langgraph_node') == 'model' and event['name'] == 'ChatOpenAI' and event['event'] == 'on_chat_model_stream':
             chunk_content = event['data']['chunk'].content
