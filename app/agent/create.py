@@ -124,17 +124,21 @@ def create_agent():
         # Build tool functions to pass to the model based on those available to the integration
         tools = build_tools(integration)
 
-        # Instantiate chat model
-        model = ChatOpenAI(model=integration.model, temperature=0, openai_api_key=app_config['openai']['api_key'])
-
         # Force tool call if there is any in the queue
         tools_queue = state['tools_queue']
         if tools_queue:
             tool_name = tools_queue.pop(0)  # Returns first element and removes it from tools_queue
+
+            # Instantiate chat model (for tool calling always cheaper model)
+            model = ChatOpenAI(model='gpt-4o-mini', temperature=0, openai_api_key=app_config['openai']['api_key'])
             model_with_tools = model.bind_tools(tools, tool_choice=tool_name)
+
             print('[MODEL]', f"Calling LLM forcing tool call `{tool_name}`")
         else:
+            # Instantiate chat model (for actual response the model from the integration)
+            model = ChatOpenAI(model=integration.model, temperature=0, openai_api_key=app_config['openai']['api_key'])
             model_with_tools = model.bind_tools(tools)
+
             print('[MODEL]', "Calling LLM without forcing any tool call")
 
         # Generate new ai message
