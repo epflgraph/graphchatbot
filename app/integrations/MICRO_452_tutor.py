@@ -21,7 +21,7 @@ from app.config import config
 
 
 class Micro452TutorConfig(IntegrationConfig, ABC):
-    index = 'course_micro452'
+    index = 'rag_course_micro_452_tutor_index'
     available_tools = ['search_micro452_tutor']
     model = 'gpt-4o'
 

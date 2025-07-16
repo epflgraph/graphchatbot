@@ -63,7 +63,7 @@ Act as if you were a peer of the student, questioning their statements and makin
 
 Start by laying out the different case studies available from the source documents, prompting the student to choose which one they want to discuss. Once they have chosen, ask them which answer they think is correct and why. Then there will be two possibilities:
 * If the student is correct, CHOOSE A WRONG ANSWER and try to defend it as if you were another student. Challenge the student's arguments with common misconceptions or plausible counter-arguments, but do acknowledge and change your mind when they justify their claims correctly.
-* If the student is incorrect, argue for the correct answer as if you were another student. Challenge the student's incorrect claims with correct arguments, and try to identify the common misconceptions the student is incurring in.
+* If the student is incorrect, argue for the correct answer as if you were another student. Challenge the student's incorrect claims with correct arguments, and try to identify the common misconceptions the student is incurring.
 
 Exhaust all the possible debate points, but do not repeat those already discussed. Mimic as close as possible an in-class discussion until you reach an agreement for the correct answer or when you consider the debate to be over. Only at that point, and only if the student still backs an incorrect answer, ask them whether they want the solution, and in that case give a precise explanation grounded on the case study solution document. Do not give away the solution in any other case.
 
@@ -91,17 +91,17 @@ def general_considerations_sysprompt():
 
 class Micro452CaseStudiesConfig(IntegrationConfig):
     name = 'MICRO-452-case-studies'
-    index = 'course_micro452'
+    index = 'rag_course_micro_452_case_studies_index'
     available_tools = ['search_micro452_case_studies']
     model = 'gpt-4o'
 
     @property
     def system_prompt(self) -> str:
         return f"""
-    You are a debate partner for the course "MICRO-452: Basics of mobile robotics", a master's level robotics course at EPFL. Your task is to discuss with a student about the case studies of the course, which consist of questions intended to spark debate among the students.
-    {course_details_sysprompt()}
-    {pedagogical_sysprompt()}
-    {general_considerations_sysprompt()}"""
+You are a debate partner for the course "MICRO-452: Basics of mobile robotics", a master's level robotics course at EPFL. Your task is to discuss with a student about the case studies of the course, which consist of questions intended to spark debate among the students.
+{course_details_sysprompt()}
+{pedagogical_sysprompt()}
+{general_considerations_sysprompt()}"""
 
     @property
     def request_types(self) -> dict:
@@ -118,7 +118,7 @@ class Micro452CaseStudiesConfig(IntegrationConfig):
             },
             'early-stage-debate': {
                 'description': "It is clear which case study to discuss, and the student has taken a position. The debate is in an early stage: most ideas haven't been exchanged or developed.",
-                'instructions': "If the student is correct, pick an incorrect answer (if you haven't already) and argue for it as if you were another student incurring in common misconceptions. Also use common misconceptions to try to counter-argument the student's claims, so that they correctly justify their claims. If the student is wrong, root for the correct answer with correct arguments, and try to identify and expose the common misconceptions the student is incurring in.",
+                'instructions': "If the student is correct, pick an incorrect answer (if you haven't already) and argue for it as if you were another student incurring common misconceptions. Also use common misconceptions to try to counter-argument the student's claims, so that they correctly justify their claims. If the student is wrong, root for the correct answer with correct arguments, and try to identify and expose the common misconceptions the student is incurring.",
                 'tools': ['search_micro452_case_studies'],
             },
             'mid-stage-debate': {
@@ -127,13 +127,13 @@ class Micro452CaseStudiesConfig(IntegrationConfig):
                 'tools': ['search_micro452_case_studies'],
             },
             'late-stage-debate': {
-                'description': "It is clear which case study to discuss, and the student has taken a position. The debate is in an late stage: most ideas have been exhausted, but there is still no agreement.",
+                'description': "It is clear which case study to discuss, and the student has taken a position. The debate is in a late stage: most ideas have been exhausted, but there is still no agreement.",
                 'instructions': "Lay out the points for which you have reached an agreement and those for which you haven't. If the student is correct, accept and change your mind with their correct arguments. If the student is still wrong, present the correct arguments against their incorrect beliefs clearly.",
                 'tools': ['search_micro452_case_studies'],
             },
             'debate-ended': {
                 'description': "The debate has ended either by reaching an agreement or by exhausting all ideas.",
-                'instructions': "If the student is still wrong, ask them if they want the solution, and do provide it in that case. Then, ask them if they would like to discuss about another case study.",
+                'instructions': "If the student is still wrong, ask them if they want the solution, and do provide it in that case. Then, ask them if they would like to discuss another case study.",
                 'tools': ['search_micro452_case_studies'],
             },
         }
@@ -143,7 +143,7 @@ class Micro452CaseStudiesConfig(IntegrationConfig):
     def search_micro452_case_studies(self, keywords: list[str], limit: Optional[int] = 10):
         """
         Performs a search in the material for the course MICRO-452 at EPFL with the given `keywords`.
-        The course material includes slides and exercises.
+        The course includes the case study questions, along with their solutions and some common misconceptions.
         Returns a list of the document chunks that best match the keywords, up to `limit` chunks.
         """
 
