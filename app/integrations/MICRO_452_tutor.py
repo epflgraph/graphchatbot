@@ -21,7 +21,7 @@ from app.config import config
 
 
 class Micro452TutorConfig(IntegrationConfig, ABC):
-    index = 'rag_course_micro_452_tutor_index'
+    index = 'course_micro_452_tutor'
     available_tools = ['search_micro452_tutor']
     model = 'gpt-4o'
 
@@ -376,3 +376,5 @@ if __name__ == '__main__':
         print(request_type.capitalize())
         print('  ', "Description:", request_types[request_type]['description'])
         print('  ', "System prompt:", request_types[request_type].get('instructions'))
+
+    print(integration.search_micro452_tutor(keywords=['A* algorithm', 'path finding']))

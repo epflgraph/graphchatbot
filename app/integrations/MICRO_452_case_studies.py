@@ -91,7 +91,7 @@ def general_considerations_sysprompt():
 
 class Micro452CaseStudiesConfig(IntegrationConfig):
     name = 'MICRO-452-case-studies'
-    index = 'rag_course_micro_452_case_studies_index'
+    index = 'course_micro_452_case_studies'
     available_tools = ['search_micro452_case_studies']
     model = 'gpt-4o'
 
@@ -176,3 +176,5 @@ if __name__ == '__main__':
         print(request_type.capitalize())
         print('  ', "Description:", request_types[request_type]['description'])
         print('  ', "System prompt:", request_types[request_type].get('instructions'))
+
+    print(integration.search_micro452_case_studies(keywords=['A* algorithm', 'path finding']))
