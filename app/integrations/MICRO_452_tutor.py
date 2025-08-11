@@ -1,7 +1,7 @@
 from abc import ABC
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Set, Literal
 
 from pydantic import BaseModel, Field
 
@@ -28,45 +28,67 @@ class Micro452TutorConfig(IntegrationConfig, ABC):
     available_tools = ['search_micro452_tutor']
     model = 'gpt-4o'
 
-    def search_micro452_tutor(self, keywords: list[str], limit: Optional[int] = 10):
+    def search_micro452_tutor(
+        self,
+        keywords: list[str],
+        doc_types: Optional[Set[Literal["slides", "book", "exercises", "forum_qa"]]] = None,
+        limit: Optional[int] = 5
+    ):
         """
-        Performs a search in the material for the course MICRO-452 at EPFL with the given `keywords`.
-        The course material includes slides and exercises.
-        Returns a list of the document chunks that best match the keywords, up to `limit` chunks.
+        Performs a search in the material for the course MICRO-452 at EPFL.
+        Matches documents against the given `keywords`.
+        Only documents whose type is among the given `doc_types` are returned. If not specified, all types are considered.
+        Returns a list of the document chunks, up to `limit` chunks per `doc_type`.
         """
 
-        print("[MICRO-452-TUTOR TOOL]", f"Called the `search_micro452_tutor` tool with keywords=`{keywords}` and limit=`{limit}`")
+        print("[MICRO-452-TUTOR TOOL]", f"Called the `search_micro452_tutor` tool with keywords=`{keywords}`, dco_types=`{doc_types}` and limit=`{limit}`")
 
         gac = GraphAIClient()
-        results = gac.rag_retrieve(index=self.index, texts=keywords, limit=limit)
+
+        filters = {
+            'slides': {'type': 'theory', 'subtype': 'lecture_slides'},
+            'book': {'type': 'theory', 'subtype': 'book_in_bibliography'},
+            'exercises': {'type': 'practice'},
+            'forum_qa': {'type': 'other', 'subtype': 'forum_questions'},
+        }
+
+        if not doc_types:
+            doc_types = set(filters.keys())
+
+        results = []
+        for doc_type in doc_types:
+            results += gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters[doc_type])
 
         print("[MICRO-452-TUTOR TOOL]", f"Retrieved {len(results)} document chunks.")
 
         def format_results(results):
             formatted_results = []
             for result in results:
-                formatted_results.append({
-                    'type': result.get('type'),
-                    'subtype': result.get('subtype'),
+                formatted_result = {
+                    'type': f"{result.get('type')}: {result.get('subtype')}",
                     'title': result.get('title'),
                     'number': result.get('number'),
                     'sub_number': result.get('sub_number'),
                     'url': result.get('original_link'),
-                    'associated_video_lectures': result.get('associated_video_lectures'),
                     'page': result.get('page'),
                     'position': result.get('position'),
                     'content.fr': result.get('content.fr'),
                     'content.en': result.get('content.en'),
-                })
+                }
+
+                video_lectures = result.get('associated_video_lectures', [])
+
+                if video_lectures:
+                    formatted_result['associated_video_lectures'] = [{
+                        'title': video_lecture.get('title'),
+                        'url': video_lecture.get('original_link'),
+                    } for video_lecture in video_lectures]
+
+                formatted_results.append(formatted_result)
 
             return formatted_results
 
-        try:
-            formatted_results = format_results(results)
-        except Exception as e:
-            print(e)
-            print(results)
-            formatted_results = []
+        formatted_results = format_results(results)
 
         print("[MICRO-452-TUTOR TOOL]", formatted_results)
 
@@ -407,4 +429,4 @@ if __name__ == '__main__':
         print('  ', "Description:", request_types[request_type]['description'])
         print('  ', "System prompt:", request_types[request_type].get('instructions'))
 
-    print(integration.search_micro452_tutor(keywords=['A* algorithm', 'path finding']))
+    print(integration.search_micro452_tutor(keywords=['A* algorithm', 'path finding'], doc_types={'slides', 'exercises'}))

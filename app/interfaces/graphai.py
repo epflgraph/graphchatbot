@@ -94,9 +94,9 @@ class GraphAIClient:
         # Clean texts
         texts = [text.strip() for text in texts if text.strip()]
 
-        # Return empty if no texts
+        # Default to empty string if no texts
         if not texts:
-            return []
+            texts = ['']
 
         results = {}
         for text in texts:
@@ -141,5 +141,8 @@ class GraphAIClient:
 
         # Sort the results in a list by descending score (which is an integer between 1 and n_keywords)
         results = sorted(results.values(), key=lambda result: result['.score'], reverse=True)
+
+        # Keep no more than limit results
+        results = results[:limit]
 
         return results
