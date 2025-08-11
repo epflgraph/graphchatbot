@@ -61,7 +61,11 @@ class Micro452TutorConfig(IntegrationConfig, ABC):
 
             return formatted_results
 
-        return format_results(results)
+        formatted_results = format_results(results)
+
+        print("[MICRO-452-TUTOR TOOL]", formatted_results)
+
+        return formatted_results
 
     def build_tools(self):
         return [StructuredTool.from_function(name='search_micro452_tutor', func=self.search_micro452_tutor)]
