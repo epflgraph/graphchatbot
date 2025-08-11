@@ -46,17 +46,17 @@ class Micro452TutorConfig(IntegrationConfig, ABC):
             formatted_results = []
             for result in results:
                 formatted_results.append({
-                    'type': result['type'],
-                    'subtype': result['subtype'],
-                    'title': result['title'],
-                    'number': result['number'],
-                    'sub_number': result['sub_number'],
-                    'url': result['original_link'],
-                    'associated_video_lectures': result['associated_video_lectures'],
-                    'page': result['page'],
-                    'position': result['position'],
-                    'content.fr': result['content.fr'],
-                    'content.en': result['content.en'],
+                    'type': result.get('type'),
+                    'subtype': result.get('subtype'),
+                    'title': result.get('title'),
+                    'number': result.get('number'),
+                    'sub_number': result.get('sub_number'),
+                    'url': result.get('original_link'),
+                    'associated_video_lectures': result.get('associated_video_lectures'),
+                    'page': result.get('page'),
+                    'position': result.get('position'),
+                    'content.fr': result.get('content.fr'),
+                    'content.en': result.get('content.en'),
                 })
 
             return formatted_results
