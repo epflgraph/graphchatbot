@@ -61,7 +61,11 @@ class Micro452TutorConfig(IntegrationConfig, ABC):
 
             return formatted_results
 
-        formatted_results = format_results(results)
+        try:
+            formatted_results = format_results(results)
+        except Exception as e:
+            print(e)
+            formatted_results = []
 
         print("[MICRO-452-TUTOR TOOL]", formatted_results)
 
