@@ -252,7 +252,7 @@ Your task is to rate the student's prompting abilities based on their last messa
 For each criterion, give a score from 0 (mostly absent) to 10 (present and well-executed). Be strict.
 The scores should only be based on the student's last message, the rest of the conversation is only provided for context.
 
-Besides the scores, if at least two scores are 6 or lower, produce a feedback message including, for each criterion that is 6 or lower, one alternative reformulation of the student's request so that in improves with regard to that criterion. Examples of feedback:
+Besides the scores, if at least two scores are 6 or lower, produce a feedback message including, for each criterion that is 6 or lower, one alternative reformulation of the student's request so that it improves it with regard to that criterion. Examples of feedback:
 * More precise questions work better. Try something like: "What is the A* search algorithm's effectiveness in solving pathfinding problems compared to traditional search algorithms?"
 * Including a specific question to guide the model helps in understanding and learning the content more effectively. Try something like: "What is the core functionality of the A algorithm, its limitations and performance trade-offs in the implemented version, and the roles of specific functions in the code?"
 * Adding reasoning or a hypothesis helps the model understand which part you didn't fully grasp. Try something like: "What exactly is A*? I think it's a search algorithm used for pathfinding, in robotics for navigation. I'm guessing it finds efficient routes, but I'm not totally sure how or why it's preferred."
