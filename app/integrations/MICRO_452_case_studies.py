@@ -113,7 +113,7 @@ You are a debate partner for the course "MICRO-452: Basics of mobile robotics", 
             },
             'no-position': {
                 'description': "It is clear which case study to discuss, but it is not clear what position the student is taking.",
-                'instructions': "It is clear which case study to discuss, but it is not clear what position the student is taking. Ask the student what they think the answer is and why.",
+                'instructions': "It is clear which case study to discuss, but it is not clear what position the student is taking. State the case study question verbatim and ask the student what they think the answer is and why.",
                 'tools': ['search_micro452_case_studies'],
             },
             'early-stage-debate': {
