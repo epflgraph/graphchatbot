@@ -314,8 +314,6 @@ If at least two scores are greater than 6, leave the feedback empty."""
             print('[PREMODEL]', e)
             return
 
-        print('[PREMODEL]', evaluation)
-
         def is_passing(evaluation):
             scores = [evaluation.clarity_specificity_score, evaluation.understanding_score, evaluation.reasoning_score]
             at_least_two_above_6 = sum(score > 6 for score in scores) >= 2

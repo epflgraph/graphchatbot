@@ -140,19 +140,64 @@ You are a debate partner for the course "MICRO-452: Basics of mobile robotics", 
 
         return request_types
 
-    def search_micro452_case_studies(self, keywords: list[str], limit: Optional[int] = 10):
+    def search_micro452_case_studies(self, keywords: list[str], case_study_number: Optional[int] = None):
         """
-        Performs a search in the material for the course MICRO-452 at EPFL with the given `keywords`.
-        The course includes the case study questions, along with their solutions and some common misconceptions.
-        Returns a list of the document chunks that best match the keywords, up to `limit` chunks.
+        Performs a search in the material for the course MICRO-452 at EPFL.
+        If `case_study_number` is provided, all material from this case study is returned, all material from the specified case study will be returned, along with additional sources from the theory that match the `keywords`.
+        Otherwise, only the available case study questions are returned.
         """
 
-        print("[MICRO-452-CASE-STUDIES TOOL]", f"Called the `search_micro452_case_studies` tool with keywords=`{keywords}` and limit=`{limit}`")
+        print("[MICRO-452-CASE-STUDIES TOOL]", f"Called the `search_micro452_case_studies` tool with keywords=`{keywords}` and case_study_number=`{case_study_number}`")
 
         gac = GraphAIClient()
-        results = gac.rag_retrieve(index=self.index, texts=keywords, limit=limit)
+
+        results = []
+        if case_study_number:
+            # Return everything from the given case study
+            filters = {'type': 'case_study', 'number': case_study_number}
+            results += gac.rag_retrieve(index=self.index, texts=keywords, limit=9999, filters=filters)
+
+            # Return a few chunks from the theory
+            filters = {'type': 'theory', 'subtype': 'lecture_slides'}
+            results += gac.rag_retrieve(index=self.index, texts=keywords, limit=5, filters=filters)
+        else:
+            # Return only questions from all case studies
+            filters = {'type': 'case_study', 'subtype': 'question'}
+            results += gac.rag_retrieve(index=self.index, texts=keywords, limit=9999, filters=filters)
 
         print("[MICRO-452-CASE-STUDIES TOOL]", f"Retrieved {len(results)} document chunks.")
+
+        def format_results(results):
+            formatted_results = []
+            for result in results:
+                formatted_result = {
+                    'type': f"{result.get('type')}: {result.get('subtype')}",
+                    'title': result.get('title'),
+                    'number': result.get('number'),
+                    'url': result.get('original_link'),
+                    'page': result.get('page'),
+                    'position': result.get('position'),
+                    'content.fr': result.get('content.fr'),
+                    'content.en': result.get('content.en'),
+                }
+
+                video_lectures = result.get('associated_video_lectures', [])
+
+                if video_lectures:
+                    formatted_result['associated_video_lectures'] = [{
+                        'title': video_lecture.get('title'),
+                        'url': video_lecture.get('original_link'),
+                    } for video_lecture in video_lectures]
+
+                formatted_results.append(formatted_result)
+
+            return formatted_results
+
+        formatted_results = format_results(results)
+
+        print("[MICRO-452-TUTOR TOOL]", formatted_results)
+
+        return formatted_results
 
         return results
 
@@ -177,4 +222,4 @@ if __name__ == '__main__':
         print('  ', "Description:", request_types[request_type]['description'])
         print('  ', "System prompt:", request_types[request_type].get('instructions'))
 
-    print(integration.search_micro452_case_studies(keywords=['A* algorithm', 'path finding']))
+    print(integration.search_micro452_case_studies(keywords=['robot sensor', 'lidar', 'camera'], case_study_number=1))
