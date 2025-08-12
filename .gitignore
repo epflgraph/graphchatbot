@@ -9,6 +9,8 @@ __pycache__
 
 # Config files (might include sensitive information or depend on the deployment)
 config.ini
+config.docker.ini
+config.local.ini
 config-prod.ini
 config-test.ini
 
