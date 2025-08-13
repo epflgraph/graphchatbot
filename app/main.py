@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI, Depends
 
-from app.auth import check_api_key
+from app.auth import get_user
 from app.routers import secure, public
 
 from app.agent import init_agent
@@ -51,7 +51,7 @@ app.include_router(
 )
 app.include_router(
     secure.router,
-    dependencies=[Depends(check_api_key)]
+    dependencies=[Depends(get_user)]
 )
 
 if __name__ == "__main__":

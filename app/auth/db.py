@@ -30,19 +30,6 @@ def init_auth_schema():
         """
     )
 
-    # Make sure the tables exist
-    db.execute_query(
-        """
-        CREATE TABLE IF NOT EXISTS `chatbot`.`api_keys_integrations` (
-          `api_key` VARCHAR(63) NOT NULL,
-          `integration` VARCHAR(127) NOT NULL,
-          `created` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          `updated` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          PRIMARY KEY (api_key, integration)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-        """
-    )
-
 
 def get_api_key(sciper, email):
     db = DB(config['database'])
@@ -83,23 +70,10 @@ def get_user(api_key):
 
     sciper, email, is_active = result[0]
 
-    query = """
-        SELECT `integration`
-        FROM `chatbot`.`api_keys_integrations`
-        WHERE `api_key` = %s
-    """
-    result = db.execute_query(query, values=[api_key])
-
-    if result:
-        integrations = [r for r, in result]
-    else:
-        integrations = []
-
     user = {
         'sciper': sciper,
         'email': email,
         'is_active': is_active,
-        'integrations': integrations
     }
 
     return user
@@ -125,25 +99,6 @@ def insert_api_keys(records):
     db.execute_query(query, values)
 
 
-def insert_api_keys_integrations(records):
-    db = DB(config['database'])
-
-    init_auth_schema()
-
-    placeholders = []
-    values = []
-    for record in records:
-        placeholders.append('(%s, %s)')
-        values.extend([record['api_key'], record['integration']])
-
-    query = f"""
-        INSERT IGNORE INTO `chatbot`.`api_keys_integrations`(`api_key`, `integration`)
-        VALUES {', '.join(placeholders)}
-    """
-
-    db.execute_query(query, values)
-
-
 def deactivate_api_keys(conditions):
     db = DB(config['database'])
 
@@ -159,15 +114,3 @@ def deactivate_api_keys(conditions):
             """
 
             db.execute_query(query, values)
-
-
-def get_current_integrations():
-    db = DB(config['database'])
-
-    init_auth_schema()
-
-    table_name = '`chatbot`.`api_keys_integrations`'
-    fields = ['DISTINCT `integration`']
-    current_integrations = [x for x, in db.find(table_name=table_name, fields=fields)]
-
-    return current_integrations

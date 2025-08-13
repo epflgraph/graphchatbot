@@ -13,6 +13,7 @@ class LexConfig(IntegrationConfig):
     name = 'lex'
     index = 'lex'
     available_tools = ['get_orgchart', 'search_news', 'search_lex']
+    groups = ['graph-chatbot-admins']
 
     @property
     def system_prompt(self) -> str:

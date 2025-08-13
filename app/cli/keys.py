@@ -1,19 +1,12 @@
 import json
-import secrets
 import fire
 
 from app.auth import (
     get_api_key,
     insert_api_keys,
-    insert_api_keys_integrations,
     deactivate_api_keys,
-    get_current_integrations,
+    generate_api_key,
 )
-
-
-def generate_api_key(prefix="sk", length=48):
-    token = secrets.token_urlsafe(length)[:length]
-    return f"{prefix}-{token}"
 
 
 class KeyManager:
@@ -22,7 +15,6 @@ class KeyManager:
         self,
         file: str = None,
         user: str = None,
-        integrations: str = None
     ):
         """
         Create one or more API keys.
@@ -34,7 +26,6 @@ class KeyManager:
         Args:
             file: Path to a file with sciper,email pairs (one per line).
             user: Comma-separated sciper and email of a single user (used only if file is not provided).
-            integrations: Comma-separated integrations (optional, prompts if missing).
         """
 
         # Read users
@@ -76,23 +67,7 @@ class KeyManager:
             print("No users read. No changes made in the database.")
             return
 
-        # Read integrations
-        current_integrations = get_current_integrations()
-
-        if not integrations:
-            print(f"Current integrations: {current_integrations}")
-            integrations = input("Enter comma-separated integration names (or * for all): ").strip()
-
-        if not integrations:
-            print("No integrations read. No changes made in the database.")
-            return
-
-        integrations = [integration.strip() for integration in integrations.split(",")]
-
-        if '*' in integrations:
-            integrations = ['*']
-
-        # Create keys
+        # Retrieve or create keys
         api_keys_records = []
         for user in users:
             api_key = get_api_key(user['sciper'], user['email'])
@@ -109,20 +84,8 @@ class KeyManager:
         # Insert them in the database
         insert_api_keys(api_keys_records)
 
-        api_keys_integrations_records = []
-        for api_keys_record in api_keys_records:
-            for integration in integrations:
-                api_keys_integrations_records.append({
-                    'api_key': api_keys_record['api_key'],
-                    'integration': integration,
-                })
-
-        insert_api_keys_integrations(api_keys_integrations_records)
-
         print("Successfully created or retrieved the following API keys:")
         print(json.dumps(api_keys_records, indent=2))
-        print("and granted them access to the following integrations:")
-        print(integrations)
 
     def deactivate(
         self,

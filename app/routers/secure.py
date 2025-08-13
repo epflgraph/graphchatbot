@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
-from app.auth import check_api_key
+from app.auth import get_user, get_admin, get_api_key, generate_api_key, insert_api_keys
 from app.schemas import ChatRequest
 
 from app.integrations import IntegrationConfig
@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 @router.post('/chat/completions')
-async def chat(chat_request: ChatRequest, user: Annotated[dict, Depends(check_api_key)]):
+async def chat(chat_request: ChatRequest, user: Annotated[dict, Depends(get_user)]):
     """
     Creates a model response for the given chat conversation.
 
@@ -27,7 +27,9 @@ async def chat(chat_request: ChatRequest, user: Annotated[dict, Depends(check_ap
         ChatResponse: Output object containing a chat completion based on the provided input.
     """
 
-    if chat_request.model not in user['integrations'] and '*' not in user['integrations']:
+    # Check if user has access to the integration in the request
+    integration = IntegrationConfig.from_name(chat_request.model)   # defaults to 'graph-chat'
+    if integration.groups and len(set(integration.groups) & set(user['groups'])) == 0:
         print('[AUTH]', f"User {user} doesn't have access to integration {chat_request.model}")
         raise HTTPException(status_code=403, detail="Missing or invalid API key")
 
@@ -41,13 +43,16 @@ async def chat(chat_request: ChatRequest, user: Annotated[dict, Depends(check_ap
 
 
 @router.get('/models')
-async def models(user: Annotated[dict, Depends(check_api_key)]):
-    all_model_names = IntegrationConfig.list_integrations()
+async def models(user: Annotated[dict, Depends(get_user)]):
+    # Compute list of allowed integrations for the current user based on their EPFL groups
+    all_integration_names = IntegrationConfig.list_integrations()
 
-    if '*' in user['integrations']:
-        model_names = all_model_names
-    else:
-        model_names = [model_name for model_name in all_model_names if model_name in user['integrations']]
+    model_names = []
+    for integration_name in all_integration_names:
+        integration = IntegrationConfig.from_name(integration_name)
+
+        if integration.groups is None or len(set(integration.groups) & set(user['groups'])) > 0:
+            model_names.append(integration_name)
 
     return {
         "object": "list",
@@ -60,4 +65,29 @@ async def models(user: Annotated[dict, Depends(check_api_key)]):
             }
             for model_name in model_names
         ],
+    }
+
+
+@router.get('/users')
+async def users(sciper: str, email: str, admin: Annotated[dict, Depends(get_admin)]):
+    print('[USERS]', f"Accepted request for api key for sciper={sciper} and email={email}")
+
+    # Fetch api key if it exists
+    api_key = get_api_key(sciper, email)
+
+    # Create new one if it doesn't exist
+    if not api_key:
+        api_key = generate_api_key()
+
+        insert_api_keys([{
+            'api_key': api_key,
+            'sciper': sciper,
+            'email': email,
+        }])
+
+    # Return user with api_key
+    return {
+        'sciper': sciper,
+        'email': email,
+        'api_key': api_key,
     }

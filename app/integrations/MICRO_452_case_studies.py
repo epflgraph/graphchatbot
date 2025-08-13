@@ -94,6 +94,7 @@ class Micro452CaseStudiesConfig(IntegrationConfig):
     index = 'course_micro_452_case_studies'
     available_tools = ['search_micro452_case_studies']
     model = 'gpt-4o'
+    groups = ['graph-chatbot-admins', 'MICRO-452-admin', 'MICRO-452-case-studies']
 
     @property
     def system_prompt(self) -> str:

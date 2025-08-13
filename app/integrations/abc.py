@@ -22,6 +22,7 @@ class IntegrationConfig(ABC):
     index: Optional[str] = None
     available_tools: Optional[list[str]] = None
     model: Optional[str] = 'gpt-4o-mini'
+    groups: Optional[list] = None
 
     def __init_subclass__(cls):
         super().__init_subclass__()

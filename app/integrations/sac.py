@@ -12,6 +12,7 @@ class SacConfig(IntegrationConfig):
     name = 'sac'
     index = 'sac'
     available_tools = ['search_sac']
+    groups = ['graph-chatbot-admins']
 
     @property
     def system_prompt(self) -> str:
