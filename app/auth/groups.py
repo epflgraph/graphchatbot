@@ -4,7 +4,8 @@ from app.config import config
 
 
 def get_user_groups(sciper):
-    url = f'https://api.epfl.ch/v1/groups?pagesize=0&member={sciper}'
+    url = f"{config.get('epfl groups', {}).get('host')}:{config.get('epfl groups', {}).get('port')}"
+    url += f'/v1/groups?pagesize=0&member={sciper}'
     auth = (config.get('epfl groups', {}).get('username'), config.get('epfl groups', {}).get('password'))
 
     response = requests.get(url, auth=auth).json()
