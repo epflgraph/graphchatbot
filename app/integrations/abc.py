@@ -15,12 +15,23 @@ from langchain.output_parsers import PydanticOutputParser
 
 from app.config import config
 
+# List of RCP models that have been tested
+# rcp_models = [
+#     'meta-llama/Llama-4-Scout-17B-16E-Instruct',  <- works but doesn't sound very smart
+#     'meta-llama/Llama-3.3-70B-Instruct',          <- works but is not very fast
+#     'Qwen/Qwen2.5-VL-72B-Instruct',               <- works but is not very fast
+#     'deepseek-ai/DeepSeek-R1-Distill-Llama-70B',  <- doesn't work with tool_choice
+#     'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B',   <- doesn't work with tool_choice
+# ]
+
 
 class IntegrationConfig(ABC):
     # Class-level contract
     name: Optional[str] = None
     index: Optional[str] = None
     available_tools: Optional[list[str]] = None
+    model_provider: Optional[str] = 'openai'
+    light_model: Optional[str] = 'gpt-4o-mini'
     model: Optional[str] = 'gpt-4o-mini'
     groups: Optional[list] = None
 
@@ -121,9 +132,15 @@ The possible categories are the following:
             }
         }
 
+        # Fetch model provider details
+        if self.model_provider == 'openai':
+            base_url = None
+        else:
+            base_url = config.get(self.model_provider, {})['base_url']
+        api_key = config.get(self.model_provider, {})['api_key']
+
         # Instantiate chat model and output parser
-        model_name = 'gpt-4o-mini'
-        model = ChatOpenAI(model=model_name, temperature=0, openai_api_key=config['openai']['api_key'], request_timeout=60)
+        model = ChatOpenAI(base_url=base_url, model=self.light_model, temperature=0, openai_api_key=api_key, request_timeout=60)
         model = model.bind(response_format=response_format)
         parser = PydanticOutputParser(pydantic_object=ConversationType)
 

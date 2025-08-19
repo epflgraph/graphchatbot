@@ -26,6 +26,8 @@ from app.config import config
 class Micro452TutorConfig(IntegrationConfig, ABC):
     index = 'course_micro_452_tutor'
     available_tools = ['search_micro452_tutor']
+    model_provider = 'openai'
+    light_model = 'gpt-4o-mini'
     model = 'gpt-4o'
 
     def search_micro452_tutor(

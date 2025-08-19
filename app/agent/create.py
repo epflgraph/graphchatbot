@@ -121,6 +121,13 @@ def create_agent():
         # Recover integration config object from agent config
         integration = config.get('configurable', {}).get('integration')
 
+        # Fetch model provider details
+        if integration.model_provider == 'openai':
+            base_url = None
+        else:
+            base_url = app_config.get(integration.model_provider, {})['base_url']
+        api_key = app_config.get(integration.model_provider, {})['api_key']
+
         # Build tool functions to pass to the model based on those available to the integration
         tools = build_tools(integration)
 
@@ -130,13 +137,13 @@ def create_agent():
             tool_name = tools_queue.pop(0)  # Returns first element and removes it from tools_queue
 
             # Instantiate chat model (for tool calling always cheaper model)
-            model = ChatOpenAI(model='gpt-4o-mini', temperature=0, openai_api_key=app_config['openai']['api_key'])
+            model = ChatOpenAI(base_url=base_url, model=integration.light_model, temperature=0, openai_api_key=api_key, request_timeout=60)
             model_with_tools = model.bind_tools(tools, tool_choice=tool_name)
 
             print('[MODEL]', f"Calling LLM forcing tool call `{tool_name}`")
         else:
             # Instantiate chat model (for actual response the model from the integration)
-            model = ChatOpenAI(model=integration.model, temperature=0, openai_api_key=app_config['openai']['api_key'])
+            model = ChatOpenAI(base_url=base_url, model=integration.model, temperature=0, openai_api_key=api_key, request_timeout=60)
             model_with_tools = model.bind_tools(tools)
 
             print('[MODEL]', "Calling LLM without forcing any tool call")
@@ -162,6 +169,28 @@ def create_agent():
 
         # Build tool functions to pass to the model based on those available to the integration
         tools = build_tools(integration)
+
+
+        ################################################################
+        # Fix some known issues if needed
+        for i in range(len(state['messages'][-1].tool_calls)):
+            # Fix missing tool call ids in some cases for some models (c.f. https://github.com/langchain-ai/langgraph/issues/4717)
+            if not state['messages'][-1].tool_calls[i]['id']:
+                print('[TOOL]', "Missing tool call id. Fixing it manually with a random string.")
+                import secrets
+                random_hex_string = secrets.token_hex(32 // 2)
+                state['messages'][-1].tool_calls[i]['id'] = f"chatcmpl-tool-{random_hex_string}"
+
+            # Fix tool name being a repetition of a tool name (e.g. 'search_lexsearch_lexsearch_lex' instead of 'search_lex')
+            tool_names = [tool.name for tool in tools]
+            if state['messages'][-1].tool_calls[i]['name'] not in tool_names:
+                for tool_name in tool_names:
+                    if tool_name in state['messages'][-1].tool_calls[i]['name']:
+                        print('[TOOL]', f"Fixing repeated tool call name {state['messages'][-1].tool_calls[i]['name']}.")
+                        state['messages'][-1].tool_calls[i]['name'] = tool_name
+                        break
+
+        ################################################################
 
         # Execute all tool calls in the last message
         tool_messages = ToolNode(tools).invoke(state)['messages']

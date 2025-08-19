@@ -93,6 +93,8 @@ class Micro452CaseStudiesConfig(IntegrationConfig):
     name = 'MICRO-452-case-studies'
     index = 'course_micro_452_case_studies'
     available_tools = ['search_micro452_case_studies']
+    model_provider = 'openai'
+    light_model = 'gpt-4o-mini'
     model = 'gpt-4o'
     groups = ['graph-chatbot-admins', 'MICRO-452-admin', 'MICRO-452-case-studies']
 
