@@ -170,8 +170,8 @@ def create_agent():
         # Build tool functions to pass to the model based on those available to the integration
         tools = build_tools(integration)
 
-
         ################################################################
+
         # Fix some known issues if needed
         for i in range(len(state['messages'][-1].tool_calls)):
             # Fix missing tool call ids in some cases for some models (c.f. https://github.com/langchain-ai/langgraph/issues/4717)
