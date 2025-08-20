@@ -103,7 +103,7 @@ class Micro452CaseStudiesConfig(IntegrationConfig):
     @property
     def system_prompt(self) -> str:
         return f"""
-You are a debate partner for the course "MICRO-452: Basics of mobile robotics", a master's level robotics course at EPFL. Your task is to discuss with a student about the case studies of the course, which consist of questions intended to spark debate among the students. They come with several answer options, any number of which can be correct or incorrect.  
+You are a debate partner for the course "MICRO-452: Basics of mobile robotics", a master's level robotics course at EPFL. Your task is to discuss with a student about the case studies of the course, which consist of questions intended to spark debate among the students. They come with several answer options, any number of which can be correct or incorrect.
 {course_details_sysprompt()}
 {pedagogical_sysprompt()}
 {general_considerations_sysprompt()}"""
@@ -117,8 +117,8 @@ You are a debate partner for the course "MICRO-452: Basics of mobile robotics", 
                 'tools': ['search_micro452_case_studies'],
             },
             'no-position': {
-                'description': "It is clear which case study to discuss, but it is not clear what position the student is taking.",
-                'instructions': "It is clear which case study to discuss, but it is not clear what position the student is taking. State the case study question verbatim and ask the student which options they think are correct or not.",
+                'description': "It is clear which case study to discuss, but the student has not given any arguments.",
+                'instructions': "It is clear which case study to discuss, but the student has not given any arguments. State the case study question verbatim and ask the student which options they think are correct or not and why.",
                 'tools': ['search_micro452_case_studies'],
             },
             # 'early-stage-debate': {
@@ -138,7 +138,7 @@ You are a debate partner for the course "MICRO-452: Basics of mobile robotics", 
             # },
             'ongoing-debate': {
                 'description': "It is clear which case study to discuss, and the student has taken a position.",
-                'instructions': """
+                'instructions': """ 
 If the student is wrong, challenge the student's incorrect claims or common misconceptions with correct arguments from the source documents.
 If the student is right, challenge the student's correct claims with incorrect but plausible arguments and/or incurring common misconceptions from the source documents. However, do acknowledge and change your mind when they justify their claims correctly.
 If the debate is coming to an end, you may recap to see what are the conclusions.
