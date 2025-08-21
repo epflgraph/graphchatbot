@@ -155,6 +155,7 @@ def create_agent():
 
         # Hand over to 'tools' if the ai message contains tool calls or proceed to 'check' otherwise
         if ai_message.tool_calls:
+            print(ai_message)
             return Command(goto='tools', update={'messages': [ai_message], 'tools_queue': tools_queue})
         else:
             return Command(goto='postmodel', update={'messages': [ai_message], 'tools_queue': tools_queue})
