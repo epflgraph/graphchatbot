@@ -168,8 +168,12 @@ def create_agent():
         # Recover integration config object from agent config
         integration = config.get('configurable', {}).get('integration')
 
+        print('[TOOL]', "Building tools")
+
         # Build tool functions to pass to the model based on those available to the integration
         tools = build_tools(integration)
+
+        print('[TOOL]', "Fixing issues")
 
         ################################################################
 
@@ -193,8 +197,12 @@ def create_agent():
 
         ################################################################
 
+        print('[TOOL]', "Executing tool calls")
+
         # Execute all tool calls in the last message
         tool_messages = ToolNode(tools).invoke(state)['messages']
+
+        print('[TOOL]', "Done, handing to model")
 
         return Command(goto='model', update={'messages': tool_messages})
 

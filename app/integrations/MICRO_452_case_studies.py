@@ -174,7 +174,7 @@ If they do, give an explanation of the solution which is faithful to the source 
 
         return request_types
 
-    def search_micro452_case_studies(self, keywords: list[str], case_study_number: Optional[int] = None):
+    def search_micro452_case_studies(self, keywords: Optional[list[str]] = None, case_study_number: Optional[int] = None):
         """
         Performs a search in the material for the course MICRO-452 at EPFL.
         If `case_study_number` is provided, all material from this case study is returned, along with additional sources from the theory that match the `keywords`.
@@ -185,10 +185,13 @@ If they do, give an explanation of the solution which is faithful to the source 
 
         gac = GraphAIClient()
 
+        if not keywords:
+            keywords = []
+
         results = []
         if case_study_number:
             # Return everything from the given case study
-            filters = {'type': 'case_study', 'number': case_study_number}
+            filters = {'type': 'case_study', 'number': str(case_study_number)}
             results += gac.rag_retrieve(index=self.index, texts=keywords, limit=9999, filters=filters)
 
             # Return a few chunks from the theory
