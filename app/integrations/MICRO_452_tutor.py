@@ -255,37 +255,37 @@ class FeedbackMixin:
         print('[PREMODEL]', "Look, I'm giving feedback!")
 
         criteria = {
-            'clarity_specificity': "🔍 Clarity & Specificity: Is the student clearly asking for a specific action? Is the request clear, direct and straightforward about what to do? Or on the contrary is it vague, open-ended or ambiguous?",
-            'understanding': "🧠 Understanding: Does the request reflect an attempt to grasp or clarify a concept? Does the student show a desire to learn or resolve confusion?",
-            'reasoning': "🤔 Reasoning: Does it include reasoning, justification, or tentative explanations? Does the student explain their thinking, assumptions or reasoning?",
+            'clarity': "🔍 Clarity & Specificity: Is the student clearly asking for a specific action? Is the request clear, direct and straightforward about what to do? Or on the contrary is it vague, open-ended or ambiguous?",
+            'reasoning': "🧠 Understanding & Reasoning: Does the request reflect an attempt to grasp or clarify a concept? Does the student show a desire to learn or resolve confusion? Does it include reasoning, justification, or tentative explanations? Does the student explain their thinking, assumptions or reasoning?",
         }
 
         class RequestEvaluation(BaseModel):
             """Evaluation of the user's request, intended as feedback to the user to improve their prompts."""
-            clarity_specificity_score: float = Field(..., description=criteria['clarity_specificity'], ge=0, le=10)
-            understanding_score: float = Field(..., description=criteria['understanding'], ge=0, le=10)
+            language: Optional[Literal['en', 'fr', 'other']] = Field(None, description="Language of the request.")
+            clarity_score: float = Field(..., description=criteria['clarity'], ge=0, le=10)
             reasoning_score: float = Field(..., description=criteria['reasoning'], ge=0, le=10)
-            feedback: Optional[str] = Field(None, description="Small message giving advice on how to improve the student's prompt, including reformulations for criteria with low score.")
+            alternative_1: Optional[str] = Field(None, description="Alternative reformulation of the student's request, significantly improving in the criterion with lowest score. To be provided only if that score is 4 or lower.")
+            alternative_2: Optional[str] = Field(None, description="Alternative reformulation of the student's request, significantly improving in the criterion with lowest score. To be provided only if that score is 4 or lower.")
 
         # Prepare system prompt
         system_prompt = f"""
 You will be given a conversation between a student and an AI tutor.
 Your task is to rate the student's prompting abilities based on their last message, using the following criteria:
-* {criteria['clarity_specificity']}
-* {criteria['understanding']}
+* {criteria['clarity']}
 * {criteria['reasoning']}
 
 For each criterion, give a score from 0 (mostly absent) to 10 (present and well-executed). Be strict.
 The scores should only be based on the student's last message, the rest of the conversation is only provided for context.
+All scores must be different.
 
-Besides the scores, if at least two scores are 6 or lower, produce a feedback message including, for each criterion that is 6 or lower, one alternative reformulation of the student's request so that it improves it with regard to that criterion. Examples of feedback:
-* More precise questions work better. Try something like: "What is the A* search algorithm's effectiveness in solving pathfinding problems compared to traditional search algorithms?"
-* Including a specific question to guide the model helps in understanding and learning the content more effectively. Try something like: "What is the core functionality of the A algorithm, its limitations and performance trade-offs in the implemented version, and the roles of specific functions in the code?"
-* Adding reasoning or a hypothesis helps the model understand which part you didn't fully grasp. Try something like: "What exactly is A*? I think it's a search algorithm used for pathfinding, in robotics for navigation. I'm guessing it finds efficient routes, but I'm not totally sure how or why it's preferred."
+Besides the scores, if one score is 4 or lower, produce two alternative reformulations so that it improves it with regard to that criterion.
+These alternative reformulations are supposed to improve in the criterion with the lowest score, but should still be good for the other criteria.
+Here are some examples of reformulations:
+* If the student's request is "what is A*?", alternatives for "🔍Clarity & Specificity" would be "What is the A* search algorithm's effectiveness in solving pathfinding problems compared to traditional search algorithms?" or "How does the A* algorithm work, and what are its limitations and performance trade-offs?".
+* If the student's request is "write a for loop in python for computing theta of the hough transform", alternatives for "🧠 Understanding & Reasoning" would be "I want to implement the loop for theta in the Hough Transform, but I'm not sure how the for loop should be indexed. Could you explain how the loop should iterate before providing the code?" or "Write for loop that iterates over theta values for the Hough transform, I think theta should be between –π/2 and π/2".
+* If the student's request is "# From the image shape, determine rho min and rho max", alternatives for "🧠 Understanding & Reasoning" would be "Can you explain step by step how rho min and rho max are derived from the image shape before giving me the exact values?" or "I think rho min should be the negative diagonal length and rho max the positive diagonal length. Is that correct?".
 
-Once every few messages, you may also give an example of reformulation not based on the student's prompt.
-
-If at least two scores are greater than 6, leave the feedback empty."""
+If all scores are greater than 4, leave both alternatives empty."""
 
         # Prepare human prompt
         human_prompt = []
@@ -319,39 +319,70 @@ If at least two scores are greater than 6, leave the feedback empty."""
             return
 
         def is_passing(evaluation):
-            scores = [evaluation.clarity_specificity_score, evaluation.understanding_score, evaluation.reasoning_score]
-            at_least_two_above_6 = sum(score > 6 for score in scores) >= 2
-            return at_least_two_above_6
+            return evaluation.clarity_score > 4 and evaluation.reasoning_score > 4
 
         def emojify_evaluation(evaluation):
             s = "```\n"
 
             # Emojis
             def emojify_score(score):
-                if score < 3:
+                if score <= 4:
                     return "🔴"
 
-                if score > 6:
-                    return "🟢"
+                if score <= 7:
+                    return "🟠"
 
-                return "🟠"
+                return "🟢"
 
-            s += f"Prompt feedback:\n"
+            s += "Prompt feedback:\n"
             s += f"🔍 Clarity & Specificity: {emojify_score(evaluation.clarity_specificity_score)}\n"
-            s += f"🧠 Understanding: {emojify_score(evaluation.understanding_score)}\n"
-            s += f"🤔 Reasoning: {emojify_score(evaluation.reasoning_score)}\n"
+            s += f"🧠 Understanding & Reasoning: {emojify_score(evaluation.reasoning_score)}\n"
 
             s += "```\n"
 
             return s
 
-        if is_passing(evaluation) or not evaluation.feedback:
-            # Proceed if prompt is good enough or if model failed to produce feedback
-            update = {'messages': [AIMessage(content=emojify_evaluation(evaluation))]}
-            return Command(goto='model', update=update)
+        def format_alternatives(evaluation):
+            starters = {
+                ('en', 'clarity'): "More precise questions work better. How should I interpret your prompt?",
+                ('en', 'reasoning'): "Asking a specific question or including your own hypothesis or reasoning can help you better understand and grasp the content. How should I interpret your prompt?",
+                ('fr', 'clarity'): "Des questions plus précises fonctionnent mieux. Comment devrais-je interpréter ton prompt ?",
+                ('fr', 'reasoning'): "Poser une question précise ou inclure ton propre hypothèse ou raisonnement peut t'aider à mieux comprendre et assimiler le contenu. Comment devrais-je interpréter ton prompt ?"
+            }
+
+            if evaluation.language == 'fr':
+                language = 'fr'
+            else:
+                language = 'en'
+
+            if evaluation.clarity_score <= evaluation.reasoning_score:
+                criterion = 'clarity'
+            else:
+                criterion = 'reasoning'
+
+            return f"""
+{starters[(language, criterion)]}
+* **Option 1**:  
+  {evaluation.alternative_1}
+
+* **Option 2**:  
+  {evaluation.alternative_2}
+
+or **rewrite your own prompt**.
+"""
+
+        # Proceed if prompt is good enough or if model failed to produce alternatives
+        proceed = is_passing(evaluation) or not (evaluation.alternative_1 and evaluation.alternative_2)
+
+        if proceed:
+            # update = {'messages': [AIMessage(content=emojify_evaluation(evaluation))]}
+            # return Command(goto='model', update=update)
+            return Command(goto='model')
         else:
             # Finish agent execution with feedback message
-            update = {'messages': [AIMessage(content=f"{emojify_evaluation(evaluation)}\n\n{evaluation.feedback}")]}
+            # content = f"{emojify_evaluation(evaluation)}\n\n{evaluation.feedback}"
+            content = format_alternatives(evaluation)
+            update = {'messages': [AIMessage(content=content)]}
             return Command(goto=END, update=update)
 
 
