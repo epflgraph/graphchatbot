@@ -320,6 +320,8 @@ If all scores are greater than 4, leave both alternatives empty."""
             print('[PREMODEL]', e)
             return
 
+        print('[PREMODEL]', f"Evaluated prompt successfully, got scores 🔍{evaluation.clarity_score} and 🧠{evaluation.reasoning_score}.")
+
         def is_passing(evaluation):
             return evaluation.clarity_score > 4 and evaluation.reasoning_score > 4
 
