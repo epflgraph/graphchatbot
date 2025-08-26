@@ -347,7 +347,12 @@ If all scores are greater than 4, leave both alternatives empty."""
                 ('en', 'clarity'): "More precise questions work better. How should I interpret your prompt?",
                 ('en', 'reasoning'): "Asking a specific question or including your own hypothesis or reasoning can help you better understand and grasp the content. How should I interpret your prompt?",
                 ('fr', 'clarity'): "Des questions plus précises fonctionnent mieux. Comment devrais-je interpréter ton prompt ?",
-                ('fr', 'reasoning'): "Poser une question précise ou inclure ton propre hypothèse ou raisonnement peut t'aider à mieux comprendre et assimiler le contenu. Comment devrais-je interpréter ton prompt ?"
+                ('fr', 'reasoning'): "Poser une question précise ou inclure ton propre hypothèse ou raisonnement peut t'aider à mieux comprendre et assimiler le contenu. Comment devrais-je interpréter ton prompt ?",
+            }
+
+            enders = {
+                'en': "or **rewrite your own prompt**.",
+                'fr': "ou **reécris ton propre prompt**.",
             }
 
             if evaluation.language == 'fr':
@@ -368,7 +373,7 @@ If all scores are greater than 4, leave both alternatives empty."""
 * **Option 2**:  
   {evaluation.alternative_2}
 
-or **rewrite your own prompt**.
+{enders[language]}.
 """
 
         # Proceed if prompt is good enough or if model failed to produce alternatives
