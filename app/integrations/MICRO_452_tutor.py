@@ -280,6 +280,8 @@ All scores must be different.
 
 Besides the scores, if one score is 4 or lower, produce two alternative reformulations so that it improves it with regard to that criterion.
 These alternative reformulations are supposed to improve in the criterion with the lowest score, but should still be good for the other criteria.
+If the lowest score is for "🔍Clarity & Specificity", make one alternative reformulation be clearer and the other more specific.
+If the lowest score is for "🧠 Understanding & Reasoning", make one alternative reformulation show more understanding (what is known) and the other more reasoning (the thinking process).
 Here are some examples of reformulations:
 * If the student's request is "what is A*?", alternatives for "🔍Clarity & Specificity" would be "What is the A* search algorithm's effectiveness in solving pathfinding problems compared to traditional search algorithms?" or "How does the A* algorithm work, and what are its limitations and performance trade-offs?".
 * If the student's request is "write a for loop in python for computing theta of the hough transform", alternatives for "🧠 Understanding & Reasoning" would be "I want to implement the loop for theta in the Hough Transform, but I'm not sure how the for loop should be indexed. Could you explain how the loop should iterate before providing the code?" or "Write for loop that iterates over theta values for the Hough transform, I think theta should be between –π/2 and π/2".
