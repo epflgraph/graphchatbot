@@ -256,16 +256,18 @@ class FeedbackMixin:
 
         criteria = {
             'clarity': "🔍Clarity & Specificity: Is the student clearly asking for a specific action? Is the request clear, direct and straightforward about what to do? Or on the contrary is it vague, open-ended or ambiguous?",
-            'reasoning': "🧠Understanding & Reasoning: Does the request reflect an attempt to grasp or clarify a concept? Does the student show a desire to learn or resolve confusion? Does it include reasoning, justification, or tentative explanations? Does the student explain their thinking, assumptions or reasoning?",
+            'reasoning': "🧠Understanding & Reasoning: Does the request either attempt to understand or clarify a concept, or include reasoning, justification, or tentative explanations?",
         }
+
+        passing_grade = 3
 
         class RequestEvaluation(BaseModel):
             """Evaluation of the user's request, intended as feedback to the user to improve their prompts."""
             language: Optional[Literal['en', 'fr', 'other']] = Field(None, description="Language of the request.")
             clarity_score: float = Field(..., description=criteria['clarity'], ge=0, le=10)
             reasoning_score: float = Field(..., description=criteria['reasoning'], ge=0, le=10)
-            alternative_1: Optional[str] = Field(None, description="Alternative reformulation of the student's request, significantly improving in the criterion with lowest score. To be provided only if that score is 4 or lower.")
-            alternative_2: Optional[str] = Field(None, description="Alternative reformulation of the student's request, significantly improving in the criterion with lowest score. To be provided only if that score is 4 or lower.")
+            alternative_1: Optional[str] = Field(None, description=f"Alternative reformulation of the student's request, significantly improving in the criterion with lowest score. To be provided only if that score is lower than {passing_grade}.")
+            alternative_2: Optional[str] = Field(None, description=f"Alternative reformulation of the student's request, significantly improving in the criterion with lowest score. To be provided only if that score is lower than {passing_grade}.")
 
         # Prepare system prompt
         system_prompt = f"""
@@ -274,20 +276,20 @@ Your task is to rate the student's prompting abilities based on their last messa
 * {criteria['clarity']}
 * {criteria['reasoning']}
 
-For each criterion, give a score from 0 (mostly absent) to 10 (present and well-executed). Be strict.
+For each criterion, give a score from 0 (mostly absent) to 10 (present and well-executed).
 The scores should only be based on the student's last message, the rest of the conversation is only provided for context.
 All scores must be different.
 
-Besides the scores, if one score is 4 or lower, produce two alternative reformulations so that it improves it with regard to that criterion.
+Besides the scores, if one score is lower than {passing_grade}, produce two alternative reformulations so that it improves it with regard to that criterion.
 These alternative reformulations are supposed to improve in the criterion with the lowest score, but should still be good for the other criteria.
 If the lowest score is for "🔍Clarity & Specificity", make one alternative reformulation be clearer and the other more specific.
 If the lowest score is for "🧠Understanding & Reasoning", make one alternative reformulation show more understanding (what is known) and the other more reasoning (the thinking process).
 Here are some examples of reformulations:
 * If the student's request is "what is A*?", alternatives for "🔍Clarity & Specificity" would be "What is the A* search algorithm's effectiveness in solving pathfinding problems compared to traditional search algorithms?" or "How does the A* algorithm work, and what are its limitations and performance trade-offs?".
-* If the student's request is "write a for loop in python for computing theta of the hough transform", alternatives for "🧠Understanding & Reasoning" would be "I want to implement the loop for theta in the Hough Transform, but I'm not sure how the for loop should be indexed. Could you explain how the loop should iterate before providing the code?" or "Write for loop that iterates over theta values for the Hough transform, I think theta should be between –π/2 and π/2".
+* If the student's request is "python loop for the theta of the hough transform", alternatives for "🧠Understanding & Reasoning" would be "I want to implement the loop for theta in the Hough Transform, but I'm not sure how the for loop should be indexed. Could you explain how the loop should iterate before providing the code?" or "Write for loop that iterates over theta values for the Hough transform, I think theta should be between –π/2 and π/2".
 * If the student's request is "# From the image shape, determine rho min and rho max", alternatives for "🧠Understanding & Reasoning" would be "Can you explain step by step how rho min and rho max are derived from the image shape before giving me the exact values?" or "I think rho min should be the negative diagonal length and rho max the positive diagonal length. Is that correct?".
 
-If all scores are greater than 4, leave both alternatives empty."""
+If all scores are {passing_grade} or greater, leave both alternatives empty."""
 
         # Prepare human prompt
         human_prompt = []
@@ -323,17 +325,17 @@ If all scores are greater than 4, leave both alternatives empty."""
         print('[PREMODEL]', f"Evaluated prompt successfully, got scores 🔍{evaluation.clarity_score} and 🧠{evaluation.reasoning_score}.")
 
         def is_passing(evaluation):
-            return evaluation.clarity_score > 4 and evaluation.reasoning_score > 4
+            return evaluation.clarity_score >= passing_grade and evaluation.reasoning_score >= passing_grade
 
         def emojify_evaluation(evaluation):
             s = "```\n"
 
             # Emojis
             def emojify_score(score):
-                if score <= 4:
+                if score < passing_grade:
                     return "🔴"
 
-                if score <= 7:
+                if score < 7:
                     return "🟠"
 
                 return "🟢"
