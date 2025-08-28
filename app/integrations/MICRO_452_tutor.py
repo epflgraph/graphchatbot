@@ -255,8 +255,8 @@ class FeedbackMixin:
         print('[PREMODEL]', "Look, I'm giving feedback!")
 
         criteria = {
-            'clarity': "🔍Clarity & Specificity: Is the student clearly asking for a specific action? Is the request clear, direct and straightforward about what to do? Or on the contrary is it vague, open-ended or ambiguous?",
-            'reasoning': "🧠Understanding & Reasoning: Does the request either attempt to understand or clarify a concept, or include reasoning, justification, or tentative explanations?",
+            'clarity': "🔍Clarity & Specificity: The request is clear, direct and straightforward, and not vague, open-ended or ambiguous.",
+            'reasoning': "🧠Understanding & Reasoning: The student wants to learn, reason or understand, and is not just asking for a shortcut not to think.",
         }
 
         passing_grade = 3
@@ -269,6 +269,13 @@ class FeedbackMixin:
             alternative_1: Optional[str] = Field(None, description=f"Alternative reformulation of the student's request, significantly improving in the criterion with lowest score. To be provided only if that score is lower than {passing_grade}.")
             alternative_2: Optional[str] = Field(None, description=f"Alternative reformulation of the student's request, significantly improving in the criterion with lowest score. To be provided only if that score is lower than {passing_grade}.")
 
+        # Unused examples, they lower the scores too much
+        examples = """
+Here are some examples of reformulations:
+* If the student's request is "what is A*?", alternatives for "🔍Clarity & Specificity" would be "What is the A* search algorithm's effectiveness in solving pathfinding problems compared to traditional search algorithms?" or "How does the A* algorithm work, and what are its limitations and performance trade-offs?".
+* If the student's request is "python loop for the theta of the hough transform", alternatives for "🧠Understanding & Reasoning" would be "I want to implement the loop for theta in the Hough Transform, but I'm not sure how the for loop should be indexed. Could you explain how the loop should iterate before providing the code?" or "Write for loop that iterates over theta values for the Hough transform, I think theta should be between –π/2 and π/2".
+* If the student's request is "# From the image shape, determine rho min and rho max", alternatives for "🧠Understanding & Reasoning" would be "Can you explain step by step how rho min and rho max are derived from the image shape before giving me the exact values?" or "I think rho min should be the negative diagonal length and rho max the positive diagonal length. Is that correct?"."""
+
         # Prepare system prompt
         system_prompt = f"""
 You will be given a conversation between a student and an AI tutor.
@@ -276,18 +283,13 @@ Your task is to rate the student's prompting abilities based on their last messa
 * {criteria['clarity']}
 * {criteria['reasoning']}
 
-For each criterion, give a score from 0 (mostly absent) to 10 (present and well-executed).
-The scores should only be based on the student's last message, the rest of the conversation is only provided for context.
-All scores must be different.
+For each criterion, give a score from 0 to 10 representing how much you agree with it for the student's request. Scores can't be exactly equal.
+You will be given the whole conversation, but the scores should be based on the student's last message. However, do not penalise if the student's last message doesn't mention something that was mentioned before or is clear from the context of the conversation.
 
 Besides the scores, if one score is lower than {passing_grade}, produce two alternative reformulations so that it improves it with regard to that criterion.
 These alternative reformulations are supposed to improve in the criterion with the lowest score, but should still be good for the other criteria.
 If the lowest score is for "🔍Clarity & Specificity", make one alternative reformulation be clearer and the other more specific.
 If the lowest score is for "🧠Understanding & Reasoning", make one alternative reformulation show more understanding (what is known) and the other more reasoning (the thinking process).
-Here are some examples of reformulations:
-* If the student's request is "what is A*?", alternatives for "🔍Clarity & Specificity" would be "What is the A* search algorithm's effectiveness in solving pathfinding problems compared to traditional search algorithms?" or "How does the A* algorithm work, and what are its limitations and performance trade-offs?".
-* If the student's request is "python loop for the theta of the hough transform", alternatives for "🧠Understanding & Reasoning" would be "I want to implement the loop for theta in the Hough Transform, but I'm not sure how the for loop should be indexed. Could you explain how the loop should iterate before providing the code?" or "Write for loop that iterates over theta values for the Hough transform, I think theta should be between –π/2 and π/2".
-* If the student's request is "# From the image shape, determine rho min and rho max", alternatives for "🧠Understanding & Reasoning" would be "Can you explain step by step how rho min and rho max are derived from the image shape before giving me the exact values?" or "I think rho min should be the negative diagonal length and rho max the positive diagonal length. Is that correct?".
 
 If all scores are {passing_grade} or greater, leave both alternatives empty."""
 
