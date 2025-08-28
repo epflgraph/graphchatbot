@@ -15,8 +15,8 @@ class LexRCPConfig(IntegrationConfig):
     available_tools = ['get_orgchart', 'search_news', 'search_lex']
     groups = ['graph-chatbot-admins']
     model_provider = 'rcp'
-    light_model = 'meta-llama/Llama-3.3-70B-Instruct'
-    model = 'meta-llama/Llama-3.3-70B-Instruct'
+    light_model = 'Qwen/Qwen3-32B'
+    model = 'Qwen/Qwen3-32B'
 
     @property
     def system_prompt(self) -> str:

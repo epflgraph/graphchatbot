@@ -19,9 +19,11 @@ from app.config import config
 # rcp_models = [
 #     'meta-llama/Llama-4-Scout-17B-16E-Instruct',  <- works but doesn't sound very smart
 #     'meta-llama/Llama-3.3-70B-Instruct',          <- works but is not very fast
+#     'Qwen/Qwen3-32B',                             <- works and sounds convincing
 #     'Qwen/Qwen2.5-VL-72B-Instruct',               <- works but is not very fast
 #     'deepseek-ai/DeepSeek-R1-Distill-Llama-70B',  <- doesn't work with tool_choice
 #     'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B',   <- doesn't work with tool_choice
+#     'google/sambirano-bfloat16',                  <- works with tool_choice but doesn't work without it :/, also doesn't sound very smart
 # ]
 
 
