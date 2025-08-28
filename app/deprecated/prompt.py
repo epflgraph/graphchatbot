@@ -87,7 +87,7 @@ To do that, use the tools at your disposal to produce a response that is correct
 * Do not use words or phrases that express doubt or provide a subjective opinion."""
 
     examples = {
-        'base': """
+        'base': r"""
 # Examples
 Here are some examples:
 * For the request `explique moi les intégrales de Darboux`, call the `search_nodes` tool with `keywords`=["Darboux integral", "Darboux sum"] and `node_type`="Concept". Then answer "Les [intégrales de Darboux](`url`) sont une approche de l'intégration en [analyse réelle](`url`), qui utilise les [sommes de Darboux](`url`) pour définir l'[intégrale](`url`) d'une fonction...".

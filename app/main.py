@@ -4,14 +4,14 @@ It defines the input and output models and creates the endpoints.
 """
 
 from contextlib import asynccontextmanager
-from typing import Union
 
-from fastapi import FastAPI, Response
-from fastapi.responses import StreamingResponse, FileResponse
+import uvicorn
+from fastapi import FastAPI, Depends
 
-from app.schemas import ChatInput, ChatOutput, GenerateTextExerciseInput, GenerateLectureExerciseInput
-from app.agent import init_agent, send_message, stream_send_message
-import app.exercises as exercises
+from app.auth import get_user
+from app.routers import secure, public
+
+from app.agent import init_agent
 
 
 @asynccontextmanager
@@ -46,93 +46,13 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+app.include_router(
+    public.router,
+)
+app.include_router(
+    secure.router,
+    dependencies=[Depends(get_user)]
+)
 
-@app.post('/chat', response_model=ChatOutput, response_model_exclude_unset=True)
-async def chat(input: ChatInput, response: Response):
-    """
-    Sends a new message to the chatbot in the context of a given conversation. This is the main endpoint to interact with the chatbot.
-
-    Args:
-        input (ChatInput): Input object containing the conversation_id and the new piece of human_input. This is the payload of the request.
-        response (Response): Actual response object provided by FastAPI. Do not provide this parameter, as it is handled automatically by FastAPI.
-
-    Returns:
-        ChatOutput: Output object containing either an error_code, if there was a problem, or a message and a results object, if everything was fine.
-    """
-
-    return send_message(input.to_dict())
-
-
-@app.post('/stream_chat')
-async def stream_chat(input: ChatInput):
-    """
-    Sends a new message to the chatbot in the context of a given conversation. This is the stream version of the main endpoint to interact with the chatbot.
-
-    Args:
-        input (ChatInput): Input object containing the conversation_id and the new piece of human_input. This is the payload of the request.
-
-    Returns:
-        StreamingResponse: Streams bits of the response asynchronously as they become available.
-    """
-
-    return StreamingResponse(stream_send_message(input.to_dict()), media_type='application/x-ndjson')
-
-
-################################################################
-
-
-@app.get('/')
-async def index():
-    """
-    Serves the HTML file for the chatbot's frontend.
-    """
-
-    return FileResponse('../html/index.html')
-
-
-@app.get('/index.css')
-async def index_css():
-    """
-    Serves the CSS file for the chatbot's frontend.
-    """
-
-    return FileResponse('../html/index.css')
-
-
-@app.get('/index.js')
-async def index_js():
-    """
-    Serves the JS file for the chatbot's frontend.
-    """
-
-    return FileResponse('../html/index.js')
-
-
-################################################################
-
-
-@app.post('/generate_exercise')
-async def generate_exercise(input: Union[GenerateTextExerciseInput, GenerateLectureExerciseInput]):
-    """
-    Generates an exercise about some given text or lecture.
-
-    Args:
-        input (Union[GenerateTextExerciseInput, GenerateLectureExerciseInput]): Input object containing text or lecture_id, a description and some other parameters like the bloom level or whether to include a solution.
-
-    Returns:
-        dict: An object containing the different field for the exercise.
-    """
-
-    description = input.description
-    bloom_level = input.bloom_level
-    include_solution = input.include_solution
-    output_format = input.output_format
-    llm_model = input.llm_model
-    openai_api_key = input.openai_api_key
-
-    if isinstance(input, GenerateTextExerciseInput):
-        return exercises.generate_text_exercise(input.text, description, bloom_level, include_solution, output_format, llm_model, openai_api_key)
-    elif isinstance(input, GenerateLectureExerciseInput):
-        return exercises.generate_lecture_exercise(input.lecture_id, description, bloom_level, include_solution, output_format, llm_model, openai_api_key)
-
-    return {}
+if __name__ == "__main__":
+    uvicorn.run(app)

@@ -214,7 +214,7 @@ def build_latex_mockup(exercise, description):
 
 
 if __name__ == '__main__':
-    text = """
+    text = r"""
 Second law
 
 The change of motion of an object is proportional to the force impressed; and is made in the direction of the straight line in which the force is impressed.[15]: 114 
