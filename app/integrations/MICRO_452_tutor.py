@@ -248,7 +248,7 @@ class FeedbackMixin:
         print('[PREMODEL]', "Look, I'm giving feedback!")
 
         criteria = {
-            '🔍': "🔍Clarity & Specificity: The request is clear, specific, direct and straightforward, and not vague, too general, open-ended or ambiguous.",
+            '🔍': "🔍Clear & Specific: The request is clear, specific, direct and straightforward, and not vague, too general, open-ended or ambiguous.",
             '🧠': "🧠Willingness to Learn: The request is a question or a well-reasoned hypothesis that seeks validation. The student wants to learn, reason or understand, and is not just pasting their assignment, a piece of code or an error to get a quick solution without thinking.",
         }
 
@@ -257,7 +257,7 @@ class FeedbackMixin:
         class RequestEvaluation(BaseModel):
             """Evaluation of the user's request, intended as feedback to the user to improve their prompts."""
             language: Optional[Literal['en', 'fr', 'other']] = Field(None, description="Language of the request.")
-            clarity_specificity_score: float = Field(..., description=criteria['🔍'], ge=0, le=10)
+            clear_and_specific_score: float = Field(..., description=criteria['🔍'], ge=0, le=10)
             willingness_to_learn_score: float = Field(..., description=criteria['🧠'], ge=0, le=10)
             alternative_1: Optional[str] = Field(None, description=f"Alternative reformulation of the student's request, significantly improving in the criterion with lowest score. To be provided only if that score is lower than {passing_grade}.")
             alternative_2: Optional[str] = Field(None, description=f"Alternative reformulation of the student's request, significantly improving in the criterion with lowest score. To be provided only if that score is lower than {passing_grade}.")
@@ -274,10 +274,32 @@ You will be given the whole conversation, but the scores should be based on the 
 
 Besides the scores, if one score is lower than {passing_grade}, produce two alternative reformulations so that it improves it with regard to that criterion.
 These alternative reformulations are supposed to improve in the criterion with the lowest score, but should still be good for the other criteria.
-If the lowest score is for "🔍Clarity & Specificity", make one alternative reformulation be clearer and the other more specific.
+If the lowest score is for "🔍Clear & Specific", make one alternative reformulation be clearer and the other more specific.
 If the lowest score is for "🧠Willingness to Learn", make one alternative reformulation ask a proper question and the other propose a hypothesis.
 
-If all scores are {passing_grade} or greater, leave both alternatives empty."""
+If all scores are {passing_grade} or greater, leave both alternatives empty.
+
+## Examples
+
+### Example 1
+Prompt: "What is Hough Transform?"
+"🔍Clear & Specific" score: 2/10. Too vague, doesn't specify whether the student wants the mathematical definition, an intuitive explanation, applications, limitations, or algorithmic details. Better alternative: "How does the Hough Transform detect lines, and what are its trade-offs?"
+"🧠Willingness to Learn" score: 7/10. Good, the request is a question, tries to grasp the concept and understand the hough transform.
+
+### Example 2
+Prompt: "Write a for loop in Python to compute theta of the Hough Transform"
+"🔍Clear & Specific" score: 8/10. Clear request for a code snippet for a precise task (theta iteration).
+"🧠Willingness to Learn" score: 2/10. Only asking for code, not trying to understand or put hypothesis/reasoning. Better alternative: "How should theta loop be indexed in the Hough Transform? Should it run from –π/2 to π/2?"
+
+### Example 3
+Prompt: "TypeError Traceback (most recent call last)Cell In[22], line 6 4 r_dim = 200 5 theta_dim = 300----> 6"
+"🔍Clear & Specific" score: 2/10. Error is pasted, but unclear whether the student wants debugging help, explanation, or conceptual guidance. Better alternative: "I'm trying to build a Hough transform matrix with dimensions (r_dim, theta_dim). Why does my np.zeros call fail?"
+"🧠Willingness to Learn" score: 2/10. Didn't ask a question or provide a hypothesis about the error; just a traceback.
+
+### Example 4
+Prompt: "I am tasked to enlarge the thresholded spots. I was thinking of using cv2 dilate:cv.dilate(img,kernel,iterations = 1), what is kernel and why iter=1?"
+"🔍Clear & Specific" score: 9/10. Very clear; specifies the context, the function, and their questions.
+"🧠Willingness to Learn" score: 9/10. Strong engagement; they ask a question along with their reasoning/hypothesis."""
 
         # Prepare human prompt
         human_prompt = []
@@ -310,10 +332,10 @@ If all scores are {passing_grade} or greater, leave both alternatives empty."""
             print('[PREMODEL]', e)
             return
 
-        print('[PREMODEL]', f"Evaluated prompt successfully, got scores 🔍{evaluation.clarity_specificity_score} and 🧠{evaluation.willingness_to_learn_score}.")
+        print('[PREMODEL]', f"Evaluated prompt successfully, got scores 🔍{evaluation.clear_and_specific_score} and 🧠{evaluation.willingness_to_learn_score}.")
 
         def is_passing(evaluation):
-            return evaluation.clarity_specificity_score >= passing_grade and evaluation.willingness_to_learn_score >= passing_grade
+            return evaluation.clear_and_specific_score >= passing_grade and evaluation.willingness_to_learn_score >= passing_grade
 
         def format_alternatives(evaluation):
             headings = {
@@ -340,7 +362,7 @@ If all scores are {passing_grade} or greater, leave both alternatives empty."""
             else:
                 language = 'en'
 
-            if evaluation.clarity_specificity_score <= evaluation.willingness_to_learn_score:
+            if evaluation.clear_and_specific_score <= evaluation.willingness_to_learn_score:
                 criterion = '🔍'
             else:
                 criterion = '🧠'
@@ -440,7 +462,7 @@ class Micro452TutorDConfig(NonFeedbackMixin, NonSocraticMixin, Micro452TutorConf
 
 
 if __name__ == '__main__':
-    integration = IntegrationConfig.from_name('MICRO-452-tutor-A')
+    integration = IntegrationConfig.from_name('MICRO-452-tutor-C')
     system_prompt = integration.system_prompt
     request_types = integration.request_types
 
