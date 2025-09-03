@@ -12,7 +12,7 @@ class ServicedeskConfig(IntegrationConfig):
     name = 'servicedesk'
     index = 'servicedesk'
     available_tools = ['search_servicedesk']
-    groups = ['graph-chatbot-admins']
+    groups = ['graph-chatbot-admins', 'graph-rag-vip']
 
     @property
     def system_prompt(self) -> str:

@@ -157,7 +157,7 @@ class CS500Config(IntegrationConfig):
     model_provider = 'openai'
     light_model = 'gpt-4o-mini'
     model = 'gpt-4o-mini'
-    groups = ['graph-chatbot-admins']
+    groups = ['graph-chatbot-admins', 'graph-rag-vip']
 
     @property
     def system_prompt(self) -> str:

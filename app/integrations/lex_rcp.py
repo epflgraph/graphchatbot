@@ -13,7 +13,7 @@ class LexRCPConfig(IntegrationConfig):
     name = 'lex_rcp'
     index = 'lex'
     available_tools = ['get_orgchart', 'search_news', 'search_lex']
-    groups = ['graph-chatbot-admins']
+    groups = ['graph-chatbot-admins', 'graph-rag-vip']
     model_provider = 'rcp'
     light_model = 'Qwen/Qwen3-32B'
     model = 'Qwen/Qwen3-32B'
