@@ -101,7 +101,7 @@ class Micro452CaseStudiesConfig(IntegrationConfig):
     model_provider = 'openai'
     light_model = 'gpt-4o-mini'
     model = 'gpt-4o'
-    groups = ['graph-chatbot-admins', 'MICRO-452-admin', 'MICRO-452-case-studies']
+    groups = ['graph-chatbot-admins', 'graph-rag-vip', 'MICRO-452-admin', 'MICRO-452-case-studies']
 
     @property
     def system_prompt(self) -> str:

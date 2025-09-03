@@ -440,25 +440,25 @@ You are a helpful tutor for programming for the course "MICRO-452: Basics of mob
 # Feedback, socratic
 class Micro452TutorAConfig(FeedbackMixin, SocraticMixin, Micro452TutorConfig):
     name = 'MICRO-452-tutor-A'
-    groups = ['graph-chatbot-admins', 'MICRO-452-admin', 'MICRO-452-tutor-A']
+    groups = ['graph-chatbot-admins', 'graph-rag-vip', 'MICRO-452-admin', 'MICRO-452-tutor-A']
 
 
 # No feedback, socratic
 class Micro452TutorBConfig(NonFeedbackMixin, SocraticMixin, Micro452TutorConfig):
     name = 'MICRO-452-tutor-B'
-    groups = ['graph-chatbot-admins', 'MICRO-452-admin', 'MICRO-452-tutor-B']
+    groups = ['graph-chatbot-admins', 'graph-rag-vip', 'MICRO-452-admin', 'MICRO-452-tutor-B']
 
 
 # Feedback, no socratic
 class Micro452TutorCConfig(FeedbackMixin, NonSocraticMixin, Micro452TutorConfig):
     name = 'MICRO-452-tutor-C'
-    groups = ['graph-chatbot-admins', 'MICRO-452-admin', 'MICRO-452-tutor-C']
+    groups = ['graph-chatbot-admins', 'graph-rag-vip', 'MICRO-452-admin', 'MICRO-452-tutor-C']
 
 
 # No feedback, no socratic
 class Micro452TutorDConfig(NonFeedbackMixin, NonSocraticMixin, Micro452TutorConfig):
     name = 'MICRO-452-tutor-D'
-    groups = ['graph-chatbot-admins', 'MICRO-452-admin', 'MICRO-452-tutor-D']
+    groups = ['graph-chatbot-admins', 'graph-rag-vip', 'MICRO-452-admin', 'MICRO-452-tutor-D']
 
 
 if __name__ == '__main__':
