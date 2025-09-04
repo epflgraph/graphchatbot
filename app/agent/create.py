@@ -5,13 +5,11 @@ from langchain_core.messages import (
 )
 from langchain_core.runnables import RunnableConfig
 from langchain.tools import StructuredTool
-from langchain_openai import ChatOpenAI
 
 from langgraph.graph import StateGraph, MessagesState, END
 from langgraph.prebuilt.tool_node import ToolNode
 from langgraph.types import Command
 
-from app.config import config as app_config
 from app.agent.tools import search_nodes, search_exercises, search_news, search_plan, get_orgchart
 
 
@@ -121,13 +119,6 @@ def create_agent():
         # Recover integration config object from agent config
         integration = config.get('configurable', {}).get('integration')
 
-        # Fetch model provider details
-        if integration.model_provider == 'openai':
-            base_url = None
-        else:
-            base_url = app_config.get(integration.model_provider, {})['base_url']
-        api_key = app_config.get(integration.model_provider, {})['api_key']
-
         # Build tool functions to pass to the model based on those available to the integration
         tools = build_tools(integration)
 
@@ -137,14 +128,12 @@ def create_agent():
             tool_name = tools_queue.pop(0)  # Returns first element and removes it from tools_queue
 
             # Instantiate chat model (for tool calling always cheaper model)
-            model = ChatOpenAI(base_url=base_url, model=integration.light_model, temperature=0, openai_api_key=api_key, request_timeout=60)
-            model_with_tools = model.bind_tools(tools, tool_choice=tool_name)
+            model_with_tools = integration.light_model.bind_tools(tools, tool_choice=tool_name)
 
             print('[MODEL]', f"Calling LLM forcing tool call `{tool_name}`")
         else:
             # Instantiate chat model (for actual response the model from the integration)
-            model = ChatOpenAI(base_url=base_url, model=integration.model, temperature=0, openai_api_key=api_key, request_timeout=60)
-            model_with_tools = model.bind_tools(tools)
+            model_with_tools = integration.model.bind_tools(tools)
 
             print('[MODEL]', "Calling LLM without forcing any tool call")
 

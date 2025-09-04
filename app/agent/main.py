@@ -102,17 +102,17 @@ async def agenerate_completion(chat_request) -> AsyncGenerator:
 
         # Yield in the model node when there is a message chunk
         if event['metadata'].get('langgraph_node') == 'model' and event['name'] == 'ChatOpenAI' and event['event'] == 'on_chat_model_stream':
-            chunk_content = event['data']['chunk'].content
+            chunk_text = event['data']['chunk'].text()
 
             chunk = {
                 'id': "1",
                 'object': "chat.completion.chunk",
                 'created': time.time(),
                 'model': chat_request['model'],
-                'choices': [{'delta': {'content': chunk_content}}],
+                'choices': [{'delta': {'content': chunk_text}}],
             }
 
-            content += chunk_content
+            content += chunk_text
             yield f"data: {json.dumps(chunk)}\n\n"
 
     print(content)

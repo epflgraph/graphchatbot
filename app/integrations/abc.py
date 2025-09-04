@@ -6,12 +6,11 @@ from typing import Optional, Literal
 from pydantic import BaseModel
 
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import (
-    SystemMessage,
-    HumanMessage,
-)
-from langchain.output_parsers import PydanticOutputParser
 
+from app.llms import (
+    build_prompt_from_message_list,
+    generate_structured_response,
+)
 
 from app.config import config
 
@@ -21,9 +20,11 @@ from app.config import config
 #     'meta-llama/Llama-3.3-70B-Instruct',          <- works but is not very fast
 #     'Qwen/Qwen3-32B',                             <- works and sounds convincing
 #     'Qwen/Qwen2.5-VL-72B-Instruct',               <- works but is not very fast
+#     'Qwen/Qwen3-30B-A3B-Instruct-2507',           <- works, seems fast enough and sounds convincing
+#     'Qwen/Qwen3-30B-A3B-Thinking-2507',
 #     'deepseek-ai/DeepSeek-R1-Distill-Llama-70B',  <- doesn't work with tool_choice
 #     'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B',   <- doesn't work with tool_choice
-#     'google/sambirano-bfloat16',                  <- works with tool_choice but doesn't work without it :/, also doesn't sound very smart
+#     'swiss-ai/Apertus-70B-Instruct-2509',         <- no tool calling (confirmed by swissai) :/, also doesn't sound very smart
 # ]
 
 
@@ -32,9 +33,8 @@ class IntegrationConfig(ABC):
     name: Optional[str] = None
     index: Optional[str] = None
     available_tools: Optional[list[str]] = None
-    model_provider: Optional[str] = 'openai'
-    light_model: Optional[str] = 'gpt-4o-mini'
-    model: Optional[str] = 'gpt-4o-mini'
+    light_model: Optional[ChatOpenAI] = ChatOpenAI(model='gpt-4o-mini', temperature=0, openai_api_key=config.get('openai', {})['api_key'], request_timeout=60)
+    model: Optional[ChatOpenAI] = ChatOpenAI(model='gpt-4o-mini', temperature=0, openai_api_key=config.get('openai', {})['api_key'], request_timeout=60)
     groups: Optional[list] = None
 
     def __init_subclass__(cls):
@@ -104,70 +104,17 @@ Your task is to classify the conversation based on the last request.
 The possible categories are the following:
 {categories_prompt}
 """
-
         # Prepare human prompt
-        human_prompt = []
-        for message in messages:
-            # Extract only text from messages to send (otherwise images or other media types can fill the context window)
-            if isinstance(message.content, str):
-                message_content = message.content
-            else:
-                message_content = '\n'.join([content_piece['text'] for content_piece in message.content if content_piece['type'] == 'text'])
-
-            human_prompt.append(f'----{message.type.upper()}----\n{message_content}')
-        human_prompt = '\n\n'.join(human_prompt)
+        human_prompt = build_prompt_from_message_list(messages)
 
         # Prepare response format
         categories = self.request_types.keys()
 
-        class ConversationType(BaseModel, extra='allow'):
-            model_config = {'json_schema_extra': {'additionalProperties': False}}
-
+        class ConversationType(BaseModel):
             category: Literal[*list(categories)]
 
-        response_format = {
-            "type": "json_schema",
-            "json_schema": {
-                "name": "conversation_type",
-                "strict": True,
-                "schema": ConversationType.model_json_schema()
-            }
-        }
-
-        # Fetch model provider details
-        if self.model_provider == 'openai':
-            base_url = None
-        else:
-            base_url = config.get(self.model_provider, {})['base_url']
-        api_key = config.get(self.model_provider, {})['api_key']
-
-        # Instantiate chat model and output parser
-        model = ChatOpenAI(base_url=base_url, model=self.light_model, temperature=0, openai_api_key=api_key, request_timeout=60)
-        model = model.bind(response_format=response_format)
-        parser = PydanticOutputParser(pydantic_object=ConversationType)
-
-        # Gather the messages for the LLM input
-        input_messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=human_prompt),
-        ]
-
-        # Send request to LLM
-        try:
-            output = model.invoke(input=input_messages)
-        except Exception as e:
-            print('[CLASSIFY]', "ERROR: LLM API call failed")
-            print('[CLASSIFY]', e)
-            return None
-
-        # Parse output
-        try:
-            conversation_type = parser.parse(output.content)
-        except Exception as e:
-            print('[CLASSIFY]', "ERROR: Parsing LLM response failed")
-            print('[CLASSIFY]', output.content)
-            print('[CLASSIFY]', e)
-            return None
+        # Run LLM call
+        conversation_type = generate_structured_response(self.light_model, system_prompt, human_prompt, ConversationType)
 
         return conversation_type.category
 

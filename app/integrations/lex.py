@@ -2,17 +2,22 @@ from datetime import datetime
 from typing import Optional
 
 from langchain.tools import StructuredTool
+from langchain_openai import ChatOpenAI
 
 from app.integrations.abc import IntegrationConfig
 from app.integrations.common import base_epfl_presidency_sysprompt
 
 from app.interfaces.graphai import GraphAIClient
 
+from app.config import config
+
 
 class LexConfig(IntegrationConfig):
     name = 'lex'
     index = 'lex'
     available_tools = ['get_orgchart', 'search_news', 'search_lex']
+    light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
+    model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
     groups = ['graph-chatbot-admins', 'graph-rag-vip']
 
     @property
@@ -20,7 +25,7 @@ class LexConfig(IntegrationConfig):
         today = datetime.now().strftime("%Y-%m-%d")
 
         return f"""
-You are the assistant of EPFL Graph, the project of the knowledge graph of EPFL. You also have access to the Polylex documents, a compendium of EPFL laws, ordinances, regulations and directives. Your task is to answer questions from EPFL students, researchers or staff members.
+You are the EPFL Graph Polylex assistant. You have access to the Polylex documents, a compendium of EPFL laws, ordinances, regulations and directives. Your task is to answer questions from EPFL students, researchers or staff members.
 
 # Format
 * Lay out urls as Markdown links.
@@ -43,6 +48,9 @@ You are the assistant of EPFL Graph, the project of the knowledge graph of EPFL.
     @property
     def request_types(self) -> dict:
         return {
+            'greeting': {
+                'description': "The user is just greeting the assistant or similar.",
+            },
             "recruiting": {
                 "description": "Requests about recruitment at EPFL, including PhD students, postdocs, researchers or any other EPFL staff member.",
                 "tools": ["search_lex"],
