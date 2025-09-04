@@ -10,8 +10,6 @@ from langgraph.graph import END
 from langchain.tools import StructuredTool
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import (
-    SystemMessage,
-    HumanMessage,
     AIMessage,
 )
 
@@ -20,15 +18,19 @@ from app.integrations.abc import IntegrationConfig
 
 from app.interfaces.graphai import GraphAIClient
 
+from app.llms import (
+    build_prompt_from_message_list,
+    generate_structured_response,
+)
+
 from app.config import config
 
 
 class Micro452TutorConfig(IntegrationConfig, ABC):
     index = 'course_micro_452_tutor'
     available_tools = ['search_micro452_tutor']
-    model_provider = 'openai'
-    light_model = 'gpt-4o-mini'
-    model = 'gpt-4o'
+    light_model = ChatOpenAI(model='gpt-5-mini', reasoning={'effort': 'minimal'}, openai_api_key=config.get('openai', {})['api_key'], request_timeout=60)
+    model = ChatOpenAI(model='gpt-5', reasoning={'effort': 'minimal'}, openai_api_key=config.get('openai', {})['api_key'], request_timeout=60)
 
     def search_micro452_tutor(
         self,
@@ -43,7 +45,7 @@ class Micro452TutorConfig(IntegrationConfig, ABC):
         Returns a list of the document chunks, up to `limit` chunks per `doc_type`.
         """
 
-        print("[MICRO-452-TUTOR TOOL]", f"Called the `search_micro452_tutor` tool with keywords=`{keywords}`, dco_types=`{doc_types}` and limit=`{limit}`")
+        print("[MICRO-452-TUTOR TOOL]", f"Called the `search_micro452_tutor` tool with keywords=`{keywords}`, doc_types=`{doc_types}` and limit=`{limit}`")
 
         gac = GraphAIClient()
 
@@ -256,11 +258,11 @@ class FeedbackMixin:
 
         class RequestEvaluation(BaseModel):
             """Evaluation of the user's request, intended as feedback to the user to improve their prompts."""
-            language: Optional[Literal['en', 'fr', 'other']] = Field(None, description="Language of the request.")
+            language: Literal['en', 'fr', 'other'] = Field(..., description="Language of the request.")
             clear_and_specific_score: float = Field(..., description=criteria['🔍'], ge=0, le=10)
             willingness_to_learn_score: float = Field(..., description=criteria['🧠'], ge=0, le=10)
-            alternative_1: Optional[str] = Field(None, description=f"Alternative reformulation of the student's request, significantly improving in the criterion with lowest score. To be provided only if that score is lower than {passing_grade}.")
-            alternative_2: Optional[str] = Field(None, description=f"Alternative reformulation of the student's request, significantly improving in the criterion with lowest score. To be provided only if that score is lower than {passing_grade}.")
+            alternative_1: str = Field(..., description=f"Alternative reformulation of the student's request, significantly improving in the criterion with lowest score. To be provided only if that score is lower than {passing_grade}.")
+            alternative_2: str = Field(..., description=f"Alternative reformulation of the student's request, significantly improving in the criterion with lowest score. To be provided only if that score is lower than {passing_grade}.")
 
         # Prepare system prompt
         system_prompt = f"""
@@ -302,35 +304,10 @@ Prompt: "I am tasked to enlarge the thresholded spots. I was thinking of using c
 "🧠Willingness to Learn" score: 9/10. Strong engagement; they ask a question along with their reasoning/hypothesis."""
 
         # Prepare human prompt
-        human_prompt = []
-        for message in messages:
-            # Extract only text from messages to send (otherwise images or other media types can fill the context window)
-            if isinstance(message.content, str):
-                message_content = message.content
-            else:
-                message_content = '\n'.join([content_piece['text'] for content_piece in message.content if content_piece['type'] == 'text'])
+        human_prompt = build_prompt_from_message_list(messages)
 
-            human_prompt.append(f'----{message.type.upper()}----\n{message_content}')
-        human_prompt = '\n\n'.join(human_prompt)
-
-        # Gather the messages for the LLM input
-        input_messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=human_prompt),
-        ]
-
-        # Instantiate chat model
-        model_name = 'gpt-4o-mini'
-        model = ChatOpenAI(model=model_name, temperature=0.8, openai_api_key=config['openai']['api_key'], request_timeout=60)
-        model = model.with_structured_output(RequestEvaluation)
-
-        # Send request to LLM
-        try:
-            evaluation = model.invoke(input=input_messages)
-        except Exception as e:
-            print('[PREMODEL]', "ERROR: Feedback call failed")
-            print('[PREMODEL]', e)
-            return
+        # Run LLM call
+        evaluation = generate_structured_response(self.light_model, system_prompt, human_prompt, RequestEvaluation)
 
         print('[PREMODEL]', f"Evaluated prompt successfully, got scores 🔍{evaluation.clear_and_specific_score} and 🧠{evaluation.willingness_to_learn_score}.")
 

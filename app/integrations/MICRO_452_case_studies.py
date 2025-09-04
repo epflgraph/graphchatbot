@@ -2,10 +2,13 @@ from datetime import datetime
 from typing import Optional
 
 from langchain.tools import StructuredTool
+from langchain_openai import ChatOpenAI
 
 from app.integrations.abc import IntegrationConfig
 
 from app.interfaces.graphai import GraphAIClient
+
+from app.config import config
 
 ################################################################
 
@@ -98,9 +101,8 @@ class Micro452CaseStudiesConfig(IntegrationConfig):
     name = 'MICRO-452-case-studies'
     index = 'course_micro_452_case_studies'
     available_tools = ['search_micro452_case_studies']
-    model_provider = 'openai'
-    light_model = 'gpt-4o-mini'
-    model = 'gpt-4o'
+    light_model = ChatOpenAI(model='gpt-5-mini', reasoning={'effort': 'minimal'}, openai_api_key=config.get('openai', {})['api_key'], request_timeout=60)
+    model = ChatOpenAI(model='gpt-5', reasoning={'effort': 'minimal'}, openai_api_key=config.get('openai', {})['api_key'], request_timeout=60)
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'MICRO-452-admin', 'MICRO-452-case-studies']
 
     @property

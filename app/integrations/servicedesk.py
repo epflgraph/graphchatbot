@@ -2,16 +2,21 @@ from datetime import datetime
 from typing import Optional
 
 from langchain.tools import StructuredTool
+from langchain_openai import ChatOpenAI
 
 from app.integrations.abc import IntegrationConfig
 
 from app.interfaces.graphai import GraphAIClient
+
+from app.config import config
 
 
 class ServicedeskConfig(IntegrationConfig):
     name = 'servicedesk'
     index = 'servicedesk'
     available_tools = ['search_servicedesk']
+    light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
+    model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
     groups = ['graph-chatbot-admins', 'graph-rag-vip']
 
     @property

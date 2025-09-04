@@ -4,7 +4,6 @@ from app.integrations.graph_chat import GraphChatConfig
 
 # Admin
 from app.integrations.lex import LexConfig
-from app.integrations.lex_rcp import LexRCPConfig
 from app.integrations.servicedesk import ServicedeskConfig
 from app.integrations.sac import SacConfig
 

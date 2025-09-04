@@ -48,7 +48,6 @@ pedagogical_sysprompts = {
 """,
 }
 
-
 base_epfl_presidency_sysprompt = """
 # Warning
 Be careful with statements about people. Do not make any assumption that is not coming from the available information.
