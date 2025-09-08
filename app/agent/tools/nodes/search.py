@@ -40,7 +40,7 @@ def get_allowed_node_types(node_types: list | str):
     # Put in the same list all allowed node types together
     allowed_node_types = []
     for node_type in node_types:
-        allowed_node_types.extend(allowed_node_types_mapping[node_type])
+        allowed_node_types.extend(allowed_node_types_mapping.get(node_type, []))
 
     # Make them unique
     allowed_node_types = list(set(allowed_node_types))

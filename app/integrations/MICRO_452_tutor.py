@@ -29,7 +29,7 @@ from app.config import config
 class Micro452TutorConfig(IntegrationConfig, ABC):
     index = 'course_micro_452_tutor'
     available_tools = ['search_micro452_tutor']
-    light_model = ChatOpenAI(model='gpt-5-mini', reasoning={'effort': 'minimal'}, openai_api_key=config.get('openai', {})['api_key'], request_timeout=60)
+    light_model = ChatOpenAI(model='gpt-5', reasoning={'effort': 'minimal'}, openai_api_key=config.get('openai', {})['api_key'], request_timeout=60)
     model = ChatOpenAI(model='gpt-5', reasoning={'effort': 'minimal'}, openai_api_key=config.get('openai', {})['api_key'], request_timeout=60)
 
     def search_micro452_tutor(
