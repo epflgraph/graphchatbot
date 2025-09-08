@@ -104,7 +104,7 @@ class Micro452CaseStudiesConfig(IntegrationConfig):
     name = 'MICRO-452-case-studies'
     index = 'course_micro_452_case_studies'
     available_tools = ['search_micro452_case_studies']
-    light_model = ChatOpenAI(model='gpt-5-mini', reasoning={'effort': 'minimal'}, openai_api_key=config.get('openai', {})['api_key'], request_timeout=60)
+    light_model = ChatOpenAI(model='gpt-5', reasoning={'effort': 'minimal'}, openai_api_key=config.get('openai', {})['api_key'], request_timeout=60)
     model = ChatOpenAI(model='gpt-5', reasoning={'effort': 'minimal'}, openai_api_key=config.get('openai', {})['api_key'], request_timeout=60)
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'MICRO-452-admin', 'MICRO-452-case-studies']
 
