@@ -5,7 +5,7 @@ This module contains the tool to search in plan.epfl.ch.
 import urllib.parse
 
 
-def search_plan(query: str) -> dict:
+async def search_plan(query: str) -> dict:
     """
     Performs a search in the website of the EPFL plan. Returns the most relevant result for the given query.
     """
