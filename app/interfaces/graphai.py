@@ -94,6 +94,37 @@ class GraphAIClient:
         # Clean texts
         texts = [text.strip() for text in texts if text.strip()]
 
+        # Join texts into one string
+        texts = '    '.join(texts)
+
+        # Prepare payload
+        payload = {
+            'index': index,
+            'text': texts,
+            'limit': limit,
+        }
+
+        if filters:
+            payload['filters'] = filters
+
+        # Send request and return empty if it fails
+        try:
+            response = self.call_sync_endpoint(endpoint='/rag/retrieve', payload=payload)
+        except Exception as e:
+            print('[GAC CLIENT]', f"Error retrieving document chunks: {e}")
+            return []
+
+        # Return empty if response is not marked as successful
+        if not response.get('successful'):
+            print('[GAC CLIENT]', f"Unsuccessful retrieval of chunks: {response.get('result', [])}")
+            return []
+
+        return response.get('result', [])
+
+    def sequential_rag_retrieve(self, index: str, texts: list[str], limit: int = 10, filters: dict = None):
+        # Clean texts
+        texts = [text.strip() for text in texts if text.strip()]
+
         # Default to empty string if no texts
         if not texts:
             texts = ['']
