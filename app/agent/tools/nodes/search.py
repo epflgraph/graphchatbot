@@ -53,7 +53,7 @@ def get_allowed_node_types(node_types: list | str):
 NodeType = Literal['Category', 'Concept', 'Lecture', 'Course', 'MOOC', 'Person', 'Publication', 'Unit', 'Startup']
 
 
-def search_nodes(keywords: list[str] = None, node_type: Optional[list[NodeType]] = None) -> list:
+async def search_nodes(keywords: list[str] = None, node_type: Optional[list[NodeType]] = None) -> list:
     """
     Search nodes from the EPFL Graph that best match the given `keywords` and return them along with their related nodes of the given `node_type`.
     A list of nodes is returned. Each node can have some organisational fields (e.g. `instructors` of a Course or `authors` of a Publication) which contain a node or list of nodes.

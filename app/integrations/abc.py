@@ -90,7 +90,7 @@ class IntegrationConfig(ABC):
         return self.request_types.get(request_type, {}).get('instructions')
 
     # Common classify method
-    def classify(self, messages):
+    async def classify(self, messages):
         # Return if no request types or messages
         if not self.request_types or not messages:
             return None
@@ -114,7 +114,7 @@ The possible categories are the following:
             category: Literal[*list(categories)]
 
         # Run LLM call
-        conversation_type = generate_structured_response(self.light_model, system_prompt, human_prompt, ConversationType)
+        conversation_type = await generate_structured_response(self.light_model, system_prompt, human_prompt, ConversationType)
 
         return conversation_type.category
 
@@ -122,11 +122,11 @@ The possible categories are the following:
         return []
 
     # Default premodel method
-    def premodel(self, messages):
+    async def premodel(self, messages):
         # Default logic for the premodel state of the agent
         pass
 
     # Default postmodel method
-    def postmodel(self, messages):
+    async def postmodel(self, messages):
         # Default logic for the postmodel state of the agent
         pass

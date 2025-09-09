@@ -182,7 +182,7 @@ If they do, give an explanation of the solution which is faithful to the source 
 
         return request_types
 
-    def search_micro452_case_studies(self, keywords: Optional[list[str]] = None, case_study_number: Optional[int] = None):
+    async def search_micro452_case_studies(self, keywords: Optional[list[str]] = None, case_study_number: Optional[int] = None):
         """
         Performs a search in the material for the course MICRO-452 at EPFL.
         If `case_study_number` is provided, all material from this case study is returned, along with additional sources from the theory that match the `keywords`.
@@ -200,15 +200,15 @@ If they do, give an explanation of the solution which is faithful to the source 
         if case_study_number:
             # Return everything from the given case study
             filters = {'type': 'case_study', 'number': str(case_study_number)}
-            results += gac.rag_retrieve(index=self.index, texts=keywords, limit=9999, filters=filters)
+            results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=9999, filters=filters)
 
             # Return a few chunks from the theory
             filters = {'type': 'theory', 'subtype': 'lecture_slides'}
-            results += gac.rag_retrieve(index=self.index, texts=keywords, limit=5, filters=filters)
+            results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=5, filters=filters)
         else:
             # Return only questions from all case studies
             filters = {'type': 'case_study', 'subtype': 'question'}
-            results += gac.rag_retrieve(index=self.index, texts=keywords, limit=9999, filters=filters)
+            results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=9999, filters=filters)
 
         print("[MICRO-452-CASE-STUDIES TOOL]", f"Retrieved {len(results)} document chunks.")
 
@@ -245,7 +245,7 @@ If they do, give an explanation of the solution which is faithful to the source 
         return formatted_results
 
     def build_tools(self):
-        return [StructuredTool.from_function(name='search_micro452_case_studies', func=self.search_micro452_case_studies)]
+        return [StructuredTool.from_function(name='search_micro452_case_studies', coroutine=self.search_micro452_case_studies)]
 
 ################################################################
 

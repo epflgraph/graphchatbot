@@ -54,7 +54,7 @@ The mission of the Service académique is the following:
             'other': {'description': "Other requests.", 'tools': ['search_sac']},
         }
 
-    def search_sac(self, keywords: list[str], limit: Optional[int] = 10):
+    async def search_sac(self, keywords: list[str], limit: Optional[int] = 10):
         """
         Performs a search in EPFL's Service académique documents with the given `keywords`.
         Returns a list of the document chunks that best match the keywords, up to `limit` chunks.
@@ -63,11 +63,11 @@ The mission of the Service académique is the following:
         print("[SAC TOOL]", f"Called the `search_sac` tool with keywords=`{keywords}` and limit=`{limit}`")
 
         gac = GraphAIClient()
-        results = gac.rag_retrieve(index=self.index, texts=keywords, limit=limit)
+        results = await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit)
 
         print("[SAC TOOL]", f"Retrieved {len(results)} document chunks.")
 
         return results
 
     def build_tools(self):
-        return [StructuredTool.from_function(name='search_sac', func=self.search_sac)]
+        return [StructuredTool.from_function(name='search_sac', coroutine=self.search_sac)]

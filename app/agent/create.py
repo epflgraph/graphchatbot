@@ -65,7 +65,7 @@ def create_agent():
         # Common tools
         for tool_name in integration.available_tools:
             if tool_name in tool_map:
-                tools.append(StructuredTool.from_function(name=tool_name, func=tool_map[tool_name]))
+                tools.append(StructuredTool.from_function(name=tool_name, coroutine=tool_map[tool_name]))
 
         # Integration-specific tools
         tools += integration.build_tools()
@@ -76,12 +76,12 @@ def create_agent():
     # Classify node                                                #
     ################################################################
 
-    def classify_node(state: State, config: RunnableConfig):
+    async def classify_node(state: State, config: RunnableConfig):
         # Recover integration config object from agent config
         integration = config.get('configurable', {}).get('integration')
 
         # Classify request
-        request_type = integration.classify(state['messages'])
+        request_type = await integration.classify(state['messages'])
         print('[CLASSIFY]', f"Classified conversation as `{request_type}`")
 
         # Queue tools to be forced according to request_type
@@ -99,12 +99,12 @@ def create_agent():
     # Custom premodel node                                         #
     ################################################################
 
-    def premodel_node(state: State, config: RunnableConfig):
+    async def premodel_node(state: State, config: RunnableConfig):
         # Recover integration config object from agent config
         integration = config.get('configurable', {}).get('integration')
 
         # Run the custom premodel function from the integration
-        command = integration.premodel(state['messages'])
+        command = await integration.premodel(state['messages'])
 
         if command:
             return command
@@ -115,7 +115,7 @@ def create_agent():
     # Model node                                                   #
     ################################################################
 
-    def model_node(state: State, config: RunnableConfig):
+    async def model_node(state: State, config: RunnableConfig):
         # Recover integration config object from agent config
         integration = config.get('configurable', {}).get('integration')
 
@@ -140,7 +140,7 @@ def create_agent():
         # Generate new ai message
         messages = state['messages']
         messages_with_system_prompt = [SystemMessage(content=integration.system_prompt)] + messages
-        ai_message = model_with_tools.invoke(messages_with_system_prompt, config)
+        ai_message = await model_with_tools.ainvoke(messages_with_system_prompt, config)
 
         # Hand over to 'tools' if the ai message contains tool calls or proceed to 'check' otherwise
         if ai_message.tool_calls:
@@ -153,7 +153,7 @@ def create_agent():
     # Tools node                                                   #
     ################################################################
 
-    def tools_node(state: State, config: RunnableConfig):
+    async def tools_node(state: State, config: RunnableConfig):
         # Recover integration config object from agent config
         integration = config.get('configurable', {}).get('integration')
 
@@ -189,7 +189,8 @@ def create_agent():
         print('[TOOL]', "Executing tool calls")
 
         # Execute all tool calls in the last message
-        tool_messages = ToolNode(tools).invoke(state)['messages']
+        result = await ToolNode(tools).ainvoke(state)
+        tool_messages = result['messages']
 
         print('[TOOL]', "Done, handing to model")
 
@@ -199,12 +200,12 @@ def create_agent():
     # Custom postmodel node                                        #
     ################################################################
 
-    def postmodel_node(state: State, config: RunnableConfig):
+    async def postmodel_node(state: State, config: RunnableConfig):
         # Recover integration config object from agent config
         integration = config.get('configurable', {}).get('integration')
 
         # Run the custom postmodel function from the integration
-        integration.postmodel(state['messages'])
+        await integration.postmodel(state['messages'])
 
         return Command(goto=END)
 

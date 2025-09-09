@@ -182,7 +182,7 @@ You are the assistant for the course "CS-500: AI product management" at EPFL. Yo
             },
         }
 
-    def search_cs500(self, keywords: list[str], limit: Optional[int] = 10):
+    async def search_cs500(self, keywords: list[str], limit: Optional[int] = 10):
         """
         Performs a search in the CS-500 course material with the given `keywords`.
         Returns a list of the document chunks that best match the keywords, up to `limit` chunks.
@@ -191,7 +191,7 @@ You are the assistant for the course "CS-500: AI product management" at EPFL. Yo
         print("[CS-500 TOOL]", f"Called the `search_cs500` tool with keywords=`{keywords}` and limit=`{limit}`")
 
         gac = GraphAIClient()
-        results = gac.rag_retrieve(index=self.index, texts=keywords, limit=limit)
+        results = await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit)
 
         print("[CS-500 TOOL]", f"Retrieved {len(results)} document chunks.")
 
@@ -229,7 +229,7 @@ You are the assistant for the course "CS-500: AI product management" at EPFL. Yo
         return formatted_results
 
     def build_tools(self):
-        return [StructuredTool.from_function(name='search_cs500', func=self.search_cs500)]
+        return [StructuredTool.from_function(name='search_cs500', coroutine=self.search_cs500)]
 
 ################################################################
 

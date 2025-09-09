@@ -83,7 +83,7 @@ You are the EPFL Graph Polylex assistant. You have access to the Polylex documen
             },
         }
 
-    def search_lex(self, keywords: list[str], limit: Optional[int] = 10):
+    async def search_lex(self, keywords: list[str], limit: Optional[int] = 10):
         """
         Performs a search in EPFL's Polylex documents (Electronic compendium of EPFL laws, ordinances, regulations and directives) with the given `keywords`.
         Returns a list of the document chunks that best match the keywords, up to `limit` chunks.
@@ -92,11 +92,11 @@ You are the EPFL Graph Polylex assistant. You have access to the Polylex documen
         print("[LEX TOOL]", f"Called the `search_lex` tool with keywords=`{keywords}` and limit=`{limit}`")
 
         gac = GraphAIClient()
-        results = gac.rag_retrieve(index=self.index, texts=keywords, limit=limit)
+        results = await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit)
 
         print("[LEX TOOL]", f"Retrieved {len(results)} document chunks.")
 
         return results
 
     def build_tools(self):
-        return [StructuredTool.from_function(name='search_lex', func=self.search_lex)]
+        return [StructuredTool.from_function(name='search_lex', coroutine=self.search_lex)]
