@@ -116,11 +116,29 @@ Here are some examples:
                 'tools': ['search_nodes'],
             },
             'news': {
-                'description': "Explicit requests about news from EPFL.",
+                'description': "Explicit requests for news articles from EPFL.",
                 'tools': ['search_news'],
             },
             'infrastructure': {
                 'description': "Explicit requests about the infrastructure of EPFL, like rooms, buildings, toilets, showers, etc.",
                 'tools': ['search_plan'],
+            },
+            'lex': {
+                'description': "Requests about EPFL laws, ordinances, regulations and directives.",
+                'instructions': """
+# Warning
+The user thinks you have access to the Polylex documents (Electronic compendium of EPFL laws, ordinances, regulations and directives). Do not answer their request but instead clarify that you don't have access. Mention that there is another AI assistant with access to those documents available but is restricted. It should show up on the **dropdown on the right** if they have access to it, or else they need to **request access to the EPFL Graph team**."""
+            },
+            'servicedesk': {
+                'description': "Requests about EPFL Service Desk IT support: laptop issues, email questions, printing, etc.",
+                'instructions': """
+# Warning
+The user thinks you have access to the Service Desk documents. Do not answer their request but instead clarify that you don't have access. Mention that there is another AI assistant with access to those documents available but is restricted. It should show up on the **dropdown on the right** if they have access to it, or else they need to **request access to the EPFL Graph team**."""
+            },
+            'sac': {
+                'description': "Requests about Service Académique at EPFL, covering aspects like credits, admissions, registrations, record-keeping and resource management processes for all training courses.",
+                'instructions': """
+# Warning
+The user thinks you have access to the Service Académique documents. Do not answer their request but instead clarify that you don't have access. Mention that there is another AI assistant with access to those documents available but is restricted. It should show up on the **dropdown on the right** if they have access to it, or else they need to **request access to the EPFL Graph team**."""
             },
         }
