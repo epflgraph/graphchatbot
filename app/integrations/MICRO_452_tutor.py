@@ -32,7 +32,7 @@ class Micro452TutorConfig(IntegrationConfig, ABC):
     light_model = ChatOpenAI(model='gpt-5', reasoning={'effort': 'minimal'}, openai_api_key=config.get('openai', {})['api_key'], request_timeout=60)
     model = ChatOpenAI(model='gpt-5', reasoning={'effort': 'minimal'}, openai_api_key=config.get('openai', {})['api_key'], request_timeout=60)
 
-    def search_micro452_tutor(
+    async def search_micro452_tutor(
         self,
         keywords: list[str],
         doc_types: Optional[Set[Literal["slides", "book", "exercises", "forum_qa"]]] = None,
@@ -61,7 +61,7 @@ class Micro452TutorConfig(IntegrationConfig, ABC):
 
         results = []
         for doc_type in doc_types:
-            results += gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters[doc_type])
+            results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters[doc_type])
 
         print("[MICRO-452-TUTOR TOOL]", f"Retrieved {len(results)} document chunks.")
 
@@ -99,7 +99,7 @@ class Micro452TutorConfig(IntegrationConfig, ABC):
         return formatted_results
 
     def build_tools(self):
-        return [StructuredTool.from_function(name='search_micro452_tutor', func=self.search_micro452_tutor)]
+        return [StructuredTool.from_function(name='search_micro452_tutor', coroutine=self.search_micro452_tutor)]
 
 
 ################################################################
@@ -249,7 +249,7 @@ def common_request_types():
 # Feedback and Socratic mixins
 
 class FeedbackMixin:
-    def premodel(self, messages):
+    async def premodel(self, messages):
         print('[PREMODEL]', "Look, I'm giving feedback!")
 
         criteria = {
@@ -310,7 +310,7 @@ Prompt: "I am tasked to enlarge the thresholded spots. I was thinking of using c
         human_prompt = build_prompt_from_message_list(messages)
 
         # Run LLM call
-        evaluation = generate_structured_response(self.light_model, system_prompt, human_prompt, RequestEvaluation)
+        evaluation = await generate_structured_response(self.light_model, system_prompt, human_prompt, RequestEvaluation)
 
         print('[PREMODEL]', f"Evaluated prompt successfully, got scores 🔍{evaluation.clear_and_specific_score} and 🧠{evaluation.willingness_to_learn_score}.")
 
@@ -375,7 +375,7 @@ Prompt: "I am tasked to enlarge the thresholded spots. I was thinking of using c
 
 
 class NonFeedbackMixin:
-    def premodel(self, messages):
+    async def premodel(self, messages):
         print('[PREMODEL]', "Look, I'm NOT giving feedback!")
 
 

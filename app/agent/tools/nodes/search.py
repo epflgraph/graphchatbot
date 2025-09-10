@@ -2,6 +2,8 @@
 This module contains the function to search nodes in the elasticsearch cluster based on some query and node types
 """
 
+from typing import Optional, Union, Literal
+
 from app.agent.tools.nodes.clean import (
     clean_nodes,
 )
@@ -48,7 +50,10 @@ def get_allowed_node_types(node_types: list | str):
     return allowed_node_types
 
 
-def search_nodes(keywords: list[str] = None, node_type: list[str] | str = None) -> list:
+NodeType = Literal['Category', 'Concept', 'Lecture', 'Course', 'MOOC', 'Person', 'Publication', 'Unit', 'Startup']
+
+
+async def search_nodes(keywords: list[str] = None, node_type: Optional[Union[list[NodeType], NodeType]] = None) -> list:
     """
     Search nodes from the EPFL Graph that best match the given `keywords` and return them along with their related nodes of the given `node_type`.
     A list of nodes is returned. Each node can have some organisational fields (e.g. `instructors` of a Course or `authors` of a Publication) which contain a node or list of nodes.
@@ -89,5 +94,5 @@ def search_nodes(keywords: list[str] = None, node_type: list[str] | str = None) 
 
 
 if __name__ == '__main__':
-    nodes = search_nodes(keywords=["Anna Fontcuberta"], node_type='Person')
+    nodes = search_nodes(keywords=["Anna Fontcuberta"], node_type=['Person'])
     print(nodes)

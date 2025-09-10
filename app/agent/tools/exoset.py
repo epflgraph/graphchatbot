@@ -61,7 +61,7 @@ def fetch_all_exercises(nodes):
     return results
 
 
-def search_exercises(query: str, language: str = 'EN') -> list:
+async def search_exercises(query: str, language: str = 'EN') -> list:
     """
     Search exercises from EPFL's EXOSET database that best match the given `query`, which should be in English.
     The parameter `language` will prioritise exercises in that language, if available.

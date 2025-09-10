@@ -55,7 +55,7 @@ You are the assistant of EPFL Graph, the project of the knowledge graph of EPFL.
             'servicedesk': {'description': "Requests about Service Desk.", 'tools': ['search_servicedesk']},
         }
 
-    def search_servicedesk(self, keywords: list[str], limit: Optional[int] = 10):
+    async def search_servicedesk(self, keywords: list[str], limit: Optional[int] = 10):
         """
         Performs a search in EPFL's IT Service Desk documents with the given `keywords`.
         Returns a list of the document chunks that best match the keywords, up to `limit` chunks.
@@ -64,11 +64,11 @@ You are the assistant of EPFL Graph, the project of the knowledge graph of EPFL.
         print("[SERVICEDESK TOOL]", f"Called the `search_servicedesk` tool with keywords=`{keywords}` and limit=`{limit}`")
 
         gac = GraphAIClient()
-        results = gac.rag_retrieve(index=self.index, texts=keywords, limit=limit)
+        results = await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit)
 
         print("[SERVICEDESK TOOL]", f"Retrieved {len(results)} document chunks.")
 
         return results
 
     def build_tools(self):
-        return [StructuredTool.from_function(name='search_servicedesk', func=self.search_servicedesk)]
+        return [StructuredTool.from_function(name='search_servicedesk', coroutine=self.search_servicedesk)]

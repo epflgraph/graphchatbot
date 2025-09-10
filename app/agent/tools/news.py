@@ -6,7 +6,7 @@ import datetime
 import requests
 
 
-def search_news(query: str) -> list:
+async def search_news(query: str) -> list:
     """
     Search exercises from EPFL news website.
     """

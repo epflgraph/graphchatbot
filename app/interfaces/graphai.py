@@ -1,6 +1,7 @@
 import time
 
-import requests
+import aiohttp
+import asyncio
 
 from app.config import config
 
@@ -14,7 +15,7 @@ class GraphAIClient:
 
         self.bearer_token = None
 
-    def authenticate(self):
+    async def authenticate(self):
         headers = {
             'accept': 'application/json',
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -27,70 +28,125 @@ class GraphAIClient:
             'client_id': '',
             'client_secret': '',
         }
-        result = requests.post(f'{self.url}/token', headers=headers, data=data).json()
 
-        try:
-            self.bearer_token = result['access_token']
-        except KeyError:
-            print(result)
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.post(
+                        f"{self.url}/token",
+                        headers=headers,
+                        data=data
+                ) as resp:
+                    result = await resp.json()
 
-    def call_async_endpoint(self, endpoint, payload, timeout=10, verbose=False):
+                    try:
+                        self.bearer_token = result["access_token"]
+                    except KeyError:
+                        print(result)
+
+            except asyncio.TimeoutError:
+                print('[GAC CLIENT]', "Request to authenticate timed out, subsequent requests will more likely fail.")
+
+    async def call_async_endpoint(self, endpoint, payload, timeout=10, verbose=False):
         # Make sure we are authenticated
-        self.authenticate()
+        await self.authenticate()
 
         headers = {'Authorization': f'Bearer {self.bearer_token}'}
 
-        # Make first request, which will return a task_id
-        response = requests.post(f'{self.url}{endpoint}', headers=headers, json=payload).json()
-
-        if verbose:
-            print(response)
-
-        # Extract task_id to poll for result
-        task_id = response['task_id']
-
-        # Poll for result until timeout is reached
-        limit_time = time.time() + timeout
-        while True:
-            response = requests.get(f'{self.url}{endpoint}/status/{task_id}', headers=headers).json()
+        async with aiohttp.ClientSession() as session:
+            # Make first request, which will return a task_id
+            async with session.post(f"{self.url}{endpoint}", headers=headers, json=payload) as resp:
+                response = await resp.json()
 
             if verbose:
                 print(response)
 
-            # If result is available, return it
-            if response['task_result'] is not None:
-                return response['task_result']
+            task_id = response["task_id"]
 
-            # If status is FAILURE, return immediately because some problem happened
-            if response['task_status'] == 'FAILURE':
-                print(response)
-                return None
+            # Poll for result until timeout is reached
+            limit_time = time.time() + timeout
 
-            # Stop if timeout is reached
-            if time.time() > limit_time:
-                print(f'Timeout reached for payload {payload}')
-                break
+            while True:
+                async with session.get(f"{self.url}{endpoint}/status/{task_id}", headers=headers) as resp:
+                    response = await resp.json()
 
-            # Wait before next iteration
-            time.sleep(1)
+                if verbose:
+                    print(response)
+
+                # If result is available, return it
+                if response.get("task_result") is not None:
+                    return response["task_result"]
+
+                # If status is FAILURE, return immediately
+                if response.get("task_status") == "FAILURE":
+                    print(response)
+                    return None
+
+                # Stop if timeout is reached
+                if time.time() > limit_time:
+                    print(f"Timeout reached for payload {payload}")
+                    break
+
+                # Wait before next iteration
+                await asyncio.sleep(1)
 
         return None
 
-    def call_sync_endpoint(self, endpoint, payload, timeout=10, verbose=False):
+    async def call_sync_endpoint(self, endpoint, payload, timeout=10, verbose=False):
         # Make sure we are authenticated
-        self.authenticate()
+        await self.authenticate()
 
         headers = {'Authorization': f'Bearer {self.bearer_token}'}
 
-        # Make first request, which will return a task_id
-        response = requests.post(f'{self.url}{endpoint}', headers=headers, json=payload, timeout=timeout).json()
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.post(
+                        f"{self.url}{endpoint}",
+                        headers=headers,
+                        json=payload,
+                        timeout=timeout
+                ) as resp:
+                    response = await resp.json()
 
-        if verbose:
-            print(response)
+                    if verbose:
+                        print(response)
 
-        return response
+                    return response
+            except asyncio.TimeoutError:
+                print('[GAC CLIENT]', f"Request to {endpoint} timed out after {timeout} seconds, returning None")
+                return None
 
-    def rag_retrieve(self, index: str, texts: list[str], limit: int = 10, filters: dict = None):
+    async def rag_retrieve(self, index: str, texts: list[str], limit: int = 10, filters: dict = None):
+        # Clean texts
+        texts = [text.strip() for text in texts if text.strip()]
+
+        # Join texts into one string
+        texts = '    '.join(texts)
+
+        # Prepare payload
+        payload = {
+            'index': index,
+            'text': texts,
+            'limit': limit,
+        }
+
+        if filters:
+            payload['filters'] = filters
+
+        # Send request and return empty if it fails
+        try:
+            response = await self.call_sync_endpoint(endpoint='/rag/retrieve', payload=payload)
+        except Exception as e:
+            print('[GAC CLIENT]', f"Error retrieving document chunks: {e}")
+            return []
+
+        # Return empty if response is not marked as successful
+        if not response.get('successful'):
+            print('[GAC CLIENT]', f"Unsuccessful retrieval of chunks: {response.get('result', [])}")
+            return []
+
+        return response.get('result', [])
+
+    def sequential_rag_retrieve(self, index: str, texts: list[str], limit: int = 10, filters: dict = None):
         # Clean texts
         texts = [text.strip() for text in texts if text.strip()]
 

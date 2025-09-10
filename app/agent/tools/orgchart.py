@@ -71,7 +71,7 @@ def fetch_from_ldap():
     return orgchart
 
 
-def get_orgchart() -> list:
+async def get_orgchart() -> list:
     """
     Retrieves the current organisational chart of management positions at EPFL, as of today.
     """
