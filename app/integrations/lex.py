@@ -18,7 +18,7 @@ class LexConfig(IntegrationConfig):
     available_tools = ['get_orgchart', 'search_news', 'search_lex']
     light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
     model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
-    groups = ['graph-chatbot-admins', 'graph-rag-vip']
+    groups = ['graph-chatbot-admins', 'graph-rag-vip', 'graph-rag-lex']
 
     @property
     def system_prompt(self) -> str:
