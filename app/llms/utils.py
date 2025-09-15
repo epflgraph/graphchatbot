@@ -8,6 +8,10 @@ def build_prompt_from_message_list(messages):
     # Prepare human prompt
     human_prompt = []
     for message in messages:
+        # Keep only human and ai messages
+        if message.type not in ('human', 'ai'):
+            continue
+
         # Extract only text from messages to send (otherwise images or other media types can fill the context window)
         if isinstance(message.content, str):
             message_content = message.content

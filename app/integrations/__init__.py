@@ -11,3 +11,4 @@ from app.integrations.sac import SacConfig
 from app.integrations.MICRO_452_case_studies import Micro452CaseStudiesConfig
 from app.integrations.MICRO_452_tutor import Micro452TutorConfig
 from app.integrations.CS_500 import CS500Config
+from app.integrations.BIO_695 import BIO695Config
