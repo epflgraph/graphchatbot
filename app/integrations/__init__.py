@@ -1,6 +1,9 @@
 from app.integrations.abc import IntegrationConfig
 
+# Graph-chat
 from app.integrations.graph_chat import GraphChatConfig
+from app.integrations.graph_chat_gpt_5 import GraphChatGPT5Config
+from app.integrations.graph_chat_qwen import GraphChatQwenConfig
 
 # Admin
 from app.integrations.lex import LexConfig
