@@ -29,8 +29,8 @@ from app.config import config
 class Micro452TutorConfig(IntegrationConfig, ABC):
     index = 'course_micro_452_tutor'
     available_tools = ['search_micro452_tutor']
-    light_model = ChatOpenAI(model='gpt-5', reasoning={'effort': 'minimal'}, openai_api_key=config.get('openai', {})['api_key'], request_timeout=60)
-    model = ChatOpenAI(model='gpt-5', reasoning={'effort': 'minimal'}, openai_api_key=config.get('openai', {})['api_key'], request_timeout=60)
+    light_model = ChatOpenAI(model='gpt-5-mini', reasoning={'effort': 'minimal'}, openai_api_key=config.get('openai', {})['api_key'], request_timeout=60)
+    model = ChatOpenAI(model='gpt-5-mini', reasoning={'effort': 'minimal'}, openai_api_key=config.get('openai', {})['api_key'], request_timeout=60)
 
     async def search_micro452_tutor(
         self,
@@ -221,20 +221,24 @@ def common_request_types():
         'greeting': {
             'description': "The user is just greeting the assistant or similar.",
         },
-        'theory-question': {
+        'theory': {
             'description': "The user is asking a question about a certain concept, a course lecture or the course slides.",
             'instructions': "Stick closely to the content provided by the RAG, but if you're confident, feel free to expand on the response. Remember to provide links to the relevant course slides at the end of your message, guiding them and referencing the source material.",
             'tools': ['search_micro452_tutor'],
         },
-        'exercise-question': {
+        'exercise': {
             'description': "The user is asking a question about an exercise session or a course exercise, but not related to code.",
             'instructions': "Use the exercise number to retrieve the relevant documents. If unclear, ask the student to specify the exercise number and/or the theme of the exercise.",
             'tools': ['search_micro452_tutor'],
         },
-        'coding-question': {
-            'description': "The user is asking a question about an exercise session or a course exercise or assignment, related to code.",
+        'exercise-coding': {
+            'description': "The user is asking a question about an exercise session or a course exercise or assignment, is related to code and related to the course material, or the user is pasting some piece of the assignment.",
             'instructions': "Use the exercise number to retrieve the relevant documents. If unclear, ask the student to specify the exercise number. Do not provide the full code solution, but you may give a starting point or help break down the problem.",
             'tools': ['search_micro452_tutor'],
+        },
+        'basic-coding': {
+            'description': "The user is asking a question about beginner-level Python, NumPy, or OpenCV, such as syntax (“for” loops, “if” conditions, “in/not in”), data structures (lists, tuples, dicts), built-ins (append, pop, heappush), error messages (NoneType ... subscriptable), array/matrix initialization (np.zeros, random values), and basic OpenCV (cv2.imread, pixel access, image size). However, the request is about general programming knowledge, not tied to robotics coursework or assignment.",
+            'instructions': "Do not retrieve documents, just answer directly without using tools.",
         },
         # 'just-the-answer': {
         #     'description': "The user does not seem to engage in thinking but rather wants an effortless answer to some exercise, case study or question.",
@@ -395,9 +399,9 @@ You are a helpful tutor for programming for the course "MICRO-452: Basics of mob
     def request_types(self) -> dict:
         request_types = common_request_types()
 
-        request_types['theory-question']['instructions'] += " Remember to not provide direct answers, but rather guide students using socratic questioning."
-        request_types['exercise-question']['instructions'] += " Remember to not provide direct answers, but rather guide students using socratic questioning."
-        request_types['coding-question']['instructions'] += " Remember to not provide direct answers, but rather guide students using socratic questioning."
+        request_types['theory']['instructions'] += " Remember to not provide direct answers, but rather guide students using socratic questioning."
+        request_types['exercise']['instructions'] += " Remember to not provide direct answers, but rather guide students using socratic questioning."
+        request_types['exercise-coding']['instructions'] += " Remember to not provide direct answers, but rather guide students using socratic questioning."
 
         return request_types
 
