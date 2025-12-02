@@ -199,7 +199,7 @@ If they do, give an explanation of the solution which is faithful to the source 
         results = []
         if case_study_number:
             # Return everything from the given case study
-            filters = {'type': 'case_study', 'number': str(case_study_number)}
+            filters = {'type': 'case_study', 'week': 1, 'number': str(case_study_number)}
             results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=9999, filters=filters)
 
             # Return a few chunks from the theory
@@ -207,7 +207,7 @@ If they do, give an explanation of the solution which is faithful to the source 
             results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=5, filters=filters)
         else:
             # Return only questions from all case studies
-            filters = {'type': 'case_study', 'subtype': 'question'}
+            filters = {'type': 'case_study', 'week': 1, 'subtype': 'question'}
             results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=9999, filters=filters)
 
         print("[MICRO-452-CASE-STUDIES TOOL]", f"Retrieved {len(results)} document chunks.")
