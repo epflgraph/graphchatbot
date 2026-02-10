@@ -21,7 +21,7 @@ class GraphAIClient:
             'Content-Type': 'application/x-www-form-urlencoded',
         }
         data = {
-            'grant_type': '',
+            'grant_type': 'password',
             'username': self.username,
             'password': self.password,
             'scope': '',
