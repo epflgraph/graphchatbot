@@ -96,7 +96,7 @@ def general_considerations_sysprompt():
     today = datetime.now().strftime("%Y-%m-%d")
     return f"""
 * Format your answer using Markdown (e.g., math, links, `inline code`, ```code fences```, lists, tables).
-* When using markdown in assistant messages, use backticks to format file, directory and functions. Use \( and \) for inline math, \[ and \] for block math, and avoid math in unicode.
+* When using Markdown in assistant messages, use backticks to format file, directory and functions. Use \( and \) for inline math, \[ and \] for block math, and avoid math in unicode.
 * Always reference source documents which have a `url` field using a Markdown link, with `title` as the link text. That is [title](url).
 * Never reference source documents which do not have a `url` field using a Markdown link.
 * Never link to an url that does not come from the source documents.
