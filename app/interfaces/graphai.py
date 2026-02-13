@@ -9,7 +9,7 @@ from app.config import config
 class GraphAIClient:
 
     def __init__(self):
-        self.url = f"{config['graphai']['host']}"
+        self.url = f"{config['graphai']['host']}:{config['graphai']['port']}"
         self.username = config['graphai']['username']
         self.password = config['graphai']['password']
 
