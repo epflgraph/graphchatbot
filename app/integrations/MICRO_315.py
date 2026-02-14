@@ -188,31 +188,28 @@ You are a helpful chatbot for the course "MICRO-315: Embedded Systems and Roboti
 
         gac = GraphAIClient()
 
-        results = []
+        filters_list = [
+            {'type': 'theory', 'subtype': 'lecture_slides'},
+            {'type': 'theory', 'subtype': 'recommended_reading'},
+            {'type': 'practice', 'subtype': 'lab_lib'},
+            {'type': 'practice', 'subtype': 'lab_wiki'},
+            {'type': 'practice', 'subtype': 'lab', 'number': str(lab_number)} if lab_number else {'type': 'practice', 'subtype': 'lab'},
+        ]
 
-        # Slides
-        filters = {'type': 'theory', 'subtype': 'lecture_slides'}
-        results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters)
+        # Fire API calls simultaneously
+        async with asyncio.TaskGroup() as tg:
+            tasks = [
+                tg.create_task(gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters))
+                for filters in filters_list
+            ]
+        results_by_task = [task.result() for task in tasks]
 
-        # Recommended reading
-        filters = {'type': 'theory', 'subtype': 'recommended_reading'}
-        results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters)
-
-        # Lib
-        filters = {'type': 'practice', 'subtype': 'lab_lib'}
-        results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters)
-
-        # Wiki
-        filters = {'type': 'practice', 'subtype': 'lab_wiki'}
-        results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters)
-
-        # Labs
-        if lab_number:
-            filters = {'type': 'practice', 'subtype': 'lab', 'number': str(lab_number)}
-            results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters)
-        else:
-            filters = {'type': 'practice', 'subtype': 'lab'}
-            results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters)
+        # Flatten
+        results = [
+            result
+            for task_results in results_by_task
+            for result in task_results
+        ]
 
         print(f"[{course_code} TOOL]", f"Retrieved {len(results)} document chunks.")
 
