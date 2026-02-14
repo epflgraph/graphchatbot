@@ -106,17 +106,12 @@ When processing questions:
 General tool-calling strategy:
 - Perform several tool calls in parallel, one per relevant `document_type`.
 - Always include one tool call for "slides" with key concepts.
-- Include additional theory calls if there are multiple concepts or sub-questions.
-- If the question is about a lab session, an exercise or an exam, make the theory call(s) above AND:
-  - One call using filters only to locate the specific exercise/lab/exam
-  - One call using keywords in the query filtering only by type
-- If an exercise or exam number is followed by a letter (e.g. "exo 4f", "exercise 5a"), ignore the letter in filters (sub_number:"4", sub_number:"5").
-
-Query rules:
-- Use technical terminology and course-specific terms.
-- Never set a filter field to None. Omit the field entirely if not needed.
-  - Do NOT: {{'keywords': ["x", "y", "z"], 'filters': {{'type': 'theory', 'subtype': None}}}}
-  - Do: {{'keywords': ["x", "y", "z"], 'filters': {{'type': 'theory'}}}}
+    - Include additional "slides" calls if there are multiple concepts or sub-questions.
+- Include a "manuals" tool call if you think it can be helpful.
+- If the question is about a lab session, include:
+    - A "lab" tool call with the specific "lab_number" if you know it.
+    - A "lab_lib" tool call to search the lab code library.
+    - A "lab_wiki" tool call to search the lab wiki.
 
 The system will search in the course index automatically. Focus on creating good keyword queries.
 """
