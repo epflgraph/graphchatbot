@@ -9,7 +9,7 @@ from app.config import config
 class GraphAIClient:
 
     def __init__(self):
-        self.url = f"{config['graphai']['host']}"
+        self.url = f"{config['graphai']['host']}:{config['graphai']['port']}"
         self.username = config['graphai']['username']
         self.password = config['graphai']['password']
 
@@ -21,7 +21,7 @@ class GraphAIClient:
             'Content-Type': 'application/x-www-form-urlencoded',
         }
         data = {
-            'grant_type': '',
+            'grant_type': 'password',
             'username': self.username,
             'password': self.password,
             'scope': '',
