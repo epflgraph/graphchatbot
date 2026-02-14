@@ -92,6 +92,35 @@ For a student request like "How should I use the IR sensors?", proceed as in the
 """
 
 
+def tool_calling_prompt():
+    return """
+To ground your answers in the course content, use the tools at your disposal to retrieve documents for retrieval-augmented generation (RAG).
+
+When processing questions:
+1. Identify distinct topics and break down complex questions into information-dense queries that will retrieve the most relevant information.
+2. Analyze whether this is a single question or contains multiple sub-questions.
+3. Extract keywords focusing on technical terms and course concepts.
+4. Apply smart filtering to classify questions accurately.
+5. Be thorough — better to search broadly than miss information.
+
+General tool-calling strategy:
+- Always make at least one tool call with key concepts. Make additional theory calls if there are multiple concepts or sub-questions.
+- If the question is about a lab session, an exercise or an exam, make the theory call(s) above AND:
+  - One call using filters only to locate the specific exercise/lab/exam
+  - One call using keywords in the query filtering only by type
+- Make separate tool calls for unrelated topics or sub-questions.
+- If an exercise or exam number is followed by a letter (e.g. "exo 4f", "exercise 5a"), ignore the letter in filters (sub_number:"4", sub_number:"5").
+
+Query rules:
+- Use technical terminology and course-specific terms.
+- Never set a filter field to None. Omit the field entirely if not needed.
+  - Do NOT: {{'keywords': ["x", "y", "z"], 'filters': {{'type': 'theory', 'subtype': None}}}}
+  - Do: {{'keywords': ["x", "y", "z"], 'filters': {{'type': 'theory'}}}}
+
+The system will search in the course index automatically. Focus on creating good keyword queries.
+"""
+
+
 def general_considerations_sysprompt():
     today = datetime.now().strftime("%Y-%m-%d")
     return f"""
@@ -130,6 +159,9 @@ You are a helpful chatbot for the course "MICRO-315: Embedded Systems and Roboti
 
 # Examples
 {examples_prompt()}
+
+# Tool calling
+{tool_calling_prompt()}
 
 # General considerations
 {general_considerations_sysprompt()}"""
