@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Literal
 
 from langchain.tools import StructuredTool
 from langchain_openai import ChatOpenAI
@@ -173,46 +173,72 @@ You are a helpful chatbot for the course "MICRO-315: Embedded Systems and Roboti
     async def search_micro315(
             self,
             keywords: list[str],
+            document_type: Literal['slides', 'manuals', 'lab', 'lab_lib', 'lab_wiki'],
             limit: Optional[int] = 10,
             lab_number: Optional[int] = None,
     ):
         """
         Performs a search in the material for the course MICRO-315 at EPFL.
-        Matches documents against the given `keywords`, prioritising labs matching the given `lab_number`.
-        Returns a list of document chunks, up to `limit` chunks per document type.
+        Matches documents of the given `document_type` against the given `keywords`.
+        The possible document types are:
+            - "slides": Course slides
+            - "manuals": User manuals and usage guides for several robotic components
+            - "lab": Documents and code about the lab sessions
+            - "lab_lib": Code library used throughout all lab sessions
+            - "lab_wiki": Wiki with documentation about the lab sessions
+        If `document_type` is "lab" and `lab_number` is given, only chunks from that specific lab session will be returned.
+        Returns a list of up to `limit` document chunks of the given `document_type`.
         """
 
         course_code = "MICRO-315"
 
-        print(f"[{course_code} TOOL]", f"Called the search tool with keywords=`{keywords}`, limit=`{limit}` and lab_number=`{lab_number}`")
+        print(f"[{course_code} TOOL]", f"Called the search tool with document_type=`{document_type}`, keywords=`{keywords}`, limit=`{limit}` and lab_number=`{lab_number}`")
 
         gac = GraphAIClient()
 
-        results = []
+        # results = []
+        #
+        # # Slides
+        # filters = {'type': 'theory', 'subtype': 'lecture_slides'}
+        # results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters)
+        #
+        # # Recommended reading
+        # filters = {'type': 'theory', 'subtype': 'recommended_reading'}
+        # results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters)
+        #
+        # # Lib
+        # filters = {'type': 'practice', 'subtype': 'lab_lib'}
+        # results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters)
+        #
+        # # Wiki
+        # filters = {'type': 'practice', 'subtype': 'lab_wiki'}
+        # results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters)
+        #
+        # # Labs
+        # if lab_number:
+        #     filters = {'type': 'practice', 'subtype': 'lab', 'number': str(lab_number)}
+        #     results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters)
+        # else:
+        #     filters = {'type': 'practice', 'subtype': 'lab'}
+        #     results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters)
 
-        # Slides
-        filters = {'type': 'theory', 'subtype': 'lecture_slides'}
-        results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters)
+        filters = {
+            'slides': {'type': 'theory', 'subtype': 'lecture_slides'},
+            'manuals': {'type': 'theory', 'subtype': 'recommended_reading'},
+            'lab': {'type': 'practice', 'subtype': 'lab'},
+            'lab_lib': {'type': 'practice', 'subtype': 'lab_lib'},
+            'lab_wiki': {'type': 'practice', 'subtype': 'lab_wiki'},
+        }
 
-        # Recommended reading
-        filters = {'type': 'theory', 'subtype': 'recommended_reading'}
-        results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters)
+        if document_type == 'lab' and lab_number:
+            filters['lab']['number'] = str(lab_number)
 
-        # Lib
-        filters = {'type': 'practice', 'subtype': 'lab_lib'}
-        results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters)
+        filters = filters.get(document_type)
 
-        # Wiki
-        filters = {'type': 'practice', 'subtype': 'lab_wiki'}
-        results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters)
+        if not filters:
+            raise ValueError(f"Invalid document type {document_type}")
 
-        # Labs
-        if lab_number:
-            filters = {'type': 'practice', 'subtype': 'lab', 'number': str(lab_number)}
-            results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters)
-        else:
-            filters = {'type': 'practice', 'subtype': 'lab'}
-            results += await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters)
+        results = await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit, filters=filters)
 
         print(f"[{course_code} TOOL]", f"Retrieved {len(results)} document chunks.")
 
@@ -271,4 +297,4 @@ if __name__ == '__main__':
         print('  ', "System prompt:", request_types[request_type].get('instructions'))
 
     import asyncio
-    print(asyncio.run(integration.search_micro315(keywords=['microcontroller peripherics'], limit=5)))
+    print(asyncio.run(integration.search_micro315(keywords=['microcontroller peripherics'], document_type='slides', limit=5)))
