@@ -115,8 +115,8 @@ class MICRO315Config(IntegrationConfig):
     name = 'MICRO-315'
     index = 'course_micro315'
     available_tools = ['search_micro315']
-    light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-VL-235B-A22B-Thinking-fp8', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60, thinking_budget=0)
-    model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-VL-235B-A22B-Thinking-fp8', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
+    light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-VL-235B-A22B-Thinking-fp8', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60, extra_body={"thinking_budget": 0})
+    model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-VL-235B-A22B-Thinking-fp8', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60).bind()
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_micro_315']
 
     @property
