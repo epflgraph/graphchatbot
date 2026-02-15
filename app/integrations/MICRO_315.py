@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Optional
 
+import asyncio
+
 from langchain.tools import StructuredTool
 from langchain_openai import ChatOpenAI
 
@@ -267,5 +269,4 @@ if __name__ == '__main__':
         print('  ', "Description:", request_types[request_type]['description'])
         print('  ', "System prompt:", request_types[request_type].get('instructions'))
 
-    import asyncio
     print(asyncio.run(integration.search_micro315(keywords=['microcontroller peripherics'], limit=5)))
