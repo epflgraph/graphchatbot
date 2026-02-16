@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Optional
 
+import asyncio
+
 from langchain.tools import StructuredTool
 from langchain_openai import ChatOpenAI
 
@@ -197,7 +199,7 @@ General considerations:
             },
         }
 
-    async def search_mgt645(self, keywords: list[str], limit: Optional[int] = 10):
+    async def search_mgt645(self, keywords: list[str], limit: Optional[int] = 20):
         """
         Performs a search in the MGT-645 course material with the given `keywords`.
         Returns a list of the document chunks that best match the keywords, up to `limit` chunks.
@@ -265,5 +267,4 @@ if __name__ == '__main__':
         print('  ', "Description:", request_types[request_type]['description'])
         print('  ', "System prompt:", request_types[request_type].get('instructions'))
 
-    import asyncio
     print(asyncio.run(integration.search_mgt645(keywords=['market opportunity'], limit=5)))

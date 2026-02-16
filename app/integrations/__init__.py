@@ -22,3 +22,4 @@ from app.integrations.MATH_106e import MATH106eConfig
 from app.integrations.MATH_240 import MATH240Config
 from app.integrations.MICRO_315 import MICRO315Config
 from app.integrations.MGT_645 import MGT645Config
+from app.integrations.MATH_261 import MATH261Config
