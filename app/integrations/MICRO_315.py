@@ -188,6 +188,16 @@ You are a helpful chatbot for the course "MICRO-315: Embedded Systems and Roboti
 
         print(f"[{course_code} TOOL]", f"Called the search tool with keywords=`{keywords}`, limit=`{limit}` and lab_number=`{lab_number}`")
 
+        ################################################################
+
+        print("asyncio in globals?", "asyncio" in globals())
+        print("asyncio is:", globals().get("asyncio"))
+
+        import asyncio
+        print(asyncio, asyncio.__file__)
+
+        ################################################################
+
         gac = GraphAIClient()
 
         filters_list = [
