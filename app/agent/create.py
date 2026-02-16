@@ -127,12 +127,12 @@ def create_agent():
         if tools_queue:
             tool_name = tools_queue.pop(0)  # Returns first element and removes it from tools_queue
 
-            # Instantiate chat model (for tool calling always cheaper model)
-            model_with_tools = integration.light_model.bind_tools(tools, tool_choice=tool_name)
+            # Instantiate chat model (force tool choice)
+            model_with_tools = integration.model.bind_tools(tools, tool_choice=tool_name)
 
             print('[MODEL]', f"Calling LLM forcing tool call `{tool_name}`")
         else:
-            # Instantiate chat model (for actual response the model from the integration)
+            # Instantiate chat model (without forcing tool calling)
             model_with_tools = integration.model.bind_tools(tools)
 
             print('[MODEL]', "Calling LLM without forcing any tool call")
