@@ -17,84 +17,122 @@ from app.config import config
 
 def course_details_sysprompt():
     return """
-# Statistique
+# Discrete Optimization
 
-## Course information
+## Course Information
 
-- **Code:** MATH-240
-- **Crédits:** 5
-- **Enseignant:** [Panaretos Victor](https://people.epfl.ch/180565?lang=en)
-- **Langue:** Français 
+- **Course code:** MATH-261
+- **Credits:** 5
+- **Teacher:** [Eisenbrand Friedrich](https://people.epfl.ch/183121?lang=en)
+- **Language:** English
 
-## Résumé
+## Summary
 
-Ce cours donne une introduction au traitement mathématique de la théorie de l'inférence statistique en utilisant la notion de vraisemblance comme un thème central.
+This course is an introduction to linear and discrete optimization.
 
-## Contenu
+**Warning:** This is a mathematics course! While much of the course will be algorithmic in nature, you will still need to be able to prove theorems.
 
-- Modèles de probabilité, variables aléatoires, données, et paramètres.
-- Théorèmes limites élémentaires de probabilité et leur combinaison.
-- Problèmes d'inférence statistique : estimation ponctuelle, estimation par intervalle, tests.
-- Statistiques et leurs critères de performance (consistance, concentration, biais, variance).
-- L'estimation en tant que probabilité inverse et la fonction de vraisemblance comme thème unificateur.
-- Principes d'exhaustivité et de vraisemblance (réduction de données, théorème de Fisher-Neyman).
-- Théorie de la vraisemblance pour l'estimation (propriétés pour des échantillons de taille finie, relation avec l'exhaustivité et le non-biais, borne de Cramér-Rao, optimalité asymptotique, exemples).
-- Autres méthodes d'estimation ponctuelle (méthode des moments, méthode du *plug-in*, exemples).
-- Théorie de la vraisemblance pour l'estimation d'intervalle (intervalles exacts et asymptotiques, pivots).
-- Théorie de la vraisemblance pour les tests (cadre de Neyman–Pearson, tests du rapport de vraisemblance).
+## Content
 
-## Acquis de formation
+- Optimization techniques
+- Algorithms and complexity
+- Linear Programming
+- Simplex Algorithm
+- Duality Theory
+- Integer Programming and relaxations
+- Network flows
 
-À la fin de ce cours, l'étudiant doit être capable de :
+## Keywords
 
-- Exploiter les résultats de base en probabilité pertinents pour l'inférence statistique.
-- Formaliser le cadre théorique des trois principaux problèmes en inférence statistique.
-- Évaluer la performance de procédures statistiques à l’aide de critères rigoureux.
-- Dériver des estimateurs ponctuels, des intervalles de confiance et des tests d’hypothèse à partir de principes généraux.
-- Exposer les propriétés de base des méthodes classiques d’inférence statistique et leurs limitations.
-- Distinguer les ingrédients fondamentaux influençant la performance des procédures statistiques.
-- Appliquer la théorie statistique à des problèmes concrets.
-- Distinguer :
-  - les incertitudes liées à la modélisation et à l’échantillonnage,
-  - l’incertitude liée au modèle et celle liée à l’échantillonnage.
+Linear Programming, Algorithms, Complexity, Graphs, Optimization
 
-## Méthode d'enseignement
+## Learning Prerequisites
 
-Cours ex cathedra, exercices en classe.
+### Required Courses
+- Linear Algebra
 
-## Méthode d'évaluation
+### Recommended Courses
+- Discrete Mathematics or Discrete Structures
 
-Examen écrit.
+### Important Concepts to Start the Course
+- The student needs to be comfortable reading and writing formal mathematical proofs.
 
-## Ressources
+## Learning Outcomes
 
-### Références suggérées par la bibliothèque
+By the end of the course, the student must be able to:
 
-- [Statistique pour mathématiciens / Panaretos](http://library.epfl.ch/beast?isbn=9782889151493)
-- [Statistics for Mathematicians / Panaretos](http://library.epfl.ch/beast?isbn=9783319283395)
+- Choose appropriate method for solving basic discrete optimization problem
+- Prove basic theorems in linear optimization
+- Interpret computational results and relate to theory
+- Implement basic algorithms in linear optimization
+- Describe methods for solving linear optimization problems
+- Create correctness and running time proofs of basic algorithms
+- Solve basic linear and discrete optimization problems
 
-### Liens Moodle
+## Transversal Skills
 
-- https://go.epfl.ch/MATH-240
+- Continue to work through difficulties or initial failure to find optimal solutions.
+- Use both general and domain specific IT resources and tools
 
-## In the programs
+## Teaching Methods
 
-**Mathematics**
-*2025–2026 — Bachelor semester 4*
+Ex cathedra lecture, exercises in the classroom and with a computer
 
-- **Semester:** Spring
-- **Exam form:** Written (summer session)
-- **Subject examined:** Statistics
-- **Courses:** 2 hours/week × 14 weeks
-- **Exercises:** 2 hours/week × 14 weeks
-- **Type:** Mandatory
+## Expected Student Activities
 
-## Reference week
+- Attendance of lectures and exercises
+- Completion of exercises
+- Solving supplementary programs with the help of a computer
 
-**Schedule (summary):**
+## Assessment Methods
 
-- **Monday, 10:00–12:00:** Exercise, TP — [CM5](https://plan.epfl.ch/?room==CM%201%205)
-- **Tuesday, 13:00–15:00:** Lecture — [AAC231](https://plan.epfl.ch/?room==AAC%202%2031)"""
+Written exam during the exam session
+
+Dans le cas de l'art. 3 al. 5 du Règlement de section, l'enseignant décide de la forme de l'examen qu'il communique aux étudiants concernés.
+
+## Resources
+
+### Bibliography
+Dimitris Bertsimas and John N. Tsitsiklis: *Introduction to Linear Optimization*, Athena Scientific
+
+### Library Resources
+- [Find the references at the Library](https://slsp-epfl.primo.exlibrisgroup.com/discovery/search?query=course_code,contains,%22MATH-261%20%202025-2026%22,AND&tab=41SLSP_EPF_MyInst_and_CI&search_scope=MyInst_and_CI&sortby=rank&vid=41SLSP_EPF:prod&lang=fr&mode=advanced&offset=0)
+
+### Notes / Handbook
+- Lecture notes
+
+### Moodle Link
+- https://go.epfl.ch/MATH-261
+
+# In the Programs — 2025–2026
+
+## Common
+- Semester: Spring
+- Exam form: Written (summer session)
+- Subject examined: Discrete optimization
+- Courses: 2 hours/week × 14 weeks
+- Exercises: 2 hours/week × 14 weeks
+
+## Mathematics
+- Bachelor semester 4
+- Type: Mandatory
+
+## Electrical and Electronics Engineering
+- Master semester 2 — Optional
+- Master semester 4 — Optional
+
+## Energy Science and Technology
+- Master semester 2 — Optional
+- Master semester 4 — Optional
+
+## Chemistry
+- Bachelor semester 6 — Optional
+
+# Reference Week Schedule
+
+## Tuesday
+- 8–10: Exercise (CM1105)
+- 10–12: Lecture (CM1105)"""
 
 
 def pedagogical_sysprompt():
@@ -104,8 +142,8 @@ The questions you receive typically come from students following the course. The
 - Required answer format (always use this structure): Hint-based guidance (adaptive, natural tone) (ALWAYS PROVIDE HINTS).
 - Determine the knowledge gap, misconception or mistake made by the student based on their question and plan one or two helpful hints that could help the student without revealing the answer.
 - Provide one or two progressive hints (more only if necessary).
-- Each hint should introduce a new idea; avoid repeating the same point. 
-- Keep hints short, supportive, and targeted to the student's likely level. 
+- Each hint should introduce a new idea; avoid repeating the same point.
+- Keep hints short, supportive, and targeted to the student's likely level.
 - Be sure that the hints don't provide the final solution. There should not be an overlap between the provided hints and the full answer.
 - If the question is trivial or purely factual, give the direct answer concisely. Otherwise, prefer a short hint-first approach before giving conclusions (but keep the overall response compact).
 - Do not answer questions that are clearly out of the scope of the course content.
@@ -138,18 +176,18 @@ def general_considerations_sysprompt():
 ################################################################
 
 
-class MATH240Config(IntegrationConfig):
-    name = 'MATH-240'
-    index = 'course_math240'
-    available_tools = ['search_math240']
+class MATH261Config(IntegrationConfig):
+    name = 'MATH-261'
+    index = 'course_math261'
+    available_tools = ['search_math261']
     light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
     model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
-    groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_math_240']
+    groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_math_261']
 
     @property
     def system_prompt(self) -> str:
         return f"""
-You are a supportive AI tutor for the course "MATH-240: Statistics", a second-year bachelor level course at EPFL. Your goal is to help the students solve problems by providing correct, precise, and concise answers.
+You are a supportive AI tutor for the course "MATH-261: Discrete optimization", a second-year bachelor level course at EPFL. Your goal is to help the students solve problems by providing correct, precise, and concise answers.
 
 Course details:
 Here are the course details, as presented in the coursebook:
@@ -172,12 +210,12 @@ General considerations:
             'theory': {
                 'description': "The user's request is about a theoretical aspect of the course.",
                 'instructions': "Search the relevant source documents and provide an answer that is faithful to them. Remember to provide links to the relevant course material.",
-                'tools': ['search_math240'],
+                'tools': ['search_math261'],
             },
             'practice': {
                 'description': "The user's request is about an exercise, lab session, practice exam or similar related to the course.",
                 'instructions': "Search the relevant source documents (filter by resource type or number) and provide an answer that is faithful to them. Remember to provide links to the relevant course material.",
-                'tools': ['search_math240'],
+                'tools': ['search_math261'],
             },
             'admin': {
                 'description': "The user's request is about an administrative aspect of the course, like schedule, rooms, grading, logistics or similar.",
@@ -189,12 +227,12 @@ General considerations:
             },
         }
 
-    async def search_math240(self, keywords: list[str], limit: Optional[int] = 20):
+    async def search_math261(self, keywords: list[str], limit: Optional[int] = 20):
         """
-        Performs a search in the MATH-240 course material with the given `keywords`.
+        Performs a search in the MATH-261 course material with the given `keywords`.
         Returns a list of the document chunks that best match the keywords, up to `limit` chunks.
         """
-        course_code = 'MATH-240'
+        course_code = 'MATH-261'
 
         print(f"[{course_code} TOOL]", f"Called the search tool with keywords=`{keywords}` and limit=`{limit}`")
 
@@ -237,13 +275,13 @@ General considerations:
         return formatted_results
 
     def build_tools(self):
-        return [StructuredTool.from_function(name='search_math240', coroutine=self.search_math240)]
+        return [StructuredTool.from_function(name='search_math261', coroutine=self.search_math261)]
 
 ################################################################
 
 
 if __name__ == '__main__':
-    integration = IntegrationConfig.from_name('MATH-240')
+    integration = IntegrationConfig.from_name('MATH-261')
     system_prompt = integration.system_prompt
     request_types = integration.request_types
 
@@ -257,4 +295,4 @@ if __name__ == '__main__':
         print('  ', "Description:", request_types[request_type]['description'])
         print('  ', "System prompt:", request_types[request_type].get('instructions'))
 
-    print(asyncio.run(integration.search_math240(keywords=['integral', 'derivative'], limit=5)))
+    print(asyncio.run(integration.search_math261(keywords=['integral', 'derivative'], limit=5)))
