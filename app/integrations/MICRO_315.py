@@ -193,6 +193,8 @@ You are a helpful chatbot for the course "MICRO-315: Embedded Systems and Roboti
         print("asyncio in globals?", "asyncio" in globals())
         print("asyncio is:", globals().get("asyncio"))
 
+        print(f"[{course_code} TOOL]", f"Called the search tool with keywords=`{keywords}`, limit=`{limit}` and lab_number=`{lab_number}`")
+
         ################################################################
 
         gac = GraphAIClient()
