@@ -193,9 +193,6 @@ You are a helpful chatbot for the course "MICRO-315: Embedded Systems and Roboti
         print("asyncio in globals?", "asyncio" in globals())
         print("asyncio is:", globals().get("asyncio"))
 
-        import asyncio
-        print(asyncio, asyncio.__file__)
-
         ################################################################
 
         gac = GraphAIClient()
