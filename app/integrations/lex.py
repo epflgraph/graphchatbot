@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from langchain.tools import StructuredTool
+from langchain.tools import tool
 from langchain_openai import ChatOpenAI
 
 from app.integrations.abc import IntegrationConfig
@@ -16,8 +16,10 @@ class LexConfig(IntegrationConfig):
     name = 'lex'
     index = 'lex'
     available_tools = ['get_orgchart', 'search_news', 'search_lex']
-    light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
-    model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
+    light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
+                             openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
+    model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
+                       openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'graph-rag-lex']
 
     @property
@@ -83,20 +85,22 @@ You are the EPFL Graph Polylex assistant. You have access to the Polylex documen
             },
         }
 
-    async def search_lex(self, keywords: list[str], limit: Optional[int] = 10):
+    async def search_lex(self, query: str):
         """
-        Performs a search in EPFL's Polylex documents (Electronic compendium of EPFL laws, ordinances, regulations and directives) with the given `keywords`.
-        Returns a list of the document chunks that best match the keywords, up to `limit` chunks.
+        Performs a search in EPFL's Polylex documents (Electronic compendium of EPFL laws, ordinances, regulations and directives) with the given `query`.
+        Returns a list of the document chunks that best match the query.
         """
 
-        print("[LEX TOOL]", f"Called the `search_lex` tool with keywords=`{keywords}` and limit=`{limit}`")
+        print("[LEX TOOL]", f"Called the `search_lex` tool with query=`{query}`")
 
         gac = GraphAIClient()
-        results = await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit)
+        results = await gac.rag_retrieve(index=self.index, texts=[query])
 
         print("[LEX TOOL]", f"Retrieved {len(results)} document chunks.")
 
         return results
 
     def build_tools(self):
-        return [StructuredTool.from_function(name='search_lex', coroutine=self.search_lex)]
+        # Wrap the bound method at runtime
+        rag_tool = tool("search_lex")
+        return [rag_tool(self.search_lex)]

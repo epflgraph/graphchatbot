@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from langchain.tools import StructuredTool
+from langchain.tools import tool
 from langchain_openai import ChatOpenAI
 
 from app.integrations.abc import IntegrationConfig
@@ -15,8 +15,10 @@ class SacConfig(IntegrationConfig):
     name = 'sac'
     index = 'sac'
     available_tools = ['search_sac']
-    light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
-    model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
+    light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
+                             openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
+    model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
+                       openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'graph-rag-sac']
 
     @property
@@ -54,20 +56,22 @@ The mission of the Service académique is the following:
             'other': {'description': "Other requests.", 'tools': ['search_sac']},
         }
 
-    async def search_sac(self, keywords: list[str], limit: Optional[int] = 10):
+    async def search_sac(self, query: str):
         """
-        Performs a search in EPFL's Service académique documents with the given `keywords`.
-        Returns a list of the document chunks that best match the keywords, up to `limit` chunks.
+        Performs a search in EPFL's Service académique documents with the given `query`.
+        Returns a list of the document chunks that best match the query.
         """
 
-        print("[SAC TOOL]", f"Called the `search_sac` tool with keywords=`{keywords}` and limit=`{limit}`")
+        print("[SAC TOOL]", f"Called the `search_sac` tool with query=`{query}`")
 
         gac = GraphAIClient()
-        results = await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit)
+        results = await gac.rag_retrieve(index=self.index, texts=[query])
 
         print("[SAC TOOL]", f"Retrieved {len(results)} document chunks.")
 
         return results
 
     def build_tools(self):
-        return [StructuredTool.from_function(name='search_sac', coroutine=self.search_sac)]
+        # Wrap the bound method at runtime
+        rag_tool = tool("search_sac")
+        return [rag_tool(self.search_sac)]
