@@ -223,23 +223,24 @@ class ExamFilters(BaseModel):
     )
 
 
-MATH106eToolFilters = Annotated[
+ToolFilters = Annotated[
     Union[TheoryFilters, PracticeFilters, ExamFilters],
     Field(discriminator="type"),
 ]
 
 
-class MATH106eToolInput(BaseModel):
+class ToolInput(BaseModel):
     """
-    Query schema for MATH106e course. Keep queries concise (<= 15 words).
+    Query schema for the RAG tool to search the course material.
+    Keep queries concise (<= 15 words).
     For exercises leave query="" and rely on filters.
     """
 
     query: str = Field(
         "",
-        description="Concise keywords, e.g. 'agile in product management' (<=15 words).",
+        description="Concise keywords (<=15 words).",
     )
-    filters: MATH106eToolFilters = Field(
+    filters: ToolFilters = Field(
         default_factory=lambda: TheoryFilters(type="theory"),
         description="Strict, per-type filters (discriminated by 'type').",
     )
@@ -251,9 +252,11 @@ class MATH106eToolInput(BaseModel):
 class MATH106eConfig(IntegrationConfig):
     name = 'MATH-106e'
     index = 'course_math106e'
-    available_tools = ['search_math106e']
-    light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
-    model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
+    available_tools = ['search_course_material']
+    light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
+                             openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
+    model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
+                       openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_math_106_e']
 
     @property
@@ -276,7 +279,7 @@ General considerations:
     @property
     def tools_system_prompt(self):
         return """
-You are an intelligent assistant for course "MATH-106e: Analyse II" that extracts key sentence(s) for retrieval augmented generation (RAG).
+You are an intelligent assistant for an EPFL course that extracts key sentence(s) for retrieval augmented generation (RAG).
 
 When processing questions:
 1. Identify distinct topics and break down complex questions into information-dense queries that will retrieve the most relevant information.
@@ -317,13 +320,13 @@ e.g. 'Series entrainement 1, '2 Questions a Choix Multiples' exo 1) -> 'subtype'
             },
             'theory': {
                 'description': "The user's request is about a theoretical aspect of the course.",
-                'instructions': "Search the relevant source documents and provide an answer that is faithful to them. Remember to provide links to the relevant course material.",
-                'tools': ['search_math106e'],
+                # 'instructions': "Search the relevant source documents and provide an answer that is faithful to them. Remember to provide links to the relevant course material.",
+                'tools': ['search_course_material'],
             },
             'practice': {
                 'description': "The user's request is about an exercise, lab session, practice exam or similar related to the course.",
-                'instructions': "Search the relevant source documents (filter by resource type or number) and provide an answer that is faithful to them. Remember to provide links to the relevant course material.",
-                'tools': ['search_math106e'],
+                # 'instructions': "Search the relevant source documents (filter by resource type or number) and provide an answer that is faithful to them. Remember to provide links to the relevant course material.",
+                'tools': ['search_course_material'],
             },
             'admin': {
                 'description': "The user's request is about an administrative aspect of the course, like schedule, rooms, grading, logistics or similar.",
@@ -335,13 +338,11 @@ e.g. 'Series entrainement 1, '2 Questions a Choix Multiples' exo 1) -> 'subtype'
             },
         }
 
-    async def search_math106e(self, query: str, filters: MATH106eToolFilters):
+    async def search_course_material(self, query: str, filters: ToolFilters):
         """
-        Performs a search in the MATH-106e course material with the given `query`.
+        Performs a search in the course material with the given `query`.
         Returns a list of the document chunks that best match the keywords while satisfying the filters.
         """
-        course_code = 'MATH-106e'
-
         if isinstance(filters, BaseModel):
             filters_dict = filters.model_dump(exclude_none=True)
         elif isinstance(filters, dict):
@@ -349,12 +350,12 @@ e.g. 'Series entrainement 1, '2 Questions a Choix Multiples' exo 1) -> 'subtype'
         else:
             filters_dict = {}
 
-        print(f"[{course_code} TOOL]", f"Called the search tool with query=`{query}` and filters=`{filters_dict}`")
+        print(f"[{self.name} TOOL]", f"Called the search tool with query=`{query}` and filters=`{filters_dict}`")
 
         gac = GraphAIClient()
         results = await gac.rag_retrieve(index=self.index, texts=[query], filters=filters_dict)
 
-        print(f"[{course_code} TOOL]", f"Retrieved {len(results)} document chunks.")
+        print(f"[{self.name} TOOL]", f"Retrieved {len(results)} document chunks.")
 
         def format_results(results):
             formatted_results = []
@@ -385,14 +386,14 @@ e.g. 'Series entrainement 1, '2 Questions a Choix Multiples' exo 1) -> 'subtype'
 
         formatted_results = format_results(results)
 
-        print(f"[{course_code} TOOL]", formatted_results)
+        print(f"[{self.name} TOOL]", formatted_results)
 
         return formatted_results
 
     def build_tools(self):
         # Wrap the bound method at runtime
-        rag_tool = tool("search_math106e", args_schema=MATH106eToolInput)
-        return [rag_tool(self.search_math106e)]
+        rag_tool = tool("search_course_material", args_schema=ToolInput)
+        return [rag_tool(self.search_course_material)]
 
 ################################################################
 
@@ -416,5 +417,5 @@ if __name__ == '__main__':
 
     asyncio.run(tools[0].ainvoke({
         "query": "test",
-        "filters": {"type": "theory"}  # Minimal valid filters
+        "filters": {"type": "theory"}
     }))
