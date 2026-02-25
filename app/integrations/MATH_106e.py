@@ -306,7 +306,7 @@ Query rules:
 
 The system will search in the course index automatically. Focus on creating good keyword queries.
 
-MATH106E usage notes (strategy):
+MATH106e usage notes (strategy):
 - When the subtype is 'serie_entrainement', the sub_number MUST follow the pattern (N.M)
 e.g. 'Series entrainement 1, Q1.4 -> 'subtype': 'serie_entrainement', 'number': '1', 'sub_number': '1.4'
 e.g. 'Series entrainement 2, exo 1.1 -> 'subtype': 'serie_entrainement', 'number': '2', 'sub_number': '1.1
