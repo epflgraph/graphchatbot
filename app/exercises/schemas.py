@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from langchain.output_parsers import PydanticOutputParser
+from langchain_core.output_parsers import PydanticOutputParser
 
 
 class GenerateTextExerciseInput(BaseModel):

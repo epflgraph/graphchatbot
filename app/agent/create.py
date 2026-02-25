@@ -4,7 +4,7 @@ from langchain_core.messages import (
     SystemMessage,
 )
 from langchain_core.runnables import RunnableConfig
-from langchain.tools import StructuredTool
+from langchain.tools import tool
 
 from langgraph.graph import StateGraph, MessagesState, END
 from langgraph.prebuilt.tool_node import ToolNode
@@ -65,7 +65,7 @@ def create_agent():
         # Common tools
         for tool_name in integration.available_tools:
             if tool_name in tool_map:
-                tools.append(StructuredTool.from_function(name=tool_name, coroutine=tool_map[tool_name]))
+                tools.append(tool(tool_name)(tool_map[tool_name]))
 
         # Integration-specific tools
         tools += integration.build_tools()
