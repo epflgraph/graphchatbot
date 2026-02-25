@@ -150,37 +150,6 @@ The questions you receive typically come from students following the course. The
 - Important: Never answer questions about what is allowed to do in an exam, the content of a future exam, the grading, or any other administrative, logistics, or scheduling questions of the course. In those cases, reply that you can't reply to such a question."""
 
 
-def tool_calling_prompt():
-    return """
-To ground your answers in the course content, use the tools at your disposal to retrieve documents for retrieval-augmented generation (RAG).
-
-When processing questions:
-1. Identify distinct topics and break down complex questions into information-dense queries that will retrieve the most relevant information.
-2. Analyze whether this is a single question or contains multiple sub-questions.
-3. Extract keywords focusing on technical terms and course concepts.
-4. Apply smart filtering to classify questions accurately.
-5. Be thorough — better to search broadly than miss information.
-
-General tool-calling strategy:
-- Always make at least one tool call with key concepts in the query and filters={{type:"theory"}}. Make additional theory calls if there are multiple concepts or sub-questions.
-- If the question is about practice or an exam, make the theory call(s) above AND:
-  - One call with query="" using filters only to locate the specific exercise/exam, e.g. query="", filters={{type:"practice", subtype:"series", number:"4", sub_number:"9"}}
-  - One call using keywords in the query filtering only by type, e.g. query="Série 4 exo 9", filters={{type:"practice"}}
-- Make separate tool calls for unrelated topics or sub-questions.
-- If an exercise or exam number is followed by a letter (e.g. "exo 4f", "exercise 5a"), ignore the letter in filters (sub_number:"4", sub_number:"5").
-
-Query rules:
-- Create concise keyword queries (max 15 words).
-- Use technical terminology and course-specific terms.
-- query must always be included, either with content or as an empty string (query="").
-- Never set a filter field to None. Omit the field entirely if not needed.
-  Do NOT: {{'query': 'inheritance', 'filters': {{'type': 'theory', 'subtype': None}}}}
-  Do: {{'query': 'inheritance', 'filters': {{'type': 'theory'}}}}
-
-The system will search in the course index automatically. Focus on creating good keyword queries.
-"""
-
-
 def general_considerations_sysprompt():
     today = datetime.now().strftime("%Y-%m-%d")
     return f"""
@@ -301,11 +270,44 @@ Here are the course details, as presented in the coursebook:
 Pedagogical considerations:
 {pedagogical_sysprompt()}
 
-Tool calling
-{tool_calling_prompt()}
-
 General considerations:
 {general_considerations_sysprompt()}"""
+
+    @property
+    def tools_system_prompt(self):
+        return """
+You are an intelligent assistant for course "MATH-106e: Analyse II" that extracts key sentence(s) for retrieval augmented generation (RAG).
+
+When processing questions:
+1. Identify distinct topics and break down complex questions into information-dense queries that will retrieve the most relevant information.
+2. Analyze whether this is a single question or contains multiple sub-questions.
+3. Extract keywords focusing on technical terms and course concepts.
+4. Apply smart filtering to classify questions accurately.
+5. Be thorough — better to search broadly than miss information.
+
+General tool-calling strategy:
+- Always make at least one tool call with key concepts in the query and filters={type:"theory"}. Make additional theory calls if there are multiple concepts or sub-questions.
+- If the question is about practice or an exam, make the theory call(s) above AND:
+  - One call with query="" using filters only to locate the specific exercise/exam, e.g. query="", filters={type:"practice", subtype:"series", number:"4", sub_number:"9"}
+  - One call using keywords in the query filtering only by type, e.g. query="Série 4 exo 9", filters={type:"practice"}
+- Make separate tool calls for unrelated topics or sub-questions.
+- If an exercise or exam number is followed by a letter (e.g. "exo 4f", "exercise 5a"), ignore the letter in filters (sub_number:"4", sub_number:"5").
+
+Query rules:
+- Create concise keyword queries (max 15 words).
+- Use technical terminology and course-specific terms.
+- query must always be included, either with content or as an empty string (query="").
+- Never set a filter field to None. Omit the field entirely if not needed.
+  Do NOT: {'query': 'inheritance', 'filters': {'type': 'theory', 'subtype': None}}
+  Do: {'query': 'inheritance', 'filters': {'type': 'theory'}}
+
+The system will search in the course index automatically. Focus on creating good keyword queries.
+
+MATH106E usage notes (strategy):
+- When the subtype is 'serie_entrainement', the sub_number MUST follow the pattern (N.M)
+e.g. 'Series entrainement 1, Q1.4 -> 'subtype': 'serie_entrainement', 'number': '1', 'sub_number': '1.4'
+e.g. 'Series entrainement 2, exo 1.1 -> 'subtype': 'serie_entrainement', 'number': '2', 'sub_number': '1.1
+e.g. 'Series entrainement 1, '2 Questions a Choix Multiples' exo 1) -> 'subtype': 'serie_entrainement', 'number': '1', 'sub_number': '2.1'"""
 
     @property
     def request_types(self) -> dict:
@@ -340,10 +342,17 @@ General considerations:
         """
         course_code = 'MATH-106e'
 
-        print(f"[{course_code} TOOL]", f"Called the search tool with query=`{query}` and filters=`{filters}`")
+        if isinstance(filters, BaseModel):
+            filters_dict = filters.model_dump(exclude_none=True)
+        elif isinstance(filters, dict):
+            filters_dict = {k: v for k, v in filters.items() if v is not None}
+        else:
+            filters_dict = {}
+
+        print(f"[{course_code} TOOL]", f"Called the search tool with query=`{query}` and filters=`{filters_dict}`")
 
         gac = GraphAIClient()
-        results = await gac.rag_retrieve(index=self.index, texts=[query])
+        results = await gac.rag_retrieve(index=self.index, texts=[query], filters=filters_dict)
 
         print(f"[{course_code} TOOL]", f"Retrieved {len(results)} document chunks.")
 

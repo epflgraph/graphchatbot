@@ -54,6 +54,10 @@ class IntegrationConfig(ABC):
         pass
 
     @property
+    def tools_system_prompt(self) -> str:
+        return self.system_prompt
+
+    @property
     @abstractmethod
     def request_types(self) -> dict:
         pass
