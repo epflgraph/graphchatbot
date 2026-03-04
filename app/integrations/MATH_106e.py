@@ -304,6 +304,9 @@ Query rules:
   Do NOT: {'query': 'inheritance', 'filters': {'type': 'theory', 'subtype': None}}
   Do: {'query': 'inheritance', 'filters': {'type': 'theory'}}
 
+Very important:
+- You have exactly one opportunity to make tool calls, so REQUEST ALL TOOL CALLS IN PARALLEL IN ONE SINGLE MESSAGE. 
+
 The system will search in the course index automatically. Focus on creating good keyword queries.
 
 MATH106e usage notes (strategy):
