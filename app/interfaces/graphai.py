@@ -91,7 +91,7 @@ class GraphAIClient:
 
         return None
 
-    async def call_sync_endpoint(self, endpoint, payload, timeout=10, verbose=False):
+    async def call_sync_endpoint(self, endpoint, payload, timeout=30, verbose=False):
         # Make sure we are authenticated
         await self.authenticate()
 

@@ -1,9 +1,11 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union, Annotated, Literal
+
+from pydantic import BaseModel, Field
 
 import asyncio
 
-from langchain.tools import StructuredTool
+from langchain.tools import tool
 from langchain_openai import ChatOpenAI
 
 from app.integrations.abc import IntegrationConfig
@@ -148,12 +150,68 @@ def general_considerations_sysprompt():
 ################################################################
 
 
+class TheoryFilters(BaseModel):
+    type: Literal["theory"]
+    subtype: Optional[
+        Literal[
+            "video_lecture",
+            "quiz",
+            "recommended_reading",
+            "lecture_notes",
+        ]
+    ] = Field(
+        default=None,
+        description="Optional subtype for theory content.",
+    )
+
+
+class PracticeFilters(BaseModel):
+    type: Literal["practice"]
+
+    subtype: Optional[Literal["assignment"]] = Field(
+        default=None,
+        description="Optional subtype for practice content.",
+    )
+    number: Optional[str] = Field(
+        default=None,
+        description="An integer from 1 to 5.",
+    )
+
+
+ToolFilters = Annotated[
+    Union[TheoryFilters, PracticeFilters],
+    Field(discriminator="type"),
+]
+
+
+class ToolInput(BaseModel):
+    """
+    Query schema for the RAG tool to search the course material.
+    Keep queries concise (<= 15 words).
+    For exercises leave query="" and rely on filters.
+    """
+
+    query: str = Field(
+        "",
+        description="Concise keywords (<=15 words).",
+    )
+    filters: ToolFilters = Field(
+        default_factory=lambda: TheoryFilters(type="theory"),
+        description="Strict, per-type filters (discriminated by 'type').",
+    )
+
+
+################################################################
+
+
 class MGT645Config(IntegrationConfig):
     name = 'MGT-645'
     index = 'course_mgt645'
-    available_tools = ['search_mgt645']
-    light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
-    model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
+    available_tools = ['search_course_material']
+    light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
+                             openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
+    model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
+                       openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_mgt_645']
 
     @property
@@ -174,6 +232,35 @@ General considerations:
 {general_considerations_sysprompt()}"""
 
     @property
+    def tools_system_prompt(self):
+        return """
+You are an intelligent assistant for an EPFL course that extracts key sentence(s) for retrieval augmented generation (RAG).
+
+When processing questions:
+1. Identify distinct topics and break down complex questions into information-dense queries that will retrieve the most relevant information.
+2. Analyze whether this is a single question or contains multiple sub-questions.
+3. Extract keywords focusing on technical terms and course concepts.
+4. Apply smart filtering to classify questions accurately.
+5. Be thorough — better to search broadly than miss information.
+
+General tool-calling strategy:
+- Always make at least one tool call with key concepts in the query and filters={type:"theory"}. Make additional theory calls if there are multiple concepts or sub-questions.
+- If the question is about practice or an exam, make the theory call(s) above AND:
+  - One call with query="" using filters only to locate the specific exercise/exam, e.g. query="", filters={type:"practice", subtype:"series", number:"4"}
+  - One call using keywords in the query filtering only by type, e.g. query="Série 4 exo 9", filters={type:"practice"}
+- Make separate tool calls for unrelated topics or sub-questions.
+
+Query rules:
+- Create concise keyword queries (max 15 words).
+- Use technical terminology and course-specific terms.
+- query must always be included, either with content or as an empty string (query="").
+- Never set a filter field to None. Omit the field entirely if not needed.
+  Do NOT: {'query': 'inheritance', 'filters': {'type': 'theory', 'subtype': None}}
+  Do: {'query': 'inheritance', 'filters': {'type': 'theory'}}
+
+The system will search in the course index automatically. Focus on creating good keyword queries."""
+
+    @property
     def request_types(self) -> dict:
         return {
             'greeting': {
@@ -181,13 +268,13 @@ General considerations:
             },
             'theory': {
                 'description': "The user's request is about a theoretical aspect of the course.",
-                'instructions': "Search the relevant source documents and provide an answer that is faithful to them. Remember to provide links to the relevant course material.",
-                'tools': ['search_mgt645'],
+                # 'instructions': "Search the relevant source documents and provide an answer that is faithful to them. Remember to provide links to the relevant course material.",
+                'tools': ['search_course_material'],
             },
             'practice': {
                 'description': "The user's request is about an exercise, lab session, practice exam or similar related to the course.",
                 'instructions': "Search the relevant source documents (filter by resource type or number) and provide an answer that is faithful to them. Remember to provide links to the relevant course material.",
-                'tools': ['search_mgt645'],
+                'tools': ['search_course_material'],
             },
             'admin': {
                 'description': "The user's request is about an administrative aspect of the course, like schedule, rooms, grading, logistics or similar.",
@@ -199,19 +286,24 @@ General considerations:
             },
         }
 
-    async def search_mgt645(self, keywords: list[str], limit: Optional[int] = 20):
+    async def search_course_material(self, query: str, filters: ToolFilters):
         """
-        Performs a search in the MGT-645 course material with the given `keywords`.
-        Returns a list of the document chunks that best match the keywords, up to `limit` chunks.
+        Performs a search in the course material with the given `query`.
+        Returns a list of the document chunks that best match the keywords while satisfying the filters.
         """
-        course_code = 'MGT-645'
+        if isinstance(filters, BaseModel):
+            filters_dict = filters.model_dump(exclude_none=True)
+        elif isinstance(filters, dict):
+            filters_dict = {k: v for k, v in filters.items() if v is not None}
+        else:
+            filters_dict = {}
 
-        print(f"[{course_code} TOOL]", f"Called the search tool with keywords=`{keywords}` and limit=`{limit}`")
+        print(f"[{self.name} TOOL]", f"Called the search tool with query=`{query}` and filters=`{filters_dict}`")
 
         gac = GraphAIClient()
-        results = await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit)
+        results = await gac.rag_retrieve(index=self.index, texts=[query], filters=filters_dict)
 
-        print(f"[{course_code} TOOL]", f"Retrieved {len(results)} document chunks.")
+        print(f"[{self.name} TOOL]", f"Retrieved {len(results)} document chunks.")
 
         def format_results(results):
             formatted_results = []
@@ -242,12 +334,14 @@ General considerations:
 
         formatted_results = format_results(results)
 
-        print(f"[{course_code} TOOL]", formatted_results)
+        print(f"[{self.name} TOOL]", formatted_results)
 
         return formatted_results
 
     def build_tools(self):
-        return [StructuredTool.from_function(name='search_mgt645', coroutine=self.search_mgt645)]
+        # Wrap the bound method at runtime
+        rag_tool = tool("search_course_material", args_schema=ToolInput)
+        return [rag_tool(self.search_course_material)]
 
 ################################################################
 
@@ -267,4 +361,9 @@ if __name__ == '__main__':
         print('  ', "Description:", request_types[request_type]['description'])
         print('  ', "System prompt:", request_types[request_type].get('instructions'))
 
-    print(asyncio.run(integration.search_mgt645(keywords=['market opportunity'], limit=5)))
+    tools = integration.build_tools()
+
+    asyncio.run(tools[0].ainvoke({
+        "query": "test",
+        "filters": {"type": "theory"}
+    }))
