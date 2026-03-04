@@ -340,12 +340,12 @@ MICRO315 usage notes (strategy):
                 'tools': ['search_course_material'],
             },
             'exercise': {
-                'description': "The user is asking a question about an exercise session or a course exercise, but not related to code.",
+                'description': "The user is asking a question about a lab session or a course exercise or assignment, but not related to code.",
                 'instructions': "Use the exercise number to retrieve the relevant documents. If unclear, ask the student to specify the exercise number and/or the theme of the exercise. Remember to not provide direct answers, but rather guide students using socratic questioning.",
                 'tools': ['search_course_material'],
             },
             'exercise-coding': {
-                'description': "The user is asking a question about an exercise session or a course exercise or assignment, is related to code and related to the course material, or the user is pasting some piece of the assignment.",
+                'description': "The user is asking a question about a lab session or a course exercise or assignment, and the question is related to code or coding environments, or the user is pasting some piece of the assignment.",
                 'instructions': "Use the exercise number to retrieve the relevant documents. If unclear, ask the student to specify the exercise number. Remember to not provide direct answers, but rather guide students using socratic questioning.",
                 'tools': ['search_course_material'],
             },
