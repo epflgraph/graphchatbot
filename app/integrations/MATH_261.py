@@ -306,11 +306,11 @@ The system will search in the course index automatically. Focus on creating good
                 'tools': ['search_course_material'],
             },
             'admin': {
-                'description': "The user's request is about an administrative aspect of the course, like schedule, rooms, grading, logistics or similar.",
+                'description': "The user's request is about an administrative aspect of the course, like schedule, rooms, grading, logistics or similar. Examples: 'Which room does the exam take place in?' or 'How are the assignments and exam grades ponderated?'",
                 'instructions': "Gently and briefly reply that you can't reply to admin questions, and suggest the student that they contact the teaching team instead.",
             },
             'unrelated': {
-                'description': "The user's request is completely unrelated to the course.",
+                'description': "The user's request is completely unrelated to the course. Examples: 'Give me a pasta recipe' or 'Tell me 3 plans for this weekend'",
                 'instructions': "Gently and briefly reply that you can only reply to questions related to the course.",
             },
         }
