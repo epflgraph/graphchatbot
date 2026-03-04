@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from langchain.tools import StructuredTool
+from langchain.tools import tool
 from langchain_openai import ChatOpenAI
 
 from app.integrations.abc import IntegrationConfig
@@ -245,7 +245,9 @@ If they do, give an explanation of the solution which is faithful to the source 
         return formatted_results
 
     def build_tools(self):
-        return [StructuredTool.from_function(name='search_micro452_case_studies', coroutine=self.search_micro452_case_studies)]
+        # Wrap the bound method at runtime
+        rag_tool = tool("search_micro452_case_studies")
+        return [rag_tool(self.search_micro452_case_studies)]
 
 ################################################################
 
@@ -264,5 +266,3 @@ if __name__ == '__main__':
         print(request_type.capitalize())
         print('  ', "Description:", request_types[request_type]['description'])
         print('  ', "System prompt:", request_types[request_type].get('instructions'))
-
-    print(integration.search_micro452_case_studies(keywords=['robot sensor', 'lidar', 'camera'], case_study_number=1))

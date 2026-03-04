@@ -11,8 +11,8 @@ from app.integrations.servicedesk import ServicedeskConfig
 from app.integrations.sac import SacConfig
 
 # Courses 2025-2026 Fall
-# from app.integrations.MICRO_452_case_studies import Micro452CaseStudiesConfig
-# from app.integrations.MICRO_452_unrestricted_case_studies import Micro452UnrestrictedCaseStudiesConfig
+from app.integrations.MICRO_452_case_studies import Micro452CaseStudiesConfig
+from app.integrations.MICRO_452_unrestricted_case_studies import Micro452UnrestrictedCaseStudiesConfig
 # from app.integrations.MICRO_452_tutor import Micro452TutorConfig
 # from app.integrations.CS_500 import CS500Config
 # from app.integrations.BIO_695 import BIO695Config
