@@ -23,3 +23,7 @@ from app.integrations.MATH_240 import MATH240Config
 from app.integrations.MICRO_315 import MICRO315Config
 from app.integrations.MGT_645 import MGT645Config
 from app.integrations.MATH_261 import MATH261Config
+from app.integrations.ENV_342 import ENV342Config
+from app.integrations.BIOENG_310 import BIOENG310Config
+from app.integrations.ME_331 import ME331Config
+from app.integrations.MATH_535 import MATH535Config
