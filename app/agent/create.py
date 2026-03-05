@@ -128,19 +128,19 @@ def create_agent():
             tool_name = tools_queue.pop(0)  # Returns first element and removes it from tools_queue
 
             # Instantiate chat model (force tool choice)
-            model = integration.model.bind_tools(tools, tool_choice='any')
+            model_with_tools = integration.model.bind_tools(tools, tool_choice='any')
             messages_with_system_prompt = [SystemMessage(content=integration.tools_system_prompt)] + state['messages']
 
             print('[MODEL]', f"Calling LLM forcing tool call `{tool_name}`")
         else:
-            # Instantiate chat model (without tools)
-            model = integration.model
+            # Instantiate chat model (without forcing tool calling)
+            model_with_tools = integration.model.bind_tools(tools)
             messages_with_system_prompt = [SystemMessage(content=integration.system_prompt)] + state['messages']
 
             print('[MODEL]', "Calling LLM without forcing any tool call")
 
         # Generate new ai message
-        ai_message = await model.ainvoke(messages_with_system_prompt, config)
+        ai_message = await model_with_tools.ainvoke(messages_with_system_prompt, config)
 
         # Hand over to 'tools' if the ai message contains tool calls or proceed to 'check' otherwise
         if ai_message.tool_calls:
