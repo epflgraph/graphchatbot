@@ -1,18 +1,16 @@
 from datetime import datetime
-from typing import Optional
 
 from langchain.tools import tool
 from langchain_openai import ChatOpenAI
 
 from app.integrations.abc import IntegrationConfig
-from app.integrations.common import base_epfl_presidency_sysprompt
 
 from app.interfaces.graphai import GraphAIClient
 
 from app.config import config
 
 
-class LexConfig(IntegrationConfig):
+class PlasmaConfig(IntegrationConfig):
     name = 'plasma'
     index = 'course_plasma'
     available_tools = ['search_plasma']

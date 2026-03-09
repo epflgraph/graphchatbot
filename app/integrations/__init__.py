@@ -27,3 +27,6 @@ from app.integrations.ENV_342 import ENV342Config
 from app.integrations.BIOENG_310 import BIOENG310Config
 from app.integrations.ME_331 import ME331Config
 from app.integrations.MATH_535 import MATH535Config
+
+# Others
+from app.integrations.plasma import PlasmaConfig
