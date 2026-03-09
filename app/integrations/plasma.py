@@ -48,7 +48,15 @@ General considerations:
 
     @property
     def request_types(self) -> dict:
-        return {}
+        return {
+            'greeting': {
+                'description': "The user is just greeting the assistant or similar.",
+            },
+            'main': {
+                'description': "The user has some request.",
+                'tools': ['search_spc'],
+            },
+        }
 
     async def search_spc(self, query: str):
         """
