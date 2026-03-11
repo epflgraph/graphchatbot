@@ -10,8 +10,7 @@ def init_auth_schema():
     db.execute_query(
         """
         CREATE DATABASE IF NOT EXISTS `chatbot`
-        DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci
-        DEFAULT ENCRYPTION='N';
+        DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
         """
     )
 
