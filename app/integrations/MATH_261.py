@@ -236,9 +236,9 @@ class MATH261Config(IntegrationConfig):
     index = 'course_math261'
     available_tools = ['search_course_material']
     light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
-                             openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
+                             openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60, stream_usage=True)
     model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
-                       openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
+                       openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60, stream_usage=True)
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_math_261']
 
     @property
