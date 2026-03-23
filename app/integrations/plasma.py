@@ -53,8 +53,12 @@ General considerations:
                 'description': "The user is just greeting the assistant or similar.",
             },
             'main': {
-                'description': "The user has some request.",
+                'description': "The user has some request related to the Swiss Plasma Center informatics problems.",
                 'tools': ['search_spc'],
+            },
+            'unrelated': {
+                'description': "The user's request is completely unrelated to the Swiss Plasma Center informatics problems. Examples: 'Give me a pasta recipe' or 'Tell me 3 plans for this weekend'",
+                'instructions': "Gently and briefly reply that you can only answer to questions related to Swiss Plasma Center informatics problems.",
             },
         }
 
