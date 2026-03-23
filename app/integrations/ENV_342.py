@@ -19,97 +19,152 @@ from app.config import config
 
 def course_details_sysprompt():
     return """
-# Statistique
+# Systèmes d'Information Géographique (SIG)
 
-## Course information
+## Informations générales
 
-- **Code:** MATH-240
+- **Code:** ENV-342
 - **Crédits:** 5
-- **Enseignant:** [Panaretos Victor](https://people.epfl.ch/180565?lang=en)
-- **Langue:** Français 
+- **Enseignant:** [Joost Stéphane](https://people.epfl.ch/149002?lang=fr)
+- **Langue:** Français
 
 ## Résumé
 
-Ce cours donne une introduction au traitement mathématique de la théorie de l'inférence statistique en utilisant la notion de vraisemblance comme un thème central.
+Acquisition de concepts et compétences de base liées à la représentation numérique des données géographiques et à leur insertion dans des SIG. Apprentissage de processus d'analyse spatiale pour les ingénieurs SIE et GC (autocorrélation spatiale, interpolation, modèles numériques d'altitude).
 
 ## Contenu
 
-- Modèles de probabilité, variables aléatoires, données, et paramètres.
-- Théorèmes limites élémentaires de probabilité et leur combinaison.
-- Problèmes d'inférence statistique : estimation ponctuelle, estimation par intervalle, tests.
-- Statistiques et leurs critères de performance (consistance, concentration, biais, variance).
-- L'estimation en tant que probabilité inverse et la fonction de vraisemblance comme thème unificateur.
-- Principes d'exhaustivité et de vraisemblance (réduction de données, théorème de Fisher-Neyman).
-- Théorie de la vraisemblance pour l'estimation (propriétés pour des échantillons de taille finie, relation avec l'exhaustivité et le non-biais, borne de Cramér-Rao, optimalité asymptotique, exemples).
-- Autres méthodes d'estimation ponctuelle (méthode des moments, méthode du *plug-in*, exemples).
-- Théorie de la vraisemblance pour l'estimation d'intervalle (intervalles exacts et asymptotiques, pivots).
-- Théorie de la vraisemblance pour les tests (cadre de Neyman–Pearson, tests du rapport de vraisemblance).
+- Principes et fonctions des SIG
+- Représentation numérique de l'information géographique
+- Acquisition et mise à jour de données géographiques, consolidation topologique des données
+- Principes des bases de données géospatiales, langage SQL, conception et implémentation de bases de données
+- Conception d'un SIG
+- Introduction à l'analyse spatiale: modèles numériques d'altitude (MNA), autocorrélation spatiale (I de Moran), interpolation spatiale
+- Représentation cartographique des données
+- Programmation de fonctions géospatiales et automatisation de tâches (Python)
+
+Les exercices géoinformatiques sont proposés sur le logiciel **QGIS**.
+
+## Mots-clés
+
+Systèmes d'Information Géographique, analyse spatiale, bases de données géospatiales, géodonnées, programmation, géoinformatique, Python
+
+## Compétences requises
+
+### Cours prérequis indicatifs
+- Eléments de géomatique (ENV-140)
 
 ## Acquis de formation
 
-À la fin de ce cours, l'étudiant doit être capable de :
+À la fin de ce cours l'étudiant doit être capable de :
 
-- Exploiter les résultats de base en probabilité pertinents pour l'inférence statistique.
-- Formaliser le cadre théorique des trois principaux problèmes en inférence statistique.
-- Évaluer la performance de procédures statistiques à l’aide de critères rigoureux.
-- Dériver des estimateurs ponctuels, des intervalles de confiance et des tests d’hypothèse à partir de principes généraux.
-- Exposer les propriétés de base des méthodes classiques d’inférence statistique et leurs limitations.
-- Distinguer les ingrédients fondamentaux influençant la performance des procédures statistiques.
-- Appliquer la théorie statistique à des problèmes concrets.
-- Distinguer :
-  - les incertitudes liées à la modélisation et à l’échantillonnage,
-  - l’incertitude liée au modèle et celle liée à l’échantillonnage.
+- Contextualiser les systèmes d'information géographique et les bases de données
+- Exprimer des requêtes SQL
+- Choisir ou sélectionner une méthode d'acquisition de géodonnées
+- Modéliser la structure d'une base de données géographique
+- Implémenter un modèle dans une base de données ou un SIG
+- Utiliser les modèles numériques d'altitude
+- Quantifier l'autocorrélation spatiale
+- Comparer les méthodes d'interpolation
+- Utiliser les modèles numériques d'altitude et leurs dérivées
+- Caractériser des objets ou des phénomènes spatiaux
+- Appliquer des méthodes de base en analyse spatiale
+- Quantifier l'autocorrélation spatiale
+- Représenter cartographiquement des données géoréférencées selon les règles de la sémiologie graphique
+- Développer des fonctions géospatiales complémentaires en langage Python
+
+## Compétences transversales
+
+- Recueillir des données
+- Accéder aux sources d'informations appropriées et les évaluer
+- Utiliser une méthodologie de travail appropriée, organiser son travail
 
 ## Méthode d'enseignement
 
-Cours ex cathedra, exercices en classe.
+Cours ex-cathedra, exercices pratiques en géoinformatique.
 
 ## Méthode d'évaluation
 
-Examen écrit.
+- **50 %** projet individuel en programmation géoinformatique pendant le semestre
+- **50 %** épreuve écrite (120 min) pendant la session d'examen
 
 ## Ressources
 
-### Références suggérées par la bibliothèque
+### Bibliographie
 
-- [Statistique pour mathématiciens / Panaretos](http://library.epfl.ch/beast?isbn=9782889151493)
-- [Statistics for Mathematicians / Panaretos](http://library.epfl.ch/beast?isbn=9783319283395)
+- Présentations PowerPoint
+- BOOC *Systèmes d'Information Géographique 1* (support de cours)
+- BOOC *Systèmes d'Information Géographique 2* (support de cours)
+- MOOC [Systèmes d'Information Géographique 1](https://courseware.epfl.ch/courses/course-v1:EPFL+sig-1+2021/about)
+- MOOC [Systèmes d'Information Géographique 2](https://courseware.epfl.ch/courses/course-v1:EPFL+sig-2+2021/about)
 
-### Liens Moodle
+### Moodle
 
-- https://go.epfl.ch/MATH-240
+- https://go.epfl.ch/ENV-342
 
-## In the programs
+## Préparation pour
 
-**Mathematics**
-*2025–2026 — Bachelor semester 4*
+- Master: **Analyse Exploratoire des Données en Santé Environnementale (ENV-444)**
+- Master: **Image processing for Earth observation (ENV-540)**
+- Master: **Sensing and spatial modeling for earth observation (ENV-408)**
+- Thèse de master liée aux SIG et à l'analyse spatiale
+- Thèse de doctorat liée aux SIG et à l'analyse spatiale
 
-- **Semester:** Spring
-- **Exam form:** Written (summer session)
-- **Subject examined:** Statistics
-- **Courses:** 2 hours/week × 14 weeks
-- **Exercises:** 2 hours/week × 14 weeks
-- **Type:** Mandatory
+## Plans d'études
 
-## Reference week
+### Sciences et ingénierie de l'environnement — Bachelor semestre 4 (2025–2026)
+- Semestre: Printemps
+- Forme de l'examen: Écrit (session d'été)
+- Cours: 2 h / semaine × 14 semaines
+- Exercices: 2 h / semaine × 14 semaines
+- TP: 1 h / semaine × 14 semaines
+- Type: **obligatoire**
 
-**Schedule (summary):**
+### Architecture — Master semestre 2 (2025–2026)
+- Semestre: Printemps
+- Forme de l'examen: Écrit (session d'été)
+- Cours: 2 h / semaine × 14 semaines
+- Exercices: 2 h / semaine × 14 semaines
+- TP: 1 h / semaine × 14 semaines
+- Type: **optionnel**
 
-- **Monday, 10:00–12:00:** Exercise, TP — [CM5](https://plan.epfl.ch/?room==CM%201%205)
-- **Tuesday, 13:00–15:00:** Lecture — [AAC231](https://plan.epfl.ch/?room==AAC%202%2031)"""
+### Architecture — Master semestre 4 (2025–2026)
+- Semestre: Printemps
+- Forme de l'examen: Écrit (session d'été)
+- Cours: 2 h / semaine × 14 semaines
+- Exercices: 2 h / semaine × 14 semaines
+- TP: 1 h / semaine × 14 semaines
+- Type: **optionnel**
+
+### Génie civil — Bachelor semestre 6 (2025–2026)
+- Semestre: Printemps
+- Forme de l'examen: Écrit (session d'été)
+- Cours: 2 h / semaine × 14 semaines
+- Exercices: 2 h / semaine × 14 semaines
+- TP: 1 h / semaine × 14 semaines
+- Type: **optionnel**
+
+### Passerelle HES – SIE — Semestre printemps (2025–2026)
+- Semestre: Printemps
+- Forme de l'examen: Écrit (session d'été)
+- Cours: 2 h / semaine × 14 semaines
+- Exercices: 2 h / semaine × 14 semaines
+- TP: 1 h / semaine × 14 semaines
+- Type: **obligatoire**
+
+## Horaire (semaine de référence)
+
+- **Mardi 09:00–11:00** — Cours — CE1104
+- **Mardi 11:00–12:00** — Exercices / TP — GRB001, GRC002
+- **Mercredi 08:00–10:00** — Exercices / TP — CO021
+"""
 
 
 def pedagogical_sysprompt():
     return """
 The questions you receive typically come from students following the course. They range from conceptual questions, proofs, and definitions to computational problems, solutions to exercises or past exam questions, and multi-step problem solving. Your answers should be adapted accordingly, providing clear, correct, and concise explanations tailored to this variety of question types.
 
-- Required answer format (always use this structure): Hint-based guidance (adaptive, natural tone) (ALWAYS PROVIDE HINTS).
-- Determine the knowledge gap, misconception or mistake made by the student based on their question and plan one or two helpful hints that could help the student without revealing the answer.
-- Provide one or two progressive hints (more only if necessary).
-- Each hint should introduce a new idea; avoid repeating the same point. 
-- Keep hints short, supportive, and targeted to the student's likely level. 
-- Be sure that the hints don't provide the final solution. There should not be an overlap between the provided hints and the full answer.
-- If the question is trivial or purely factual, give the direct answer concisely. Otherwise, prefer a short hint-first approach before giving conclusions (but keep the overall response compact).
+- Required answer format (always use this structure): Provide the most straightforward, accurate answer. If yes/no is appropriate, state it plainly. If the student made an error, identify it clearly.
 - Do not answer questions that are clearly out of the scope of the course content.
 - Be friendly and natural, not robotic; go straight to the point.
 - Be concise, especially for definitions or yes/no questions.
@@ -144,8 +199,9 @@ class TheoryFilters(BaseModel):
     type: Literal["theory"]
     subtype: Optional[
         Literal[
+            "video_lecture",
+            "polycopie",
             "lecture_slides",
-            "textbook",
         ]
     ] = Field(
         default=None,
@@ -156,18 +212,39 @@ class TheoryFilters(BaseModel):
 class PracticeFilters(BaseModel):
     type: Literal["practice"]
 
-    subtype: Optional[Literal["serie"]] = Field(
+    subtype: Optional[Literal["exercice_sig", "exercice_geo", "quiz"]] = Field(
         default=None,
         description="Optional subtype for practice content.",
     )
     number: Optional[str] = Field(
         default=None,
-        description="exercise (serie) (N), e.g. 'Exercice 79' -> 'number': '70', 'Exo 4(ii)' -> 'number': '4'",
+        description="""
+            'exercice_sig' (N), e.g. 'Exercice SIG Exercice 2 : Overlay (sismique) - énoncé' -> 'number': '2'
+            'exercice_geo' (N), e.g. 'Exercice GEO Exercice 1 : Programmation lecture de fichier Shapefile' -> 'number': '1'        
+            'quiz' (N.M.P), e.g. 'Quiz 3.0.10'  -> 'number': '3.0.10',         
+            """,
+    )
+
+
+class ExamFilters(BaseModel):
+    type: Literal["exam"]
+
+    subtype: Optional[Literal["previous_year_exam"]] = Field(
+        default=None,
+        description="Optional subtype for exam content, e.g. Examen 2019 -> 'subtype': 'previous_year_exam', Test blanc  -> 'subtype': 'midterm_exam', mid-term exam  -> 'subtype': 'midterm_exam'",
+    )
+    number: Optional[str] = Field(
+        default=None,
+        description="It's the year of the exam (N), e.g. 'Exam 2022' -> 'number': '2022'.",
+    )
+    sub_number: Optional[str] = Field(
+        default=None,
+        description="The exercise number within the exam (N), e.g.  'mid-term 2024 Q15' -> 'sub_number': '15',  'exam 2023 exo 4 -> 'sub_number': '4''.",
     )
 
 
 ToolFilters = Annotated[
-    Union[TheoryFilters, PracticeFilters],
+    Union[TheoryFilters, PracticeFilters, ExamFilters],
     Field(discriminator="type"),
 ]
 
@@ -192,20 +269,20 @@ class ToolInput(BaseModel):
 ################################################################
 
 
-class MATH240Config(IntegrationConfig):
-    name = 'MATH-240'
-    index = 'course_math240'
+class ENV342Config(IntegrationConfig):
+    name = 'ENV-342'
+    index = 'course_env342'
     available_tools = ['search_course_material']
     light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
                              openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60, stream_usage=True)
     model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
                        openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60, stream_usage=True)
-    groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_math_240']
+    groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_env_342']
 
     @property
     def system_prompt(self) -> str:
         return f"""
-You are a supportive AI tutor for the course "MATH-240: Statistics", a second-year bachelor level course at EPFL. Your goal is to help the students solve problems by providing correct, precise, and concise answers.
+You are a supportive AI tutor for the course "ENV-342: Systèmes d'Information Géographique (SIG)", a third-year bachelor level course at EPFL. Your goal is to help the students solve problems by providing correct, precise, and concise answers.
 
 Course details:
 Here are the course details, as presented in the coursebook:
@@ -248,9 +325,15 @@ Query rules:
   Do: {'query': 'inheritance', 'filters': {'type': 'theory'}}
 
 Very important:
-- You have exactly one opportunity to make tool calls, so REQUEST ALL TOOL CALLS IN PARALLEL IN ONE SINGLE MESSAGE. 
+- You have exactly one opportunity to make tool calls, so REQUEST ALL TOOL CALLS IN PARALLEL IN ONE SINGLE MESSAGE.
 
-The system will search in the course index automatically. Focus on creating good keyword queries."""
+The system will search in the course index automatically. Focus on creating good keyword queries.
+
+MATH106e usage notes (strategy):
+- When the subtype is 'serie_entrainement', the sub_number MUST follow the pattern (N.M)
+e.g. 'Series entrainement 1, Q1.4 -> 'subtype': 'serie_entrainement', 'number': '1', 'sub_number': '1.4'
+e.g. 'Series entrainement 2, exo 1.1 -> 'subtype': 'serie_entrainement', 'number': '2', 'sub_number': '1.1
+e.g. 'Series entrainement 1, '2 Questions a Choix Multiples' exo 1) -> 'subtype': 'serie_entrainement', 'number': '1', 'sub_number': '2.1'"""
 
     @property
     def request_types(self) -> dict:
@@ -339,7 +422,7 @@ The system will search in the course index automatically. Focus on creating good
 
 
 if __name__ == '__main__':
-    integration = IntegrationConfig.from_name('MATH-240')
+    integration = IntegrationConfig.from_name('ENV-342')
     system_prompt = integration.system_prompt
     request_types = integration.request_types
 

@@ -43,8 +43,7 @@ class ChatbotDBCachingManager(DBCachingManagerBase):
         self.db.execute_query(
             f"""
             CREATE DATABASE IF NOT EXISTS `{self.schema}`
-            DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci
-            DEFAULT ENCRYPTION='N';
+            DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
             """
         )
 

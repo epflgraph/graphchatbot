@@ -4,7 +4,7 @@ from langchain_core.messages import (
     SystemMessage,
 )
 from langchain_core.runnables import RunnableConfig
-from langchain.tools import StructuredTool
+from langchain.tools import tool
 
 from langgraph.graph import StateGraph, MessagesState, END
 from langgraph.prebuilt.tool_node import ToolNode
@@ -65,7 +65,7 @@ def create_agent():
         # Common tools
         for tool_name in integration.available_tools:
             if tool_name in tool_map:
-                tools.append(StructuredTool.from_function(name=tool_name, coroutine=tool_map[tool_name]))
+                tools.append(tool(tool_name)(tool_map[tool_name]))
 
         # Integration-specific tools
         tools += integration.build_tools()
@@ -128,19 +128,19 @@ def create_agent():
             tool_name = tools_queue.pop(0)  # Returns first element and removes it from tools_queue
 
             # Instantiate chat model (force tool choice)
-            model_with_tools = integration.model.bind_tools(tools, tool_choice=tool_name)
+            model = integration.model.bind_tools(tools, tool_choice='any')
+            messages_with_system_prompt = [SystemMessage(content=integration.tools_system_prompt)] + state['messages']
 
             print('[MODEL]', f"Calling LLM forcing tool call `{tool_name}`")
         else:
-            # Instantiate chat model (without forcing tool calling)
-            model_with_tools = integration.model.bind_tools(tools)
+            # Instantiate chat model (without tools)
+            model = integration.model.bind_tools([], tool_choice='none')
+            messages_with_system_prompt = [SystemMessage(content=integration.system_prompt)] + state['messages']
 
             print('[MODEL]', "Calling LLM without forcing any tool call")
 
         # Generate new ai message
-        messages = state['messages']
-        messages_with_system_prompt = [SystemMessage(content=integration.system_prompt)] + messages
-        ai_message = await model_with_tools.ainvoke(messages_with_system_prompt, config)
+        ai_message = await model.ainvoke(messages_with_system_prompt, config)
 
         # Hand over to 'tools' if the ai message contains tool calls or proceed to 'check' otherwise
         if ai_message.tool_calls:

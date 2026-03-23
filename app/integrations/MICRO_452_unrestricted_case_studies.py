@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from langchain.tools import StructuredTool
+from langchain.tools import tool
 from langchain_openai import ChatOpenAI
 
 from app.integrations.abc import IntegrationConfig
@@ -172,7 +172,9 @@ You are a helpful assistant for the teaching team of the course "MICRO-452: Basi
         return formatted_results
 
     def build_tools(self):
-        return [StructuredTool.from_function(name='search_micro452_unrestricted_case_studies', coroutine=self.search_micro452_unrestricted_case_studies)]
+        # Wrap the bound method at runtime
+        rag_tool = tool("search_micro452_unrestricted_case_studies")
+        return [rag_tool(self.search_micro452_unrestricted_case_studies)]
 
 ################################################################
 

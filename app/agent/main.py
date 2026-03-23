@@ -105,7 +105,7 @@ async def agenerate_completion(chat_request) -> AsyncGenerator:
             # Yield in the model node when there is a message chunk
             if langgraph_node == 'model' and event_name == 'ChatOpenAI' and event_type == 'on_chat_model_stream':
                 try:
-                    chunk_text = event['data']['chunk'].text()
+                    chunk_text = event['data']['chunk'].text
                 except Exception:
                     chunk_text = ''
 

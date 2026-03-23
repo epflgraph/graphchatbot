@@ -13,9 +13,9 @@ from app.integrations.sac import SacConfig
 # Courses 2025-2026 Fall
 from app.integrations.MICRO_452_case_studies import Micro452CaseStudiesConfig
 from app.integrations.MICRO_452_unrestricted_case_studies import Micro452UnrestrictedCaseStudiesConfig
-from app.integrations.MICRO_452_tutor import Micro452TutorConfig
-from app.integrations.CS_500 import CS500Config
-from app.integrations.BIO_695 import BIO695Config
+# from app.integrations.MICRO_452_tutor import Micro452TutorConfig
+# from app.integrations.CS_500 import CS500Config
+# from app.integrations.BIO_695 import BIO695Config
 
 # Courses 2025-2026 Spring
 from app.integrations.MATH_106e import MATH106eConfig
@@ -23,3 +23,10 @@ from app.integrations.MATH_240 import MATH240Config
 from app.integrations.MICRO_315 import MICRO315Config
 from app.integrations.MGT_645 import MGT645Config
 from app.integrations.MATH_261 import MATH261Config
+from app.integrations.ENV_342 import ENV342Config
+from app.integrations.BIOENG_310 import BIOENG310Config
+from app.integrations.ME_331 import ME331Config
+from app.integrations.MATH_535 import MATH535Config
+
+# Others
+from app.integrations.plasma import PlasmaConfig

@@ -1,9 +1,11 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union, Annotated, Literal
+
+from pydantic import BaseModel, Field
 
 import asyncio
 
-from langchain.tools import StructuredTool
+from langchain.tools import tool
 from langchain_openai import ChatOpenAI
 
 from app.integrations.abc import IntegrationConfig
@@ -165,12 +167,96 @@ def general_considerations_sysprompt():
 ################################################################
 
 
+class TheoryFilters(BaseModel):
+    type: Literal["theory"]
+    subtype: Optional[
+        Literal[
+            "lecture_slides",
+            "polycopie",
+            "resume",
+            "proof",
+            "recommended_reading",
+        ]
+    ] = Field(
+        default=None,
+        description="Optional subtype for theory content.",
+    )
+
+
+class PracticeFilters(BaseModel):
+    type: Literal["practice"]
+
+    subtype: Optional[Literal["serie", "serie_entrainement", "qcm"]] = Field(
+        default=None,
+        description="Optional subtype for practice content.",
+    )
+    number: Optional[str] = Field(
+        default=None,
+        description="""
+        When "subtype" is "serie" or "serie_entrainement": serie (N), e.g. 'Série 2' -> 'number': '2', 'Série 13' -> 'number': '13', 'Serie entrainement 1, exo 3.1 -> 'number': '1'
+        When "subtype" is "qcm": 'QCM Q3 -> 'number': 'Q3'
+        """,
+    )
+    sub_number: Optional[str] = Field(
+        default=None,
+        description="""
+        When "subtype" is "serie": serie (N), e.g. 'Série 3 Exercice 4' -> 'sub_number': '4', 'Série 14 exo 13' -> 'sub_number': '13',
+        When "subtype" is "serie_entrainement": serie entrainement ALWAYS follow an (N.M) structure, e.g. 'Serie entrainement 1, exo 3.1 -> 'sub_number': '3.1, 'Series entrainement 1 Q4 -> 'sub_number': '1.4'
+        """,
+    )
+
+
+class ExamFilters(BaseModel):
+    type: Literal["exam"]
+
+    subtype: Optional[Literal["previous_year_exam", "mock_exam"]] = Field(
+        default=None,
+        description="Optional subtype for exam content, e.g. Examen 2019 -> 'subtype': 'previous_year_exam', Test blanc  -> 'subtype': 'mock_exam'",
+    )
+    number: Optional[str] = Field(
+        default=None,
+        description="It's the year of the exam (N), e.g. 'Exam 2022' -> 'number': '2022'.",
+    )
+    sub_number: Optional[str] = Field(
+        default=None,
+        description="The exercise number within the exam (N), e.g.  'Examen 2024 Q15' -> 'sub_number': '15',  'exam 2023 exo 4 -> 'sub_number': '4''.",
+    )
+
+
+ToolFilters = Annotated[
+    Union[TheoryFilters, PracticeFilters, ExamFilters],
+    Field(discriminator="type"),
+]
+
+
+class ToolInput(BaseModel):
+    """
+    Query schema for the RAG tool to search the course material.
+    Keep queries concise (<= 15 words).
+    For exercises leave query="" and rely on filters.
+    """
+
+    query: str = Field(
+        "",
+        description="Concise keywords (<=15 words).",
+    )
+    filters: ToolFilters = Field(
+        default_factory=lambda: TheoryFilters(type="theory"),
+        description="Strict, per-type filters (discriminated by 'type').",
+    )
+
+
+################################################################
+
+
 class MATH106eConfig(IntegrationConfig):
     name = 'MATH-106e'
     index = 'course_math106e'
-    available_tools = ['search_math106e']
-    light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
-    model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507', openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60)
+    available_tools = ['search_course_material']
+    light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
+                             openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60, stream_usage=True)
+    model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
+                       openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60, stream_usage=True)
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_math_106_e']
 
     @property
@@ -191,6 +277,45 @@ General considerations:
 {general_considerations_sysprompt()}"""
 
     @property
+    def tools_system_prompt(self):
+        return """
+You are an intelligent assistant for an EPFL course that extracts key sentence(s) for retrieval augmented generation (RAG).
+
+When processing questions:
+1. Identify distinct topics and break down complex questions into information-dense queries that will retrieve the most relevant information.
+2. Analyze whether this is a single question or contains multiple sub-questions.
+3. Extract keywords focusing on technical terms and course concepts.
+4. Apply smart filtering to classify questions accurately.
+5. Be thorough — better to search broadly than miss information.
+
+General tool-calling strategy:
+- Always make at least one tool call with key concepts in the query and filters={type:"theory"}. Make additional theory calls if there are multiple concepts or sub-questions.
+- If the question is about practice or an exam, make the theory call(s) above AND:
+  - One call with query="" using filters only to locate the specific exercise/exam, e.g. query="", filters={type:"practice", subtype:"series", number:"4", sub_number:"9"}
+  - One call using keywords in the query filtering only by type, e.g. query="Série 4 exo 9", filters={type:"practice"}
+- Make separate tool calls for unrelated topics or sub-questions.
+- If an exercise or exam number is followed by a letter (e.g. "exo 4f", "exercise 5a"), ignore the letter in filters (sub_number:"4", sub_number:"5").
+
+Query rules:
+- Create concise keyword queries (max 15 words).
+- Use technical terminology and course-specific terms.
+- query must always be included, either with content or as an empty string (query="").
+- Never set a filter field to None. Omit the field entirely if not needed.
+  Do NOT: {'query': 'inheritance', 'filters': {'type': 'theory', 'subtype': None}}
+  Do: {'query': 'inheritance', 'filters': {'type': 'theory'}}
+
+Very important:
+- You have exactly one opportunity to make tool calls, so REQUEST ALL TOOL CALLS IN PARALLEL IN ONE SINGLE MESSAGE. 
+
+The system will search in the course index automatically. Focus on creating good keyword queries.
+
+MATH106e usage notes (strategy):
+- When the subtype is 'serie_entrainement', the sub_number MUST follow the pattern (N.M)
+e.g. 'Series entrainement 1, Q1.4 -> 'subtype': 'serie_entrainement', 'number': '1', 'sub_number': '1.4'
+e.g. 'Series entrainement 2, exo 1.1 -> 'subtype': 'serie_entrainement', 'number': '2', 'sub_number': '1.1
+e.g. 'Series entrainement 1, '2 Questions a Choix Multiples' exo 1) -> 'subtype': 'serie_entrainement', 'number': '1', 'sub_number': '2.1'"""
+
+    @property
     def request_types(self) -> dict:
         return {
             'greeting': {
@@ -198,37 +323,42 @@ General considerations:
             },
             'theory': {
                 'description': "The user's request is about a theoretical aspect of the course.",
-                'instructions': "Search the relevant source documents and provide an answer that is faithful to them. Remember to provide links to the relevant course material.",
-                'tools': ['search_math106e'],
+                # 'instructions': "Search the relevant source documents and provide an answer that is faithful to them. Remember to provide links to the relevant course material.",
+                'tools': ['search_course_material'],
             },
             'practice': {
                 'description': "The user's request is about an exercise, lab session, practice exam or similar related to the course.",
-                'instructions': "Search the relevant source documents (filter by resource type or number) and provide an answer that is faithful to them. Remember to provide links to the relevant course material.",
-                'tools': ['search_math106e'],
+                # 'instructions': "Search the relevant source documents (filter by resource type or number) and provide an answer that is faithful to them. Remember to provide links to the relevant course material.",
+                'tools': ['search_course_material'],
             },
             'admin': {
-                'description': "The user's request is about an administrative aspect of the course, like schedule, rooms, grading, logistics or similar.",
+                'description': "The user's request is about an administrative aspect of the course, like schedule, rooms, grading, logistics or similar. Examples: 'Which room does the exam take place in?' or 'How are the assignments and exam grades ponderated?'",
                 'instructions': "Gently and briefly reply that you can't reply to admin questions, and suggest the student that they contact the teaching team instead.",
             },
             'unrelated': {
-                'description': "The user's request is completely unrelated to the course.",
+                'description': "The user's request is completely unrelated to the course. Examples: 'Give me a pasta recipe' or 'Tell me 3 plans for this weekend'",
                 'instructions': "Gently and briefly reply that you can only reply to questions related to the course.",
             },
         }
 
-    async def search_math106e(self, keywords: list[str], limit: Optional[int] = 20):
+    async def search_course_material(self, query: str, filters: ToolFilters):
         """
-        Performs a search in the MATH-106e course material with the given `keywords`.
-        Returns a list of the document chunks that best match the keywords, up to `limit` chunks.
+        Performs a search in the course material with the given `query`.
+        Returns a list of the document chunks that best match the keywords while satisfying the filters.
         """
-        course_code = 'MATH-106e'
+        if isinstance(filters, BaseModel):
+            filters_dict = filters.model_dump(exclude_none=True)
+        elif isinstance(filters, dict):
+            filters_dict = {k: v for k, v in filters.items() if v is not None}
+        else:
+            filters_dict = {}
 
-        print(f"[{course_code} TOOL]", f"Called the search tool with keywords=`{keywords}` and limit=`{limit}`")
+        print(f"[{self.name} TOOL]", f"Called the search tool with query=`{query}` and filters=`{filters_dict}`")
 
         gac = GraphAIClient()
-        results = await gac.rag_retrieve(index=self.index, texts=keywords, limit=limit)
+        results = await gac.rag_retrieve(index=self.index, texts=[query], filters=filters_dict)
 
-        print(f"[{course_code} TOOL]", f"Retrieved {len(results)} document chunks.")
+        print(f"[{self.name} TOOL]", f"Retrieved {len(results)} document chunks.")
 
         def format_results(results):
             formatted_results = []
@@ -259,12 +389,14 @@ General considerations:
 
         formatted_results = format_results(results)
 
-        print(f"[{course_code} TOOL]", formatted_results)
+        print(f"[{self.name} TOOL]", formatted_results)
 
         return formatted_results
 
     def build_tools(self):
-        return [StructuredTool.from_function(name='search_math106e', coroutine=self.search_math106e)]
+        # Wrap the bound method at runtime
+        rag_tool = tool("search_course_material", args_schema=ToolInput)
+        return [rag_tool(self.search_course_material)]
 
 ################################################################
 
@@ -284,4 +416,9 @@ if __name__ == '__main__':
         print('  ', "Description:", request_types[request_type]['description'])
         print('  ', "System prompt:", request_types[request_type].get('instructions'))
 
-    print(asyncio.run(integration.search_math106e(keywords=['integral', 'derivative'], limit=5)))
+    tools = integration.build_tools()
+
+    asyncio.run(tools[0].ainvoke({
+        "query": "test",
+        "filters": {"type": "theory"}
+    }))

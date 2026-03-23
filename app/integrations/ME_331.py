@@ -19,84 +19,145 @@ from app.config import config
 
 def course_details_sysprompt():
     return """
-# Statistique
+# Solid mechanics
 
-## Course information
+## General information
 
-- **Code:** MATH-240
-- **Crédits:** 5
-- **Enseignant:** [Panaretos Victor](https://people.epfl.ch/180565?lang=en)
-- **Langue:** Français 
+- **Code:** ME-331
+- **Credits:** 4
+- **Teacher:** [Nunes Pereira de Almeida Reis Pedro Miguel](https://people.epfl.ch/283343?lang=en)
+- **Language:** English
 
-## Résumé
+## Summary
 
-Ce cours donne une introduction au traitement mathématique de la théorie de l'inférence statistique en utilisant la notion de vraisemblance comme un thème central.
+Fundamental understanding and analysis of the mechanical behavior of engineering materials and their use in mechanical design based on the continuum mechanics of solids.
 
-## Contenu
+## Content
 
-- Modèles de probabilité, variables aléatoires, données, et paramètres.
-- Théorèmes limites élémentaires de probabilité et leur combinaison.
-- Problèmes d'inférence statistique : estimation ponctuelle, estimation par intervalle, tests.
-- Statistiques et leurs critères de performance (consistance, concentration, biais, variance).
-- L'estimation en tant que probabilité inverse et la fonction de vraisemblance comme thème unificateur.
-- Principes d'exhaustivité et de vraisemblance (réduction de données, théorème de Fisher-Neyman).
-- Théorie de la vraisemblance pour l'estimation (propriétés pour des échantillons de taille finie, relation avec l'exhaustivité et le non-biais, borne de Cramér-Rao, optimalité asymptotique, exemples).
-- Autres méthodes d'estimation ponctuelle (méthode des moments, méthode du *plug-in*, exemples).
-- Théorie de la vraisemblance pour l'estimation d'intervalle (intervalles exacts et asymptotiques, pivots).
-- Théorie de la vraisemblance pour les tests (cadre de Neyman–Pearson, tests du rapport de vraisemblance).
+The purpose of this course is to provide mechanical engineering students with a fundamental understanding of the physical mechanisms associated with design-limiting mechanical properties of engineering materials, including stiffness, strength, and toughness. Students will develop quantitative skills based on the continuum mechanics of solids to address materials-limited problems in engineering design, using continuum mechanics principles, while relating material microstructure to macroscopic mechanical response. Throughout, concrete examples will be provided across a wide range of engineering application scenarios, providing students with an introduction to the analytical tools necessary to select materials and predict their performance in real-world engineering applications.
 
-## Acquis de formation
+The course may cover (not exclusively):
 
-À la fin de ce cours, l'étudiant doit être capable de :
+1. **3D Continuum Mechanics:** stress, strain, constitutive law (linear elasticity), stress concentration, limits of elasticity
+2. **Rubber elasticity**
+3. **Viscoelasticity**
+4. **Plasticity**
+5. **Fracture**
 
-- Exploiter les résultats de base en probabilité pertinents pour l'inférence statistique.
-- Formaliser le cadre théorique des trois principaux problèmes en inférence statistique.
-- Évaluer la performance de procédures statistiques à l’aide de critères rigoureux.
-- Dériver des estimateurs ponctuels, des intervalles de confiance et des tests d’hypothèse à partir de principes généraux.
-- Exposer les propriétés de base des méthodes classiques d’inférence statistique et leurs limitations.
-- Distinguer les ingrédients fondamentaux influençant la performance des procédures statistiques.
-- Appliquer la théorie statistique à des problèmes concrets.
-- Distinguer :
-  - les incertitudes liées à la modélisation et à l’échantillonnage,
-  - l’incertitude liée au modèle et celle liée à l’échantillonnage.
+## Keywords
 
-## Méthode d'enseignement
+Continuum mechanics, Mechanical properties, Stress analysis, Linear elasticity (Boundary-value problems), Stress concentration, Viscoelasticity, Rubber elasticity, Plasticity, Fracture mechanics, Material selection.
 
-Cours ex cathedra, exercices en classe.
+## Learning Prerequisites
 
-## Méthode d'évaluation
+### Required courses
+- Materials: From chemistry to Properties (MSE-101a)
+- Introduction to Structural Mechanics (ME-104)
+- Mechanics of Structures II (ME-232)
+- or equivalents from other institutions
 
-Examen écrit.
+### Important concepts to start the course
+- Linear algebra
+- Vectorial calculus
+- Ordinary Differential Equations (ODEs) and some introductory concepts from Partial Differential Equations (PDEs)
 
-## Ressources
+## Learning Outcomes
 
-### Références suggérées par la bibliothèque
+By the end of the course, the student must be able to:
 
-- [Statistique pour mathématiciens / Panaretos](http://library.epfl.ch/beast?isbn=9782889151493)
-- [Statistics for Mathematicians / Panaretos](http://library.epfl.ch/beast?isbn=9783319283395)
+- Model and analytically solve simple problems of statics and stress analysis
+- Analyze 3D stress and strain states in solids using tensor notation and coordinate transformations
+- Identify the constitutive behaviour of a material from the results of a mechanical test and choose a suitable test standard
+- Apply constitutive laws for different material classes (elastic, viscoelastic, plastic, hyperelastic) to solve engineering problems
+- Design against failure using appropriate yield criteria and safety factors for different loading conditions
+- Predict time-dependent material behavior using viscoelastic theory and long-term material performance
+- Model with analytical tools the nonlinear response of structures and materials
+- Assess / evaluate stress intensity factors and apply fracture mechanics principles to evaluate structural integrity
+- Propose appropriate materials for specific engineering applications based on mechanical property requirements
 
-### Liens Moodle
+## Transversal skills
 
-- https://go.epfl.ch/MATH-240
+- Use a work methodology appropriate to the task
+- Plan and carry out activities to make optimal use of time and resources
+- Set objectives and design an action plan to reach those objectives
+- Assess one’s own level of skill acquisition and plan on-going learning goals
+- Access and evaluate appropriate sources of information
+- Manage priorities
+- Demonstrate critical thinking
+- Continue to work through difficulties or initial failure to find optimal solutions
+
+## Teaching methods
+
+Ex-cathedra
+
+## Expected student activities
+
+Exercise sessions
+
+## Assessment methods
+
+Final exam (100%)
+
+## Supervision
+
+| Item | Available |
+|---|---|
+| Office hours | No |
+| Assistants | Yes |
+| Forum | Yes |
+| Others | “Office hours” on request, in between lectures, or at the end of the lecturers |
+
+## Resources
+
+### Virtual desktop infrastructure (VDI)
+- No
+
+### Bibliography
+- L. Anand, K. Kamrin, and S. Govindjee, *Introduction to Mechanics of Solids Materials*, OUP (2022)
+- J. Botsis and M. Deville, *Mechanics of Continuous Media: an Introduction*, PPUR (2018)
+- A.F. Bower, *Applied mechanics of solids*, CRC Press (2009)
+- D. Gross, W. Hauger, J. Schröder, W.A. Wall, J. Bonet, *Engineering Mechanics 2: Mechanics of Materials*, Springer (2018)
+- L. Anand and S. Govindjee, *Continuum Mechanics of Solids*, OUP (2020)
+- S.H. Crandall, N.C. Dahl, T.J. Lardner, M.S. Sivakumar, *An introduction to Mechanics of Solids*, McGraw Hill (2012)
+
+### Library resources
+- [Find the references at the Library](https://slsp-epfl.primo.exlibrisgroup.com/discovery/search?query=any,contains,%22ME-331%202025-2026%22&tab=41SLSP_EPF_MyInst_and_CI&search_scope=MyInst_and_CI&vid=41SLSP_EPF:prod&offset=0)
+
+### Notes/Handbook
+Printed handouts of the lectures will be provided with material that enhances and complements the recommended books and/or provides the relevant content in a more syntetically and compactly.
+
+### Moodle link
+- https://go.epfl.ch/ME-331
+
+## Prerequisite for
+
+- Computational Solid and Structural Dynamics (ME-473)
+- Fracture mechanics (ME-432)
+- Mechanics of composites (ME 430)
 
 ## In the programs
 
-**Mathematics**
-*2025–2026 — Bachelor semester 4*
+### Mechanical Engineering — Bachelor semester 6 (2025–2026)
+- Semester: Spring
+- Exam form: Written (summer session)
+- Subject examined: Solid mechanics
+- Courses: 3 h/week × 14 weeks
+- Exercises: 1 h/week × 14 weeks
+- Type: **mandatory**
 
-- **Semester:** Spring
-- **Exam form:** Written (summer session)
-- **Subject examined:** Statistics
-- **Courses:** 2 hours/week × 14 weeks
-- **Exercises:** 2 hours/week × 14 weeks
-- **Type:** Mandatory
+### Mechanical engineering minor — Spring semester (2025–2026)
+- Semester: Spring
+- Exam form: Written (summer session)
+- Subject examined: Solid mechanics
+- Courses: 3 h/week × 14 weeks
+- Exercises: 1 h/week × 14 weeks
+- Type: optional
 
-## Reference week
+## Schedule (reference week)
 
-**Schedule (summary):**
-
-- **Monday, 10:00–12:00:** Exercise, TP — [CM5](https://plan.epfl.ch/?room==CM%201%205)
-- **Tuesday, 13:00–15:00:** Lecture — [AAC231](https://plan.epfl.ch/?room==AAC%202%2031)"""
+- **Monday 12:00–14:00** — Lecture — [BCH2201](https://plan.epfl.ch/?room==BCH%202201)
+- **Tuesday 10:00–11:00** — Lecture — [CE13](https://plan.epfl.ch/?room==CE%201%203)
+- **Tuesday 11:00–12:00** — Exercise / TP — [CE13](https://plan.epfl.ch/?room==CE%201%203)"""
 
 
 def pedagogical_sysprompt():
@@ -106,8 +167,8 @@ The questions you receive typically come from students following the course. The
 - Required answer format (always use this structure): Hint-based guidance (adaptive, natural tone) (ALWAYS PROVIDE HINTS).
 - Determine the knowledge gap, misconception or mistake made by the student based on their question and plan one or two helpful hints that could help the student without revealing the answer.
 - Provide one or two progressive hints (more only if necessary).
-- Each hint should introduce a new idea; avoid repeating the same point. 
-- Keep hints short, supportive, and targeted to the student's likely level. 
+- Each hint should introduce a new idea; avoid repeating the same point.
+- Keep hints short, supportive, and targeted to the student's likely level.
 - Be sure that the hints don't provide the final solution. There should not be an overlap between the provided hints and the full answer.
 - If the question is trivial or purely factual, give the direct answer concisely. Otherwise, prefer a short hint-first approach before giving conclusions (but keep the overall response compact).
 - Do not answer questions that are clearly out of the scope of the course content.
@@ -145,7 +206,8 @@ class TheoryFilters(BaseModel):
     subtype: Optional[
         Literal[
             "lecture_slides",
-            "textbook",
+            "lecture_notes",
+            "recommended_reading",
         ]
     ] = Field(
         default=None,
@@ -162,12 +224,33 @@ class PracticeFilters(BaseModel):
     )
     number: Optional[str] = Field(
         default=None,
-        description="exercise (serie) (N), e.g. 'Exercice 79' -> 'number': '70', 'Exo 4(ii)' -> 'number': '4'",
+        description="""
+        serie (also known as studio) (N), e.g. 'Studio 1, Problem 3d' -> 'number': '1',  'Studio 5, exercise 11a' -> 'number': '5', 
+        """,
+    )
+    sub_number: Optional[str] = Field(
+        default=None,
+        description="""
+        serie (also known as studio) (N), e.g. 'Studio 1, Problem 3d' -> 'sub_number': '3',  'Studio 5, exercise 11a' -> 'sub_number': '11', 
+        """,
+    )
+
+
+class ExamFilters(BaseModel):
+    type: Literal["exam"]
+
+    subtype: Optional[Literal["mock_exam"]] = Field(
+        default=None,
+        description="Optional subtype for exam content, e.g.  Mock exam  -> 'subtype': 'mock_exam'",
+    )
+    sub_number: Optional[str] = Field(
+        default=None,
+        description="The exercise number within the exam (N), e.g.  'Mock exam 2026 Q15' -> 'sub_number': '15',  'Mock exam exercise 4 -> 'sub_number': '4''.",
     )
 
 
 ToolFilters = Annotated[
-    Union[TheoryFilters, PracticeFilters],
+    Union[TheoryFilters, PracticeFilters, ExamFilters],
     Field(discriminator="type"),
 ]
 
@@ -192,20 +275,20 @@ class ToolInput(BaseModel):
 ################################################################
 
 
-class MATH240Config(IntegrationConfig):
-    name = 'MATH-240'
-    index = 'course_math240'
+class ME331Config(IntegrationConfig):
+    name = 'ME-331'
+    index = 'course_me331'
     available_tools = ['search_course_material']
     light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
                              openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60, stream_usage=True)
     model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
                        openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60, stream_usage=True)
-    groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_math_240']
+    groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_me_331']
 
     @property
     def system_prompt(self) -> str:
         return f"""
-You are a supportive AI tutor for the course "MATH-240: Statistics", a second-year bachelor level course at EPFL. Your goal is to help the students solve problems by providing correct, precise, and concise answers.
+You are a supportive AI tutor for the course "ME-331: Solid mechanics", a second-year bachelor level course at EPFL. Your goal is to help the students solve problems by providing correct, precise, and concise answers.
 
 Course details:
 Here are the course details, as presented in the coursebook:
@@ -248,7 +331,7 @@ Query rules:
   Do: {'query': 'inheritance', 'filters': {'type': 'theory'}}
 
 Very important:
-- You have exactly one opportunity to make tool calls, so REQUEST ALL TOOL CALLS IN PARALLEL IN ONE SINGLE MESSAGE. 
+- You have exactly one opportunity to make tool calls, so REQUEST ALL TOOL CALLS IN PARALLEL IN ONE SINGLE MESSAGE.
 
 The system will search in the course index automatically. Focus on creating good keyword queries."""
 
@@ -339,7 +422,7 @@ The system will search in the course index automatically. Focus on creating good
 
 
 if __name__ == '__main__':
-    integration = IntegrationConfig.from_name('MATH-240')
+    integration = IntegrationConfig.from_name('ME-331')
     system_prompt = integration.system_prompt
     request_types = integration.request_types
 

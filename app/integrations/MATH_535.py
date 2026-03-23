@@ -19,84 +19,141 @@ from app.config import config
 
 def course_details_sysprompt():
     return """
-# Statistique
+# Algebraic geometry III - selected topics
 
-## Course information
+## General information
 
-- **Code:** MATH-240
-- **Crédits:** 5
-- **Enseignant:** [Panaretos Victor](https://people.epfl.ch/180565?lang=en)
-- **Langue:** Français 
+- **Code:** MATH-535
+- **Credits:** 5
+- **Teacher:** [Rychlewicz Kamil Piotr](https://people.epfl.ch/391580?lang=en)
+- **Language:** English
 
-## Résumé
+## Summary
 
-Ce cours donne une introduction au traitement mathématique de la théorie de l'inférence statistique en utilisant la notion de vraisemblance comme un thème central.
+This course is an introduction to intersection theory on algebraic varieties.
 
-## Contenu
+An important aim of the course is to develop geometric intuition while using the language of schemes developed in the basic algebraic geometry course, thus building a solid foundation for further study.
 
-- Modèles de probabilité, variables aléatoires, données, et paramètres.
-- Théorèmes limites élémentaires de probabilité et leur combinaison.
-- Problèmes d'inférence statistique : estimation ponctuelle, estimation par intervalle, tests.
-- Statistiques et leurs critères de performance (consistance, concentration, biais, variance).
-- L'estimation en tant que probabilité inverse et la fonction de vraisemblance comme thème unificateur.
-- Principes d'exhaustivité et de vraisemblance (réduction de données, théorème de Fisher-Neyman).
-- Théorie de la vraisemblance pour l'estimation (propriétés pour des échantillons de taille finie, relation avec l'exhaustivité et le non-biais, borne de Cramér-Rao, optimalité asymptotique, exemples).
-- Autres méthodes d'estimation ponctuelle (méthode des moments, méthode du *plug-in*, exemples).
-- Théorie de la vraisemblance pour l'estimation d'intervalle (intervalles exacts et asymptotiques, pivots).
-- Théorie de la vraisemblance pour les tests (cadre de Neyman–Pearson, tests du rapport de vraisemblance).
+## Content
 
-## Acquis de formation
+- Recap: Divisors, sheaf cohomology and morphisms to Grassmannians, canonical bundles
+- Picard group of a variety. Jacobian variety of a curve
+- Riemann-Roch theorem and Serre duality for curves
+- Intersection theory on smooth surfaces, numerical equivalence
+- Chow groups and Chow ring
+- Chern classes and Segre classes
+- Chow rings of Grassmannians
+- Bezout theorem
+- Introduction to classical Schubert calculus
+- Hirzebruch-Riemann-Roch theorem and implications
 
-À la fin de ce cours, l'étudiant doit être capable de :
+**Potential additional topics (depending on time constraints and preferences of the participants):**
+- Intersection theory and torus actions: toric varieties and Białynicki-Birula decomposition
+- Intersection theory on singular varieties, characteristic classes
+- Cycle map and comparison between Chow rings and singular cohomology
 
-- Exploiter les résultats de base en probabilité pertinents pour l'inférence statistique.
-- Formaliser le cadre théorique des trois principaux problèmes en inférence statistique.
-- Évaluer la performance de procédures statistiques à l’aide de critères rigoureux.
-- Dériver des estimateurs ponctuels, des intervalles de confiance et des tests d’hypothèse à partir de principes généraux.
-- Exposer les propriétés de base des méthodes classiques d’inférence statistique et leurs limitations.
-- Distinguer les ingrédients fondamentaux influençant la performance des procédures statistiques.
-- Appliquer la théorie statistique à des problèmes concrets.
-- Distinguer :
-  - les incertitudes liées à la modélisation et à l’échantillonnage,
-  - l’incertitude liée au modèle et celle liée à l’échantillonnage.
+## Keywords
 
-## Méthode d'enseignement
+Algebraic geometry, Chow rings, characteristic classes, cohomology
 
-Cours ex cathedra, exercices en classe.
+## Learning Prerequisites
 
-## Méthode d'évaluation
+### Required courses
+- [Advanced linear algebra II - diagonalization](https://edu.epfl.ch/studyplan/en/propedeutics/mathematics/coursebook/advanced-linear-algebra-ii-diagonalization-MATH-115-A)
+- [Algebra II - groups](https://edu.epfl.ch/studyplan/en/bachelor/mathematics/coursebook/algebra-ii-groups-MATH-211)
+- [Algebra III - rings and fields](https://edu.epfl.ch/studyplan/en/bachelor/mathematics/coursebook/algebra-iii-rings-and-fields-MATH-215)
+- [Algebraic geometry II - schemes and sheaves](https://edu.epfl.ch/studyplan/en/master/mathematics-master-program/coursebook/algebraic-geometry-ii-schemes-and-sheaves-MATH-510)
 
-Examen écrit.
+Or equivalent courses on linear algebra, groups, rings, modules and schemes.
 
-## Ressources
+### Recommended courses
+- [Topology IV.b - cohomology rings](https://edu.epfl.ch/studyplan/en/master/mathematics-master-program/coursebook/topology-iv-b-cohomology-rings-MATH-506)
+- [Differential geometry II - smooth manifolds](https://edu.epfl.ch/studyplan/en/bachelor/mathematics/coursebook/differential-geometry-ii-smooth-manifolds-MATH-322)
+- [Number theory I.a - Algebraic number theory](https://edu.epfl.ch/studyplan/en/bachelor/mathematics/coursebook/number-theory-i-a-algebraic-number-theory-MATH-482)
+- [Analysis III - complex analysis and vector fields](https://edu.epfl.ch/studyplan/en/bachelor/mathematics/coursebook/analysis-iii-complex-analysis-and-vector-fields-MATH-200)
+- [Topics in complex analysis](https://edu.epfl.ch/studyplan/en/bachelor/mathematics/coursebook/topics-in-complex-analysis-MATH-327)
+- [Complex manifolds](https://edu.epfl.ch/studyplan/en/master/mathematics-master-program/coursebook/complex-manifolds-MATH-473)
 
-### Références suggérées par la bibliothèque
+## Learning Outcomes
 
-- [Statistique pour mathématiciens / Panaretos](http://library.epfl.ch/beast?isbn=9782889151493)
-- [Statistics for Mathematicians / Panaretos](http://library.epfl.ch/beast?isbn=9783319283395)
+By the end of the course, the student must be able to:
 
-### Liens Moodle
+- Analyze basic problems in intersection theory and solve them
+- Reason intuitively about the geometry and topology of algebraic varieties over the complex and finite fields
+- Use statements of basic theorems like Riemann-Roch, Serre duality, etc., and understand their proofs
+- Prove basic results concerning geometry of smooth algebraic varieties and their subvarieties
+- Formalize heuristic arguments concerning intersections of subvarieties, including multiplicities
+- Compute Chow rings and numerical invariants of algebraic varieties
+- Apply the methods of intersection theory to recover classical results of Schubert calculus
 
-- https://go.epfl.ch/MATH-240
+## Teaching methods
+
+2h lectures + 2h exercise sessions weekly.
+
+## Assessment methods
+
+Oral exam
+
+## Supervision
+
+| Item | Available |
+|---|---|
+| Office hours | Yes |
+| Assistants | Yes |
+| Forum | No |
+
+## Resources
+
+### Bibliography
+
+We will follow mainly:
+- William Fulton, **Intersection Theory**
+
+Also useful:
+- David Eisenbud and Joe Harris, **3264 and All That: A Second Course in Algebraic Geometry**
+
+General background:
+- Robin Hartshorne, **Algebraic Geometry**
+- Qing Liu, **Algebraic Geometry and Arithmetic Curves**
+- Ravi Vakil, **The Rising Sea: Foundations of Algebraic Geometry**
+- Görtz–Wedhorn, **Algebraic Geometry I & II**
+
+### Library resources
+- [Find the references at the Library](https://slsp-epfl.primo.exlibrisgroup.com/discovery/search?query=course_code,contains,%22MATH-535%202025-2026%22,AND&tab=41SLSP_EPF_MyInst_and_CI&search_scope=MyInst_and_CI&sortby=date_d&vid=41SLSP_EPF:prod&lang=fr&mode=advanced&offset=0)
+
+### Moodle link
+- https://go.epfl.ch/MATH-535
 
 ## In the programs
 
-**Mathematics**
-*2025–2026 — Bachelor semester 4*
+### Mathematics — master program (2025–2026) — Master semester 2
+- Semester: Spring
+- Exam form: Oral (summer session)
+- Subject examined: Algebraic geometry III - selected topics
+- Courses: 2 h/week × 14 weeks
+- Exercises: 2 h/week × 14 weeks
+- Type: optional
 
-- **Semester:** Spring
-- **Exam form:** Written (summer session)
-- **Subject examined:** Statistics
-- **Courses:** 2 hours/week × 14 weeks
-- **Exercises:** 2 hours/week × 14 weeks
-- **Type:** Mandatory
+### Applied Mathematics (2025–2026) — Master semester 2
+- Semester: Spring
+- Exam form: Oral (summer session)
+- Subject examined: Algebraic geometry III - selected topics
+- Courses: 2 h/week × 14 weeks
+- Exercises: 2 h/week × 14 weeks
+- Type: optional
 
-## Reference week
+### Applied Mathematics (2025–2026) — Master semester 4
+- Semester: Spring
+- Exam form: Oral (summer session)
+- Subject examined: Algebraic geometry III - selected topics
+- Courses: 2 h/week × 14 weeks
+- Exercises: 2 h/week × 14 weeks
+- Type: optional
 
-**Schedule (summary):**
+## Schedule (reference week)
 
-- **Monday, 10:00–12:00:** Exercise, TP — [CM5](https://plan.epfl.ch/?room==CM%201%205)
-- **Tuesday, 13:00–15:00:** Lecture — [AAC231](https://plan.epfl.ch/?room==AAC%202%2031)"""
+- **Monday 10:00–12:00** — Lecture — [MAA110](https://plan.epfl.ch/?room==MA%20A1%2010)
+- **Monday 14:00–16:00** — Exercise / TP — [MAA110](https://plan.epfl.ch/?room==MA%20A1%2010)"""
 
 
 def pedagogical_sysprompt():
@@ -106,8 +163,8 @@ The questions you receive typically come from students following the course. The
 - Required answer format (always use this structure): Hint-based guidance (adaptive, natural tone) (ALWAYS PROVIDE HINTS).
 - Determine the knowledge gap, misconception or mistake made by the student based on their question and plan one or two helpful hints that could help the student without revealing the answer.
 - Provide one or two progressive hints (more only if necessary).
-- Each hint should introduce a new idea; avoid repeating the same point. 
-- Keep hints short, supportive, and targeted to the student's likely level. 
+- Each hint should introduce a new idea; avoid repeating the same point.
+- Keep hints short, supportive, and targeted to the student's likely level.
 - Be sure that the hints don't provide the final solution. There should not be an overlap between the provided hints and the full answer.
 - If the question is trivial or purely factual, give the direct answer concisely. Otherwise, prefer a short hint-first approach before giving conclusions (but keep the overall response compact).
 - Do not answer questions that are clearly out of the scope of the course content.
@@ -145,7 +202,7 @@ class TheoryFilters(BaseModel):
     subtype: Optional[
         Literal[
             "lecture_slides",
-            "textbook",
+            "book",
         ]
     ] = Field(
         default=None,
@@ -156,13 +213,22 @@ class TheoryFilters(BaseModel):
 class PracticeFilters(BaseModel):
     type: Literal["practice"]
 
-    subtype: Optional[Literal["serie"]] = Field(
+    subtype: Optional[Literal["serie", "homework"]] = Field(
         default=None,
         description="Optional subtype for practice content.",
     )
     number: Optional[str] = Field(
         default=None,
-        description="exercise (serie) (N), e.g. 'Exercice 79' -> 'number': '70', 'Exo 4(ii)' -> 'number': '4'",
+        description="""
+        serie or homework (N), e.g. 'Série 2' -> 'number': '2', 'Homework 13' -> 'number': '13'
+        """,
+    )
+    sub_number: Optional[str] = Field(
+        default=None,
+        description="""
+        When "subtype" is "serie": serie (N), The exercise number within the serie (N), e.g. 'Série 3 Exercice 4a' -> 'sub_number': '4', 'Série 14 exo 13' -> 'sub_number': '13',
+        When "subtype" is "homework": NEVER filter by sub_number
+        """,
     )
 
 
@@ -192,20 +258,20 @@ class ToolInput(BaseModel):
 ################################################################
 
 
-class MATH240Config(IntegrationConfig):
-    name = 'MATH-240'
-    index = 'course_math240'
+class MATH535Config(IntegrationConfig):
+    name = 'MATH-535'
+    index = 'course_math535'
     available_tools = ['search_course_material']
     light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
                              openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60, stream_usage=True)
     model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
                        openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60, stream_usage=True)
-    groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_math_240']
+    groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_math_535']
 
     @property
     def system_prompt(self) -> str:
         return f"""
-You are a supportive AI tutor for the course "MATH-240: Statistics", a second-year bachelor level course at EPFL. Your goal is to help the students solve problems by providing correct, precise, and concise answers.
+You are a supportive AI tutor for the course "MATH-535: Algebraic geometry III - selected topics", a master level course at EPFL. Your goal is to help the students solve problems by providing correct, precise, and concise answers.
 
 Course details:
 Here are the course details, as presented in the coursebook:
@@ -248,7 +314,7 @@ Query rules:
   Do: {'query': 'inheritance', 'filters': {'type': 'theory'}}
 
 Very important:
-- You have exactly one opportunity to make tool calls, so REQUEST ALL TOOL CALLS IN PARALLEL IN ONE SINGLE MESSAGE. 
+- You have exactly one opportunity to make tool calls, so REQUEST ALL TOOL CALLS IN PARALLEL IN ONE SINGLE MESSAGE.
 
 The system will search in the course index automatically. Focus on creating good keyword queries."""
 
@@ -339,7 +405,7 @@ The system will search in the course index automatically. Focus on creating good
 
 
 if __name__ == '__main__':
-    integration = IntegrationConfig.from_name('MATH-240')
+    integration = IntegrationConfig.from_name('MATH-535')
     system_prompt = integration.system_prompt
     request_types = integration.request_types
 
