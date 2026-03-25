@@ -12,7 +12,7 @@ from app.config import config
 
 class CMIRestrictedConfig(IntegrationConfig):
     name = 'cmi_restricted'
-    index = 'course_cmi_restricted'
+    index = 'course_cmirestricted'
     available_tools = ['search_cmi_restricted']
     light_model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
                              openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60, stream_usage=True)
