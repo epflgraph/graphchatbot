@@ -18,7 +18,7 @@ class CMIRestrictedConfig(IntegrationConfig):
                              openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60, stream_usage=True)
     model = ChatOpenAI(base_url=config.get('rcp', {})['base_url'], model='Qwen/Qwen3-30B-A3B-Instruct-2507',
                        openai_api_key=config.get('rcp', {})['api_key'], request_timeout=60, stream_usage=True)
-    groups = ['graph-chatbot-admins', 'graph-rag-vip', 'graph-rag-cmi-restricted']
+    groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot-cmi-restricted']
 
     @property
     def system_prompt(self) -> str:
