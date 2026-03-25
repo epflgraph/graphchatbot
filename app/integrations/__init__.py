@@ -30,3 +30,5 @@ from app.integrations.MATH_535 import MATH535Config
 
 # Others
 from app.integrations.plasma import PlasmaConfig
+from app.integrations.cmi import CMIConfig
+from app.integrations.cmi_restricted import CMIRestrictedConfig
