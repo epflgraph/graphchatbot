@@ -36,7 +36,7 @@ async def chat(chat_request: ChatRequest, user: Annotated[dict, Depends(get_user
     if chat_request.stream:
         return StreamingResponse(
             agenerate_completion(chat_request.dict()),
-            media_type="application/x-ndjson"
+            media_type="text/event-stream"
         )
     else:
         return generate_completion(chat_request.dict())
