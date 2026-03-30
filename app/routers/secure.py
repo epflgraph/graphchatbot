@@ -39,7 +39,7 @@ async def chat(chat_request: ChatRequest, user: Annotated[dict, Depends(get_user
             media_type="text/event-stream"
         )
     else:
-        return generate_completion(chat_request.dict())
+        return await generate_completion(chat_request.dict())
 
 
 @router.get('/models')
