@@ -9,6 +9,8 @@ from app.schemas import ChatRequest
 from app.integrations import IntegrationConfig
 
 from app.agent import generate_completion, agenerate_completion
+from app.bots import registry as bot_registry
+from app.bots.main import generate_completion as bot_generate_completion, agenerate_completion as bot_agenerate_completion
 
 
 router = APIRouter()
@@ -40,6 +42,25 @@ async def chat(chat_request: ChatRequest, user: Annotated[dict, Depends(get_user
         )
     else:
         return await generate_completion(chat_request.dict())
+
+
+@router.post('/chat/completions_new')
+async def chat_new(chat_request: ChatRequest, user: Annotated[dict, Depends(get_user)]):
+    bot = bot_registry.get(chat_request.model)
+    if bot is None:
+        raise HTTPException(status_code=404, detail=f"Bot '{chat_request.model}' not found")
+
+    if bot.groups and len(set(bot.groups) & set(user['groups'])) == 0:
+        print('[AUTH]', f"User {user} doesn't have access to bot {chat_request.model}")
+        raise HTTPException(status_code=403, detail="Missing or invalid API key")
+
+    if chat_request.stream:
+        return StreamingResponse(
+            bot_agenerate_completion(chat_request.dict(), bot),
+            media_type="text/event-stream"
+        )
+    else:
+        return await bot_generate_completion(chat_request.dict(), bot)
 
 
 @router.get('/models')
