@@ -2,8 +2,6 @@ from langchain.tools import tool
 
 from app.agent.tools import get_orgchart, search_news
 from app.bots.admin.bot import AdminBot
-from app.bots.prompts import general_considerations
-from app.interfaces.graphai import GraphAIClient
 
 
 CATEGORIES = {
@@ -15,6 +13,7 @@ CATEGORIES = {
     'absences': {'description': "Requests about absences at EPFL, including paid leaves (holidays, medical leaves, maternity or paternity leaves, accidents, etc.) unpaid leaves, teleworking or other absences.", 'force_tools': True},
     'epfl-presidency': {'description': "Explicit requests about the presidency of EPFL.", 'force_tools': True},
     'epfl-vice-presidencies': {'description': "Explicit requests about the vice-presidencies of EPFL.", 'force_tools': True},
+    'unrelated': {'description': "The user's request is completely unrelated to EPFL Polylex or EPFL laws and regulations.", 'force_tools': False},
 }
 
 
@@ -23,47 +22,26 @@ class LexBot(AdminBot):
     index = 'lex'
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'graph-rag-lex']
 
+    tool_name = 'search_lex'
+    tool_description = "Performs a search in EPFL's Polylex documents (Electronic compendium of EPFL laws, ordinances, regulations and directives) with the given query. Returns matching document chunks."
+
     CATEGORIES = CATEGORIES
 
     @property
-    def system_prompt(self) -> str:
-        return f"""
-You are the EPFL Graph Polylex assistant. You have access to the Polylex documents, a compendium of EPFL laws, ordinances, regulations and directives. Your task is to answer questions from EPFL students, researchers or staff members.
+    def bot_introduction(self) -> str:
+        return (
+            "You are the EPFL Graph Polylex assistant. You have access to the Polylex documents, "
+            "a compendium of EPFL laws, ordinances, regulations and directives. "
+            "Your task is to answer questions from EPFL students, researchers or staff members."
+        )
 
-# Format
-{self._admin_format}
-
-# General considerations
-{self._admin_behavior}
-{general_considerations()}"""
-
-    _admin_format = """\
-* Lay out urls as Markdown links.
-* The result should be a mix between text and Markdown links in a Wikipedia fashion.
-* Mix in the relevant resources from the tools in your response as Markdown links in-between the explanation, instead of everything at the end.
-* Include at least 5 inline links to resources in your answer.
-* Do not use words or phrases that express doubt or provide a subjective opinion."""
-
-    _admin_behavior = """\
-* Be proactive and helpful when you answer: Give specific suggestions about what you can do next in relation with your response.
-* Never alter the information from the source documents. Copy fields exactly as they are.
-* Use Markdown links often. As their text, avoid placeholder words like "here" or "this link".
-* If the tools cannot provide an answer to the request, or they return an error, then just apologize and ask the user to rephrase their query.
-* If the request is subjective, do not use any tool. Instead, ask the user to rephrase it in an objective way."""
-
-    async def search_lex(self, query: str):
-        """
-        Performs a search in EPFL's Polylex documents (Electronic compendium of EPFL laws, ordinances, regulations and directives) with the given `query`.
-        Returns a list of the document chunks that best match the query.
-        """
-        print("[LEX TOOL]", f"Called `search_lex` with query=`{query}`")
-        results = await GraphAIClient().rag_retrieve(index=self.index, texts=[query])
-        print("[LEX TOOL]", f"Retrieved {len(results)} chunks.")
-        return results
+    @property
+    def unrelated_note(self) -> str:
+        return "* For requests unrelated to EPFL Polylex or EPFL laws and regulations, politely explain that you can only help with those topics."
 
     def build_tools(self) -> list:
         return [
-            tool("search_lex")(self.search_lex),
-            tool("get_orgchart")(get_orgchart),
-            tool("search_news")(search_news),
+            tool(self.tool_name, description=self.tool_description)(self._search),
+            tool('get_orgchart')(get_orgchart),
+            tool('search_news')(search_news),
         ]

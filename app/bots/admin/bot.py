@@ -43,10 +43,11 @@ class AdminBot(Bot):
         groups: list[str]
         tool_name: str          — name of the search tool exposed to the LLM
         tool_description: str   — docstring for the search tool
-        system_prompt: str      — full system prompt
+        bot_introduction: str   — opening paragraph(s) for the system prompt
 
     Subclasses may override:
         CATEGORIES              — to customise classification categories
+        unrelated_note: str     — extra bullet appended to general considerations
         build_tools()           — to add more tools or change tool logic entirely
         build_graph()           — to change the graph topology
     """
@@ -55,6 +56,43 @@ class AdminBot(Bot):
     tool_description: str
 
     CATEGORIES: dict = CATEGORIES
+
+    _admin_format = """\
+* Lay out urls as Markdown links.
+* The result should be a mix between text and Markdown links in a Wikipedia fashion.
+* Mix in the relevant resources from the tools in your response as Markdown links in-between the explanation, instead of everything at the end.
+* Include at least 5 inline links to resources in your answer.
+* Do not use words or phrases that express doubt or provide a subjective opinion."""
+
+    _admin_behavior = """\
+* Be proactive and helpful when you answer: Give specific suggestions about what you can do next in relation with your response.
+* Never alter the information from the source documents. Copy fields exactly as they are.
+* Use Markdown links often. As their text, avoid placeholder words like "here" or "this link".
+* If the tools cannot provide an answer to the request, or they return an error, then just apologize and ask the user to rephrase their query.
+* If the request is subjective, do not use any tool. Instead, ask the user to rephrase it in an objective way."""
+
+    @property
+    @abstractmethod
+    def bot_introduction(self) -> str: ...
+
+    @property
+    def unrelated_note(self) -> str:
+        return ""
+
+    @property
+    def system_prompt(self) -> str:
+        from app.bots.prompts import general_considerations
+
+        behavior = self._admin_behavior
+        if note := self.unrelated_note:
+            behavior += f'\n{note}'
+        behavior += f'\n{general_considerations()}'
+
+        return '\n\n'.join([
+            self.bot_introduction,
+            f'# Format\n{self._admin_format}',
+            f'# General considerations\n{behavior}',
+        ])
 
     async def _search(self, query: str) -> list:
         print(f"[{self.name.upper()} TOOL]", f"Called `{self.tool_name}` with query=`{query}`")
