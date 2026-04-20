@@ -1,3 +1,5 @@
+import ssl
+
 import pymysql
 
 from app.config import config
@@ -10,6 +12,7 @@ def _connect():
         port=int(db_config['port']),
         user=db_config['user'],
         password=db_config['password'],
+        ssl=ssl.create_default_context(),
         autocommit=True,
     )
 
