@@ -1,5 +1,5 @@
 """
-Bot registry: scans app/bots/ for subdirectories containing a bot.py,
+Bot registry: scans app/bots/ recursively for bot.py files,
 imports the Bot subclass found there, instantiates it, and stores it by name.
 """
 
@@ -10,17 +10,15 @@ from app.bots.base import Bot
 
 _registry: dict[str, Bot] = {}
 
+_BOTS_PACKAGE = 'app.bots'
+_BOTS_DIR = Path(__file__).parent
+
 
 def init_bots() -> None:
-    bots_dir = Path(__file__).parent
+    for bot_file in sorted(_BOTS_DIR.rglob('bot.py')):
+        relative = bot_file.relative_to(_BOTS_DIR.parent.parent)  # relative to app/
+        module_path = '.'.join(relative.with_suffix('').parts)     # e.g. app.bots.admin.lex.bot
 
-    for subdir in sorted(bots_dir.iterdir()):
-        if not subdir.is_dir():
-            continue
-        if not (subdir / 'bot.py').exists():
-            continue
-
-        module_path = f'app.bots.{subdir.name}.bot'
         try:
             module = importlib.import_module(module_path)
         except Exception as e:
