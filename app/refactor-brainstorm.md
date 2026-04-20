@@ -32,37 +32,44 @@ Everything else (graph, nodes, prompt templates, classify logic) is inherited fr
 
 ```
 Level 1 — Primitive nodes (pure functions)
-    classify, model, tools, respond, ...
+    classify, model, tools, ...
 
 Level 2 — Bots (inherit from other bots, compose nodes into a graph)
-    Bot → CourseBot → MATH240
-    Bot → SimpleRAGBot → CMi
-    Bot → GraphChatBot → GraphChat → GraphChatGPT5
+    Bot → AdminBot → LexBot
+    Bot → AdminBot → SacBot
+    Bot → CourseBot → HintingCourseBot → MATH240Bot
+    Bot → CourseBot → DirectCourseBot  → CS500Bot
+    Bot → GraphChatBot
 ```
 
-There is no separate "preset" layer. `CourseBot`, `SimpleRAGBot`, `GraphChatBot` are themselves bots that happen to be subclassed. Any bot can be subclassed further.
+There is no separate "preset" layer. `AdminBot`, `CourseBot`, `GraphChatBot` are themselves bots that happen to be subclassed. Any bot can be subclassed further.
 
 ### Base class hierarchy
 ```
 Bot  (base class)
-├── CourseBot            ← course tutors
-│   ├── MATH240
-│   ├── MATH261
-│   └── ...
-├── SimpleRAGBot         ← domain-specific RAG (CMi, plasma, sac, servicedesk)
-│   ├── CMi
-│   ├── Plasma
-│   └── ...
-├── GraphChatBot         ← EPFL knowledge graph variants; subclasses override `model` and `groups` only
-│   ├── GraphChat
-│   ├── GraphChatGPT5
-│   └── ...
-└── ...custom bots...
+├── AdminBot             ← classified RAG bots with EPFL admin prompt style
+│   ├── CMiBot
+│   ├── CMiRestrictedBot
+│   ├── PlasmaBot
+│   ├── SacBot
+│   ├── ServicedeskBot
+│   └── LexBot           ← overrides CATEGORIES and build_tools (multi-tool)
+├── CourseBot            ← course tutors; provides graph, search_course_material, CATEGORIES
+│   ├── HintingCourseBot ← hint-based pedagogical style
+│   │   ├── MATH240Bot
+│   │   ├── MATH261Bot
+│   │   ├── MATH106eBot
+│   │   └── ...
+│   └── DirectCourseBot  ← direct/explanatory pedagogical style
+│       ├── CS500Bot
+│       └── ...
+└── GraphChatBot         ← EPFL knowledge graph; single concrete bot
 ```
 
 ### Graphs
 - Each bot compiles its own graph at startup, reused across requests
-- Graph topology can differ between bot classes (e.g. `CourseBot` may have a `classify` node, `SimpleRAGBot` may not)
+- Graph topology is defined per bot class and can differ freely
+- `force_tools: bool` state flag controls tool binding per turn — set by classify, reset by tools node
 - Graphs are stateless (no checkpointers)
 
 ### Nodes
@@ -82,48 +89,66 @@ Bot  (base class)
 ## File Structure: By-Bot
 Discovery via filesystem scan at startup: any subdirectory of `app/bots/` containing a `bot.py` is registered as a bot. No manual registry, no `__subclasses__()` magic.
 
+Abstract parent classes (no `name`) live in subdirectories too — the registry skips them automatically.
+
 ```
 app/
 ├── bots/
-│   ├── base.py              ← Bot base class
+│   ├── base.py              ← Bot abstract base class
+│   ├── prompts.py           ← shared prompt fragments (general considerations,
+│   │                           trust network, presidency note, pedagogical styles,
+│   │                           course retrieval instructions)
 │   ├── nodes/               ← primitive node functions
 │   │   ├── classify.py
 │   │   ├── model.py
-│   │   ├── tools.py
-│   │   └── respond.py
-│   ├── course/              ← CourseBot (subclassable)
-│   │   ├── bot.py
-│   │   └── tools.py         ← shared search_course_material factory
-│   ├── simple_rag/          ← SimpleRAGBot (subclassable)
-│   │   └── bot.py
-│   ├── graph_chat/          ← GraphChatBot (subclassable)
-│   │   └── bot.py
-│   ├── math240/
-│   │   ├── bot.py
 │   │   └── tools.py
-│   ├── math106e/
-│   │   ├── bot.py
-│   │   └── tools.py
+│   ├── admin/               ← AdminBot (abstract, not registered)
+│   │   └── bot.py
+│   ├── course/              ← CourseBot, HintingCourseBot, DirectCourseBot (abstract, not registered)
+│   │   └── bot.py
+│   ├── graph_chat/          ← GraphChatBot (concrete, registered)
+│   │   └── bot.py
+│   ├── lex/
+│   │   └── bot.py           ← LexBot(AdminBot)
+│   ├── sac/
+│   │   └── bot.py           ← SacBot(AdminBot)
+│   ├── servicedesk/
+│   │   └── bot.py           ← ServicedeskBot(AdminBot)
 │   ├── cmi/
-│   │   └── bot.py
+│   │   └── bot.py           ← CMiBot(AdminBot)
+│   ├── cmi_restricted/
+│   │   └── bot.py           ← CMiRestrictedBot(AdminBot)
+│   ├── plasma/
+│   │   └── bot.py           ← PlasmaBot(AdminBot)
+│   ├── math240/
+│   │   └── bot.py           ← MATH240Bot(HintingCourseBot)
+│   ├── math261/
+│   │   └── bot.py           ← MATH261Bot(HintingCourseBot)
+│   ├── math106e/
+│   │   └── bot.py           ← MATH106eBot(HintingCourseBot)
+│   ├── cs500/
+│   │   └── bot.py           ← CS500Bot(DirectCourseBot)
 │   └── ...
 ```
 
 ---
 
 ## Tools
-- All tools move into the by-bot structure
-- Bot-specific tools live in `bots/<botname>/tools.py`
-- Shared tools live alongside the bot class that introduces them (e.g. `bots/course/tools.py`)
-- Parameterized tools (e.g. `search_course_material`) are shared factory functions that parent bot classes bind to the bot's index automatically — subclasses don't redeclare them
+- Tool logic is implemented once on the parent bot class; subclasses declare only what varies
+- `AdminBot` implements `_search(query)` and `build_tools()`. Subclasses declare `tool_name: str` and `tool_description: str`
+- `CourseBot` implements `search_course_material(query, filters)` and `build_tools()`. Subclasses declare `tool_input_schema` (the `ToolInput` Pydantic model with course-specific filters)
+- `LexBot` overrides `build_tools()` to return multiple tools (search_lex, get_orgchart, search_news)
+- Shared tools (e.g. `get_orgchart`, `search_news`) live in `app/agent/tools/` for now
 - No MCP server — not enough reuse outside this app to justify the overhead
 
 ---
 
 ## Prompts
-- `system_prompt` is a method that assembles the full prompt from parts (e.g. `context`, `style`, general considerations)
-- Subclasses customise it by setting class attributes or overriding specific methods (e.g. `extra_instructions()`) — not by rewriting the whole template
-- Shared text fragments (pedagogical styles, warnings, general considerations) live in a common module
+- `app/bots/prompts.py` holds shared fragments: general considerations, trust network blurb, presidency note, hinting/direct pedagogical styles, course retrieval instructions
+- `system_prompt` is a property that assembles the full prompt from slots
+- Parent bot classes define the template; subclasses fill in slots (`course_name`, `course_details`, etc.) or override any property they need
+- `retrieval_system_prompt` is an optional property — when defined, the model node uses it during tool-calling turns instead of `system_prompt`. Falls back to `system_prompt` if not defined
+- Per-category redirect instructions (e.g. "for admin questions, contact the teaching team") are baked into the parent class `system_prompt` template, not injected at runtime
 
 ---
 

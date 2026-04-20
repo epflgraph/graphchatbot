@@ -16,7 +16,7 @@ langfuse = Langfuse(
     environment=config.get('langfuse', {}).get('environment'),
 )
 
-MODEL_NODES = ('model', 'model_greeting')
+MODEL_NODES = ('model',)
 
 
 async def generate_completion(chat_request: dict, bot: Bot) -> dict:

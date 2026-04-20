@@ -23,7 +23,11 @@ def make_model_node(tools: list):
         else:
             model = bot.model
 
-        messages = [SystemMessage(content=bot.system_prompt)] + state['messages']
+        if tools and force_tools:
+            system_prompt = getattr(bot, 'retrieval_system_prompt', None) or bot.system_prompt
+        else:
+            system_prompt = bot.system_prompt
+        messages = [SystemMessage(content=system_prompt)] + state['messages']
 
         print('[MODEL]', f"Calling LLM with {len(tools) if force_tools else 0} tool(s), force_tools={force_tools}")
         ai_message = await model.ainvoke(messages)
