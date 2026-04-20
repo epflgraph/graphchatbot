@@ -11,22 +11,22 @@ from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
 from app.agent.tools import get_orgchart, search_news
 from app.interfaces.graphai import GraphAIClient
-from app.integrations.common import base_epfl_presidency_sysprompt
 
 
 class LexState(BaseState):
     category: Optional[str]
+    force_tools: bool
 
 
 CATEGORIES = {
-    'greeting': "The user is just greeting the assistant or similar.",
-    'recruiting': "Requests about recruitment at EPFL, including PhD students, postdocs, researchers or any other EPFL staff member.",
-    'contract-management': "Requests about the EPFL work contract for all kind of staff members.",
-    'internal-processes': "Requests about internal processes at EPFL, like mandatory trainings or electing people for management positions.",
-    'equipment': "Requests about equipment or material at EPFL, like purchasing some piece of equipment for research in a lab or regulations on office material.",
-    'absences': "Requests about absences at EPFL, including paid leaves (holidays, medical leaves, maternity or paternity leaves, accidents, etc.) unpaid leaves, teleworking or other absences.",
-    'epfl-presidency': "Explicit requests about the presidency of EPFL.",
-    'epfl-vice-presidencies': "Explicit requests about the vice-presidencies of EPFL.",
+    'greeting': {'description': "The user is just greeting the assistant or similar.", 'force_tools': False},
+    'recruiting': {'description': "Requests about recruitment at EPFL, including PhD students, postdocs, researchers or any other EPFL staff member.", 'force_tools': True},
+    'contract-management': {'description': "Requests about the EPFL work contract for all kind of staff members.", 'force_tools': True},
+    'internal-processes': {'description': "Requests about internal processes at EPFL, like mandatory trainings or electing people for management positions.", 'force_tools': True},
+    'equipment': {'description': "Requests about equipment or material at EPFL, like purchasing some piece of equipment for research in a lab or regulations on office material.", 'force_tools': True},
+    'absences': {'description': "Requests about absences at EPFL, including paid leaves (holidays, medical leaves, maternity or paternity leaves, accidents, etc.) unpaid leaves, teleworking or other absences.", 'force_tools': True},
+    'epfl-presidency': {'description': "Explicit requests about the presidency of EPFL.", 'force_tools': True},
+    'epfl-vice-presidencies': {'description': "Explicit requests about the vice-presidencies of EPFL.", 'force_tools': True},
 }
 
 
@@ -85,13 +85,9 @@ You are the EPFL Graph Polylex assistant. You have access to the Polylex documen
 
         workflow.add_node('classify', make_classify_node(CATEGORIES))
         workflow.add_node('model', make_model_node(tools))
-        workflow.add_node('model_greeting', make_model_node([]))
         workflow.add_node('tools', make_tools_node(tools, back_to='model'))
 
         workflow.set_entry_point('classify')
-        workflow.add_conditional_edges(
-            'classify',
-            lambda state: 'model_greeting' if state['category'] == 'greeting' else 'model',
-        )
+        workflow.add_edge('classify', 'model')
 
         return workflow.compile()
