@@ -30,7 +30,6 @@ dependencies = [
     "openai",
     "python-ldap",
     "elasticsearch-interface",
-    "db-cache-manager",
 ]
 
 [tool.setuptools]

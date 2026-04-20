@@ -1,21 +1,38 @@
-from db_cache_manager.db import DB
+import pymysql
 
 from app.config import config
 
 
-def init_auth_schema():
-    db = DB(config['database'])
+def _connect():
+    db_config = config['database']
+    return pymysql.connect(
+        host=db_config['host'],
+        port=int(db_config['port']),
+        user=db_config['user'],
+        password=db_config['password'],
+        autocommit=True,
+    )
 
-    # Make sure the schema exists
-    db.execute_query(
+
+def _execute(query, values=None):
+    conn = _connect()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(query, values)
+            return cursor.fetchall()
+    finally:
+        conn.close()
+
+
+def init_auth_schema():
+    _execute(
         """
         CREATE DATABASE IF NOT EXISTS `chatbot`
         DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
         """
     )
 
-    # Make sure the tables exist
-    db.execute_query(
+    _execute(
         """
         CREATE TABLE IF NOT EXISTS `chatbot`.`api_keys` (
           `api_key` VARCHAR(63) NOT NULL,
@@ -31,17 +48,16 @@ def init_auth_schema():
 
 
 def get_api_key(sciper, email):
-    db = DB(config['database'])
-
     init_auth_schema()
 
-    query = """
+    result = _execute(
+        """
         SELECT `api_key` FROM `chatbot`.`api_keys`
         WHERE `sciper` = %s AND `email` = %s
         LIMIT 1
-    """
-
-    result = db.execute_query(query, values=[sciper, email])
+        """,
+        values=[sciper, email],
+    )
 
     if result:
         api_key, = result[0]
@@ -52,35 +68,31 @@ def get_api_key(sciper, email):
 
 
 def get_user(api_key):
-    db = DB(config['database'])
-
     init_auth_schema()
 
-    query = """
+    result = _execute(
+        """
         SELECT `sciper`, `email`, `is_active`
         FROM `chatbot`.`api_keys`
         WHERE `api_key` = %s
         LIMIT 1
-    """
-    result = db.execute_query(query, values=[api_key])
+        """,
+        values=[api_key],
+    )
 
     if not result:
         return None
 
     sciper, email, is_active = result[0]
 
-    user = {
+    return {
         'sciper': sciper,
         'email': email,
         'is_active': is_active,
     }
 
-    return user
-
 
 def insert_api_keys(records):
-    db = DB(config['database'])
-
     init_auth_schema()
 
     placeholders = []
@@ -89,27 +101,27 @@ def insert_api_keys(records):
         placeholders.append('(%s, %s, %s)')
         values.extend([record['api_key'], record['sciper'], record['email']])
 
-    query = f"""
+    _execute(
+        f"""
         INSERT INTO `chatbot`.`api_keys`(`api_key`, `sciper`, `email`)
         VALUES {', '.join(placeholders)}
         ON DUPLICATE KEY UPDATE `is_active` = 1
-    """
-
-    db.execute_query(query, values)
+        """,
+        values,
+    )
 
 
 def deactivate_api_keys(conditions):
-    db = DB(config['database'])
-
     init_auth_schema()
 
     for field in conditions:
         values = conditions[field]
         if values:
-            query = f"""
+            _execute(
+                f"""
                 UPDATE `chatbot`.`api_keys`
                 SET `is_active`=0
                 WHERE `{field}` IN ({', '.join(['%s'] * len(values))})
-            """
-
-            db.execute_query(query, values)
+                """,
+                values,
+            )

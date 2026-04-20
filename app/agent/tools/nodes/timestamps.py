@@ -8,9 +8,7 @@ from datetime import timedelta
 import pandas as pd
 
 from app.agent.tools.nodes.organisational_links import get_organisational_field_names
-from db_cache_manager.db import DB
-
-from app.config import config
+from app.auth.db import _execute
 
 
 def get_timestamp_pairs(nodes, top_concept_or_category):
@@ -53,17 +51,20 @@ def get_timestamps(pairs):
         return pd.DataFrame(columns=columns)
 
     try:
-        table = 'graph_lectures.Data_N_Object_N_Object_T_CalculatedFields'
-        fields = ['to_object_type', 'to_object_id', 'from_object_id', 'field_value']
-        conditions = {
-            'from_institution_id': 'EPFL',
-            'from_object_type': 'Lecture',
-            'to_institution_id': 'Ont',
-            'field_name': 'primary_timestamp',
-            '(to_object_type, to_object_id, from_object_id)': pairs,
-        }
-        db = DB(config['database'])
-        timestamps = pd.DataFrame(db.find(table_name=table, fields=fields, conditions=conditions), columns=columns)
+        placeholders = ', '.join(['%s'] * len(pairs))
+        rows = _execute(
+            f"""
+            SELECT to_object_type, to_object_id, from_object_id, field_value
+            FROM graph_lectures.Data_N_Object_N_Object_T_CalculatedFields
+            WHERE from_institution_id = %s
+              AND from_object_type = %s
+              AND to_institution_id = %s
+              AND field_name = %s
+              AND (to_object_type, to_object_id, from_object_id) IN ({placeholders})
+            """,
+            values=['EPFL', 'Lecture', 'Ont', 'primary_timestamp'] + pairs,
+        )
+        timestamps = pd.DataFrame(rows, columns=columns)
     except Exception as e:
         print("Cannot connect to table `graph_lectures.Data_N_Object_N_Object_T_CalculatedFields` to find timestamps, returning no timestamps.")
         print(e)
