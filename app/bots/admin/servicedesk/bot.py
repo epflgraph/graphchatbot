@@ -32,6 +32,3 @@ class ServicedeskBot(AdminBot):
             "Your task is to answer questions from EPFL students, researchers or staff members."
         )
 
-    @property
-    def unrelated_note(self) -> str:
-        return "* For requests unrelated to EPFL IT or Service Desk topics, politely explain that you can only help with those topics."

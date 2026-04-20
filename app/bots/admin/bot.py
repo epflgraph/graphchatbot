@@ -47,7 +47,6 @@ class AdminBot(Bot):
 
     Subclasses may override:
         CATEGORIES              — to customise classification categories
-        unrelated_note: str     — extra bullet appended to general considerations
         build_tools()           — to add more tools or change tool logic entirely
         build_graph()           — to change the graph topology
     """
@@ -69,29 +68,21 @@ class AdminBot(Bot):
 * Never alter the information from the source documents. Copy fields exactly as they are.
 * Use Markdown links often. As their text, avoid placeholder words like "here" or "this link".
 * If the tools cannot provide an answer to the request, or they return an error, then just apologize and ask the user to rephrase their query.
-* If the request is subjective, do not use any tool. Instead, ask the user to rephrase it in an objective way."""
+* If the request is subjective, do not use any tool. Instead, ask the user to rephrase it in an objective way.
+* For requests unrelated to your domain, politely explain that you can only help with topics within your domain."""
 
     @property
     @abstractmethod
     def bot_introduction(self) -> str: ...
 
     @property
-    def unrelated_note(self) -> str:
-        return ""
-
-    @property
     def system_prompt(self) -> str:
         from app.bots.prompts import general_considerations
-
-        behavior = self._admin_behavior
-        if note := self.unrelated_note:
-            behavior += f'\n{note}'
-        behavior += f'\n{general_considerations()}'
 
         return '\n\n'.join([
             self.bot_introduction,
             f'# Format\n{self._admin_format}',
-            f'# General considerations\n{behavior}',
+            f'# General considerations\n{self._admin_behavior}\n{general_considerations()}',
         ])
 
     async def _search(self, query: str) -> list:

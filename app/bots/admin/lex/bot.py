@@ -35,10 +35,6 @@ class LexBot(AdminBot):
             "Your task is to answer questions from EPFL students, researchers or staff members."
         )
 
-    @property
-    def unrelated_note(self) -> str:
-        return "* For requests unrelated to EPFL Polylex or EPFL laws and regulations, politely explain that you can only help with those topics."
-
     def build_tools(self) -> list:
         return [
             tool(self.tool_name, description=self.tool_description)(self._search),
