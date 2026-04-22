@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from pathlib import Path
 from typing import Optional
 
 from langchain.tools import tool
@@ -9,7 +9,10 @@ from app.bots.base import Bot, BaseState
 from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
+from app.bots.prompts import general_considerations, resolve
 from app.interfaces.graphai import GraphAIClient
+
+_here = Path(__file__).parent
 
 
 class AdminState(BaseState):
@@ -43,7 +46,7 @@ class AdminBot(Bot):
         groups: list[str]
         tool_name: str          — name of the search tool exposed to the LLM
         tool_description: str   — docstring for the search tool
-        bot_introduction: str   — opening paragraph(s) for the system prompt
+        prompt.md               — opening paragraph(s) for the system prompt (auto-loaded as bot_introduction)
 
     Subclasses may override:
         CATEGORIES              — to customise classification categories
@@ -56,29 +59,11 @@ class AdminBot(Bot):
 
     CATEGORIES: dict = CATEGORIES
 
-    _admin_format = """\
-* Lay out urls as Markdown links.
-* The result should be a mix between text and Markdown links in a Wikipedia fashion.
-* Mix in the relevant resources from the tools in your response as Markdown links in-between the explanation, instead of everything at the end.
-* Include at least 5 inline links to resources in your answer.
-* Do not use words or phrases that express doubt or provide a subjective opinion."""
-
-    _admin_behavior = """\
-* Be proactive and helpful when you answer: Give specific suggestions about what you can do next in relation with your response.
-* Never alter the information from the source documents. Copy fields exactly as they are.
-* Use Markdown links often. As their text, avoid placeholder words like "here" or "this link".
-* If the tools cannot provide an answer to the request, or they return an error, then just apologize and ask the user to rephrase their query.
-* If the request is subjective, do not use any tool. Instead, ask the user to rephrase it in an objective way.
-* For requests unrelated to your domain, politely explain that you can only help with topics within your domain."""
-
-    @property
-    @abstractmethod
-    def bot_introduction(self) -> str: ...
+    _admin_format = resolve(_here / 'admin_format.md', root=_here)
+    _admin_behavior = resolve(_here / 'admin_behavior.md', root=_here)
 
     @property
     def system_prompt(self) -> str:
-        from app.bots.prompts import general_considerations
-
         return '\n\n'.join([
             self.bot_introduction,
             f'# Format\n{self._admin_format}',

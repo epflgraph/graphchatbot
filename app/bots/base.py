@@ -1,11 +1,14 @@
+import sys
 from abc import ABC, abstractmethod
 from functools import cached_property
+from pathlib import Path
 
 from langchain_openai import ChatOpenAI
 from langgraph.graph import MessagesState
 from langgraph.graph.state import CompiledStateGraph
 
 from app.config import config
+from app.bots.prompts import resolve
 
 
 class BaseState(MessagesState):
@@ -33,6 +36,15 @@ class Bot(ABC):
         request_timeout=60,
         stream_usage=True,
     )
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        module = sys.modules.get(cls.__module__)
+        if module and getattr(module, '__file__', None):
+            prompt_file = Path(module.__file__).parent / 'prompt.md'
+            if prompt_file.exists():
+                root = Path(__file__).parent  # app/bots/
+                cls.bot_introduction = resolve(prompt_file, root)
 
     @abstractmethod
     def build_graph(self) -> CompiledStateGraph: ...

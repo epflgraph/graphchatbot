@@ -28,3 +28,7 @@ venv
 
 # Jupyter-lab files
 **/.ipynb_checkpoints
+
+# AI developer tools
+AGENTS.md
+CLAUDE.md

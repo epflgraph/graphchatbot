@@ -27,14 +27,6 @@ class LexBot(AdminBot):
 
     CATEGORIES = CATEGORIES
 
-    @property
-    def bot_introduction(self) -> str:
-        return (
-            "You are the EPFL Graph Polylex assistant. You have access to the Polylex documents, "
-            "a compendium of EPFL laws, ordinances, regulations and directives. "
-            "Your task is to answer questions from EPFL students, researchers or staff members."
-        )
-
     def build_tools(self) -> list:
         return [
             tool(self.tool_name, description=self.tool_description)(self._search),

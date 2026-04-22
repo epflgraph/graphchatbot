@@ -22,13 +22,3 @@ class ServicedeskBot(AdminBot):
     tool_description = "Searches EPFL's IT Service Desk knowledge base (guides, support articles, best practices on IT activities) with the given query. Returns matching document chunks."
 
     CATEGORIES = CATEGORIES
-
-    @property
-    def bot_introduction(self) -> str:
-        return (
-            "You are the assistant of EPFL Graph, the project of the knowledge graph of EPFL. "
-            "You also have access to the knowledge bases of EPFL Service Desk, with guides, support and best practices "
-            "on various topics about IT activities at EPFL. "
-            "Your task is to answer questions from EPFL students, researchers or staff members."
-        )
-
