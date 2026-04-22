@@ -45,12 +45,14 @@ class Bot(ABC):
             prompt_file = Path(module.__file__).parent / 'prompt.md'
             if prompt_file.exists():
                 root = Path(__file__).parent  # app/bots/
-                today = datetime.now().strftime("%Y-%m-%d")
-                cls.prompt = resolve(prompt_file, root).format(today=today)
+                cls._prompt_template = resolve(prompt_file, root)
+
+    def prompt_context(self) -> dict:
+        return {'today': datetime.now().strftime("%Y-%m-%d")}
 
     @property
-    @abstractmethod
-    def prompt(self) -> str: ...
+    def prompt(self) -> str:
+        return self._prompt_template.format(**self.prompt_context())
 
     @abstractmethod
     def build_graph(self) -> CompiledStateGraph: ...

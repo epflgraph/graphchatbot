@@ -1,4 +1,3 @@
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -75,13 +74,12 @@ class CourseBot(Bot):
 
     _retrieval_template: str = resolve(_here / 'retrieval_prompt.md', root=_bots_root)
 
-    @property
-    def prompt(self) -> str:
-        return self._prompt_template.format(
-            course_name=self.course_name,
-            course_details=self.course_details,
-            today=datetime.now().strftime("%Y-%m-%d"),
-        )
+    def prompt_context(self) -> dict:
+        return {
+            **super().prompt_context(),
+            'course_name': self.course_name,
+            'course_details': self.course_details,
+        }
 
     @property
     def retrieval_notes(self) -> str:

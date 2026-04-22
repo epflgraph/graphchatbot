@@ -26,7 +26,9 @@ def resolve(file: Path, root: Path) -> str:
             )
         return resolve(fragment_file, root)
 
-    return re.sub(r'(?<!\{)\{(\w+)\}(?!\})', replacer, template).strip()
+    result = re.sub(r'(?<!\{)\{(\w+)\}(?!\})', replacer, template)
+    result = re.sub(r'\{\{(\w+)\}\}', r'{\1}', result)
+    return result.strip()
 
 
 def _find(name: str, start: Path, root: Path) -> Path | None:
