@@ -10,6 +10,7 @@ from app.bots.base import Bot, BaseState
 from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
+from app.bots.prompts import general_considerations
 from app.interfaces.graphai import GraphAIClient
 
 
@@ -88,8 +89,8 @@ class CourseBot(Bot):
         CATEGORIES
         pedagogical_instructions: str       — provided by HintingCourseBot / DirectCourseBot
         retrieval_notes: str                — extra instructions appended to retrieval prompt
-        system_prompt                       — override entirely if needed
-        retrieval_system_prompt             — override entirely if needed
+        prompt                              — override entirely if needed
+        retrieval_prompt                    — override entirely if needed
         build_tools()
         build_graph()
     """
@@ -111,9 +112,7 @@ class CourseBot(Bot):
         return ""
 
     @property
-    def system_prompt(self) -> str:
-        from app.bots.prompts import general_considerations
-
+    def prompt(self) -> str:
         parts = [
             f'You are a supportive AI tutor for "{self.course_name}", a course at EPFL. '
             f'Your goal is to help students by providing correct, precise, and concise answers.',
@@ -126,7 +125,7 @@ class CourseBot(Bot):
         return '\n\n'.join(parts)
 
     @property
-    def retrieval_system_prompt(self) -> str:
+    def retrieval_prompt(self) -> str:
         notes = self.retrieval_notes
         if notes:
             return RETRIEVAL_SYSTEM_PROMPT + f'\n\n# Course-specific notes\n{notes}'

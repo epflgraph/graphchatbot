@@ -63,7 +63,7 @@ class AdminBot(Bot):
     _admin_behavior = resolve(_here / 'admin_behavior.md', root=_here)
 
     @property
-    def system_prompt(self) -> str:
+    def prompt(self) -> str:
         return '\n\n'.join([
             self.bot_introduction,
             f'# Format\n{self._admin_format}',

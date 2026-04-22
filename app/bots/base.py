@@ -46,6 +46,10 @@ class Bot(ABC):
                 root = Path(__file__).parent  # app/bots/
                 cls.bot_introduction = resolve(prompt_file, root)
 
+    @property
+    @abstractmethod
+    def prompt(self) -> str: ...
+
     @abstractmethod
     def build_graph(self) -> CompiledStateGraph: ...
 
