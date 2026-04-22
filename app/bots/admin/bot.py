@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Optional
 
 from langchain.tools import tool
@@ -9,10 +8,7 @@ from app.bots.base import Bot, BaseState
 from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
-from app.bots.prompts import general_considerations, resolve
 from app.interfaces.graphai import GraphAIClient
-
-_here = Path(__file__).parent
 
 
 class AdminState(BaseState):
@@ -46,7 +42,7 @@ class AdminBot(Bot):
         groups: list[str]
         tool_name: str          — name of the search tool exposed to the LLM
         tool_description: str   — docstring for the search tool
-        prompt.md               — opening paragraph(s) for the system prompt (auto-loaded as bot_introduction)
+        prompt.md               — full system prompt template (auto-resolved at class creation)
 
     Subclasses may override:
         CATEGORIES              — to customise classification categories
@@ -58,17 +54,6 @@ class AdminBot(Bot):
     tool_description: str
 
     CATEGORIES: dict = CATEGORIES
-
-    _admin_format = resolve(_here / 'admin_format.md', root=_here)
-    _admin_behavior = resolve(_here / 'admin_behavior.md', root=_here)
-
-    @property
-    def prompt(self) -> str:
-        return '\n\n'.join([
-            self.bot_introduction,
-            f'# Format\n{self._admin_format}',
-            f'# General considerations\n{self._admin_behavior}\n{general_considerations()}',
-        ])
 
     async def _search(self, query: str) -> list:
         print(f"[{self.name.upper()} TOOL]", f"Called `{self.tool_name}` with query=`{query}`")

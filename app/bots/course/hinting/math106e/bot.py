@@ -1,8 +1,11 @@
+from pathlib import Path
 from typing import Annotated, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
 from app.bots.course.bot import HintingCourseBot
+
+_here = Path(__file__).parent
 
 
 class TheoryFilters(BaseModel):
@@ -57,73 +60,13 @@ class ToolInput(BaseModel):
     )
 
 
-COURSE_DETAILS = """
-# Analyse II
-
-## Informations générales
-
-- **Code :** MATH-106(e)
-- **Coefficient :** 6
-- **Enseignant :** [Lachowska Anna](https://people.epfl.ch/167946?lang=fr)
-- **Langue :** Français
-
-## Résumé
-
-Étudier les concepts fondamentaux d'analyse et le calcul différentiel et intégral des fonctions réelles de plusieurs variables.
-
-## Contenu
-
-- L'espace ℝⁿ
-- Calcul différentiel des fonctions à plusieurs variables
-- Intégrales multiples
-- Équations différentielles ordinaires
-- Méthodes de démonstration et arguments mathématiques
-
-## Acquis de formation
-
-- Appliquer avec aisance les compétences acquises en Analyse I
-- Maîtriser le calcul différentiel et intégral des fonctions de plusieurs variables
-- Maîtriser les équations différentielles élémentaires
-
-## Méthode d'évaluation
-
-Examen écrit
-
-## Ressources
-
-### Liens Moodle
-- https://go.epfl.ch/MATH-106_e
-
-### Vidéos
-- https://mediaspace.epfl.ch/channel/MATH-106%2528e%2529%2BAnalyse%2BII%2BIN_SC/30437
-
-## Plans d'études
-
-**Informatique** — Bachelor semestre 2, Printemps, Obligatoire.
-**Systèmes de communication** — Bachelor semestre 2, Printemps, Obligatoire.
-
-## Semaine de référence
-
-- **Lundi, 10h–12h:** Cours — CO1
-- **Mercredi, 10h–12h:** Cours — CO1
-- **Jeudi, 10h–12h:** Exercices / TP"""
-
-RETRIEVAL_NOTES = """\
-When the subtype is 'serie_entrainement', the sub_number MUST follow the N.M pattern:
-- 'Série entrainement 1, Q1.4' → subtype='serie_entrainement', number='1', sub_number='1.4'
-- 'Série entrainement 2, exo 1.1' → subtype='serie_entrainement', number='2', sub_number='1.1'
-- 'Série entrainement 1, 2ème QCM exo 1' → subtype='serie_entrainement', number='1', sub_number='2.1'"""
-
-
 class MATH106eBot(HintingCourseBot):
     name = 'MATH-106e'
     index = 'course_math106e'
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_math_106_e']
 
     course_name = 'MATH-106(e): Analyse II'
-    course_details = COURSE_DETAILS
+    course_details = (_here / 'coursebook.md').read_text().strip()
     tool_input_schema = ToolInput
 
-    @property
-    def retrieval_notes(self) -> str:
-        return RETRIEVAL_NOTES
+    retrieval_notes = (_here / 'retrieval_notes.md').read_text().strip()

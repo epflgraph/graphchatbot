@@ -1,5 +1,6 @@
 import sys
 from abc import ABC, abstractmethod
+from datetime import datetime
 from functools import cached_property
 from pathlib import Path
 
@@ -44,7 +45,8 @@ class Bot(ABC):
             prompt_file = Path(module.__file__).parent / 'prompt.md'
             if prompt_file.exists():
                 root = Path(__file__).parent  # app/bots/
-                cls.bot_introduction = resolve(prompt_file, root)
+                today = datetime.now().strftime("%Y-%m-%d")
+                cls.prompt = resolve(prompt_file, root).format(today=today)
 
     @property
     @abstractmethod
