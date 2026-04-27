@@ -103,32 +103,33 @@ app/
 │   │   ├── model.py
 │   │   └── tools.py
 │   ├── admin/               ← AdminBot (abstract, not registered)
-│   │   └── bot.py
+│   │   ├── bot.py
+│   │   ├── lex/
+│   │   │   └── bot.py       ← LexBot(AdminBot)
+│   │   ├── sac/
+│   │   │   └── bot.py       ← SacBot(AdminBot)
+│   │   ├── servicedesk/
+│   │   │   └── bot.py       ← ServicedeskBot(AdminBot)
+│   │   ├── cmi/
+│   │   │   └── bot.py       ← CMiBot(AdminBot)
+│   │   ├── cmi_restricted/
+│   │   │   └── bot.py       ← CMiRestrictedBot(AdminBot)
+│   │   └── plasma/
+│   │       └── bot.py       ← PlasmaBot(AdminBot)
 │   ├── course/              ← CourseBot, HintingCourseBot, DirectCourseBot (abstract, not registered)
-│   │   └── bot.py
-│   ├── graph_chat/          ← GraphChatBot (concrete, registered)
-│   │   └── bot.py
-│   ├── lex/
-│   │   └── bot.py           ← LexBot(AdminBot)
-│   ├── sac/
-│   │   └── bot.py           ← SacBot(AdminBot)
-│   ├── servicedesk/
-│   │   └── bot.py           ← ServicedeskBot(AdminBot)
-│   ├── cmi/
-│   │   └── bot.py           ← CMiBot(AdminBot)
-│   ├── cmi_restricted/
-│   │   └── bot.py           ← CMiRestrictedBot(AdminBot)
-│   ├── plasma/
-│   │   └── bot.py           ← PlasmaBot(AdminBot)
-│   ├── math240/
-│   │   └── bot.py           ← MATH240Bot(HintingCourseBot)
-│   ├── math261/
-│   │   └── bot.py           ← MATH261Bot(HintingCourseBot)
-│   ├── math106e/
-│   │   └── bot.py           ← MATH106eBot(HintingCourseBot)
-│   ├── cs500/
-│   │   └── bot.py           ← CS500Bot(DirectCourseBot)
-│   └── ...
+│   │   ├── bot.py
+│   │   ├── hinting/         ← HintingCourseBot subclasses
+│   │   │   ├── math240/
+│   │   │   │   └── bot.py   ← MATH240Bot(HintingCourseBot)
+│   │   │   ├── math261/
+│   │   │   │   └── bot.py   ← MATH261Bot(HintingCourseBot)
+│   │   │   └── math106e/
+│   │   │       └── bot.py   ← MATH106eBot(HintingCourseBot)
+│   │   └── direct/          ← DirectCourseBot subclasses
+│   │       └── cs500/
+│   │           └── bot.py   ← CS500Bot(DirectCourseBot)
+│   └── graph_chat/          ← GraphChatBot (concrete, registered)
+│       └── bot.py
 ```
 
 ---
