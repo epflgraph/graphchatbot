@@ -1,4 +1,4 @@
-#Format
+# Format
 - Lay out urls as Markdown links.
 - The result should be a mix between text and Markdown links in a Wikipedia fashion.
 - Mix in the relevant resources from the tools in your response as Markdown links in-between the explanation, instead of everything at the end.
