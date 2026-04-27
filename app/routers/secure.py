@@ -37,11 +37,11 @@ async def chat(chat_request: ChatRequest, user: Annotated[dict, Depends(get_user
 
     if chat_request.stream:
         return StreamingResponse(
-            agenerate_completion(chat_request.dict()),
+            agenerate_completion(chat_request.model_dump()),
             media_type="text/event-stream"
         )
     else:
-        return await generate_completion(chat_request.dict())
+        return await generate_completion(chat_request.model_dump())
 
 
 @router.post('/chat/completions_new')
@@ -56,11 +56,11 @@ async def chat_new(chat_request: ChatRequest, user: Annotated[dict, Depends(get_
 
     if chat_request.stream:
         return StreamingResponse(
-            bot_agenerate_completion(chat_request.dict(), bot),
+            bot_agenerate_completion(chat_request.model_dump(), bot),
             media_type="text/event-stream"
         )
     else:
-        return await bot_generate_completion(chat_request.dict(), bot)
+        return await bot_generate_completion(chat_request.model_dump(), bot)
 
 
 @router.get('/models')
