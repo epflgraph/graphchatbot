@@ -23,20 +23,24 @@ class Bot(ABC):
     groups: list[str]
 
     # Subclasses may override these
-    light_model: ChatOpenAI = ChatOpenAI(
-        base_url=config.get('rcp', {})['base_url'],
-        model='Qwen/Qwen3-30B-A3B-Instruct-2507',
-        openai_api_key=config.get('rcp', {})['api_key'],
-        request_timeout=60,
-        stream_usage=True,
-    )
     model: ChatOpenAI = ChatOpenAI(
-        base_url=config.get('rcp', {})['base_url'],
-        model='Qwen/Qwen3-30B-A3B-Instruct-2507',
-        openai_api_key=config.get('rcp', {})['api_key'],
-        request_timeout=60,
+        base_url=config.get("rcp", {})["base_url"],
+        model="Qwen/Qwen3.6-35B-A3B",
+        api_key=config.get("rcp", {})["api_key"],
+        timeout=60,
         stream_usage=True,
+        temperature=0.7,
+        top_p=0.8,
+        presence_penalty=1.5,
+        extra_body={
+            "top_k": 20,
+            "min_p": 0.0,
+            "repetition_penalty": 1.0,
+            "chat_template_kwargs": {"enable_thinking": False},
+        },
     )
+
+    light_model: ChatOpenAI = model
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
