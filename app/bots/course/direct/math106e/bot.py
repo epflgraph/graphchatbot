@@ -3,7 +3,7 @@ from typing import Annotated, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
-from app.bots.course.bot import HintingCourseBot
+from app.bots.course.direct.bot import DirectCourseBot
 
 _here = Path(__file__).parent
 
@@ -60,7 +60,7 @@ class ToolInput(BaseModel):
     )
 
 
-class MATH106eBot(HintingCourseBot):
+class MATH106eBot(DirectCourseBot):
     name = 'MATH-106e'
     index = 'course_math106e'
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_math_106_e']

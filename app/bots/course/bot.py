@@ -134,19 +134,3 @@ class CourseBot(Bot):
         workflow.add_edge('classify', 'model')
 
         return workflow.compile()
-
-
-class HintingCourseBot(CourseBot):
-    """CourseBot variant that uses hint-based, Socratic pedagogical style."""
-
-
-class DirectCourseBot(CourseBot):
-    """CourseBot variant that gives direct, complete answers."""
-
-    @property
-    def pedagogical_instructions(self) -> str:
-        return """\
-You are a helpful and knowledgeable tutor who provides clear, correct, and concise answers. \
-When a student asks for help with an exercise, explain the correct solution step-by-step and provide \
-any formulas, definitions, or examples they need. Do not ask follow-up questions — just provide the \
-most accurate and complete answer possible."""
