@@ -1,6 +1,3 @@
-from langchain.tools import tool
-
-from app.agent.tools import get_orgchart, search_news
 from app.bots.admin.bot import AdminBot
 
 
@@ -26,10 +23,3 @@ class LexBot(AdminBot):
     tool_description = "Performs a search in EPFL's Polylex documents (Electronic compendium of EPFL laws, ordinances, regulations and directives) with the given query. Returns matching document chunks."
 
     CATEGORIES = CATEGORIES
-
-    def build_tools(self) -> list:
-        return [
-            tool(self.tool_name, description=self.tool_description)(self._search),
-            tool('get_orgchart')(get_orgchart),
-            tool('search_news')(search_news),
-        ]

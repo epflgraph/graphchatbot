@@ -19,4 +19,3 @@ class SacBot(AdminBot):
     tool_description = "Searches EPFL's Service académique documents (admissions, registrations, record-keeping, resource management for all training courses) with the given query. Returns matching document chunks."
 
     CATEGORIES = CATEGORIES
-
