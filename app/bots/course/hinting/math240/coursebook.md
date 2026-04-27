@@ -1,3 +1,6 @@
+# Coursebook
+
+```
 # Statistique
 
 ## Course information
@@ -49,3 +52,4 @@ Examen écrit.
 
 - **Monday, 10:00–12:00:** Exercise — CM5
 - **Tuesday, 13:00–15:00:** Lecture — AAC231
+```

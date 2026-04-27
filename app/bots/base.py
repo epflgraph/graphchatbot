@@ -42,14 +42,12 @@ class Bot(ABC):
 
     light_model: ChatOpenAI = model
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        module = sys.modules.get(cls.__module__)
-        if module and getattr(module, '__file__', None):
-            prompt_file = Path(module.__file__).parent / 'prompt.md'
-            if prompt_file.exists():
-                root = Path(__file__).parent  # app/bots/
-                cls._prompt_template = resolve(prompt_file, root)
+    @cached_property
+    def _prompt_template(self) -> str:
+        module = sys.modules[type(self).__module__]
+        cls_dir = Path(module.__file__).parent
+        root = Path(__file__).parent  # app/bots/
+        return resolve('prompt', cls_dir, root)
 
     def prompt_context(self) -> dict:
         return {'today': datetime.now().strftime("%Y-%m-%d")}

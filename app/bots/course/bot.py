@@ -55,8 +55,6 @@ class CourseBot(Bot):
         index: str
         groups: list[str]
         tool_input_schema: type[BaseModel]  — ToolInput with course-specific filters
-        course_name: str                    — e.g. "MATH-240: Statistics"
-        course_details: str                 — loaded from coursebook.md in the bot's directory
 
     Subclasses may override:
         CATEGORIES
@@ -67,19 +65,10 @@ class CourseBot(Bot):
     """
 
     tool_input_schema: type[BaseModel]
-    course_name: str
-    course_details: str
 
     CATEGORIES: dict = CATEGORIES
 
-    _retrieval_template: str = resolve(_here / 'retrieval_prompt.md', root=_bots_root)
-
-    def prompt_context(self) -> dict:
-        return {
-            **super().prompt_context(),
-            'course_name': self.course_name,
-            'course_details': self.course_details,
-        }
+    _retrieval_template: str = resolve('retrieval_prompt', _here, _bots_root)
 
     @property
     def retrieval_notes(self) -> str:
@@ -149,7 +138,6 @@ class CourseBot(Bot):
 
 class HintingCourseBot(CourseBot):
     """CourseBot variant that uses hint-based, Socratic pedagogical style."""
-    _prompt_template: str = resolve(_here / 'hinting' / 'prompt.md', root=_bots_root)
 
 
 class DirectCourseBot(CourseBot):

@@ -64,9 +64,6 @@ class MATH106eBot(HintingCourseBot):
     name = 'MATH-106e'
     index = 'course_math106e'
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_math_106_e']
-
-    course_name = 'MATH-106(e): Analyse II'
-    course_details = (_here / 'coursebook.md').read_text().strip()
     tool_input_schema = ToolInput
 
     retrieval_notes = (_here / 'retrieval_notes.md').read_text().strip()

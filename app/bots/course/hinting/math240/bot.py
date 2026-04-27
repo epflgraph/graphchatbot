@@ -44,7 +44,4 @@ class MATH240Bot(HintingCourseBot):
     name = 'MATH-240'
     index = 'course_math240'
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_math_240']
-
-    course_name = 'MATH-240: Statistics'
-    course_details = (_here / 'coursebook.md').read_text().strip()
     tool_input_schema = ToolInput

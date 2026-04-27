@@ -2,29 +2,27 @@ import re
 from pathlib import Path
 
 
-def resolve(file: Path, root: Path) -> str:
+def resolve(name: str, path: Path, root: Path) -> str:
     """
-    Load `file` and recursively expand `{name}` placeholders.
+    Find `{name}.md` by searching from `path` up to `root`, then load and
+    recursively expand `{placeholder}` patterns within it.
 
-    For each `{name}` found, searches for `name.md` starting from the
-    file's directory and walking up to `root`. Raises FileNotFoundError
-    if no matching file is found.
+    For each `{placeholder}` found, searches for `placeholder.md` using the
+    same `path` and `root`. Raises FileNotFoundError if any file is not found.
 
-    Use double braces `{{name}}` for dynamic placeholders that should
-    be filled in later (e.g. via str.format at request time); they are
-    passed through as `{name}` in the output.
+    Use double braces `{{placeholder}}` for dynamic values to be filled in
+    later via str.format; they are passed through as `{placeholder}`.
     """
+    file = _find(name, start=path, root=root)
+    if file is None:
+        raise FileNotFoundError(
+            f"No '{name}.md' found (searched from '{path}' up to '{root}')"
+        )
     template = file.read_text()
 
     def replacer(match: re.Match) -> str:
-        name = match.group(1)
-        fragment_file = _find(name, start=file.parent, root=root)
-        if fragment_file is None:
-            raise FileNotFoundError(
-                f"No '{name}.md' found for placeholder '{{{name}}}' "
-                f"in '{file}' (searched from '{file.parent}' up to '{root}')"
-            )
-        return resolve(fragment_file, root)
+        placeholder = match.group(1)
+        return resolve(placeholder, path, root)
 
     result = re.sub(r'(?<!\{)\{(\w+)\}(?!\})', replacer, template)
     result = re.sub(r'\{\{(\w+)\}\}', r'{\1}', result)
