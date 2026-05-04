@@ -5,6 +5,7 @@ from typing import AsyncGenerator
 
 from langfuse import Langfuse
 from langfuse.langchain import CallbackHandler
+from openai.types.chat.completion_create_params import CompletionCreateParams
 
 from app.bots.base import Bot
 from app.config import config
@@ -19,7 +20,7 @@ langfuse = Langfuse(
 MODEL_NODES = ('model',)
 
 
-async def generate_completion(chat_request: dict, bot: Bot) -> dict:
+async def generate_completion(chat_request: CompletionCreateParams, bot: Bot) -> dict:
     print('[BOTS]', f"Received non-streaming request for bot `{bot.name}` with last message `{chat_request['messages'][-1]['content']}`")
 
     agent_input = {'messages': chat_request['messages']}
@@ -40,7 +41,7 @@ async def generate_completion(chat_request: dict, bot: Bot) -> dict:
     }
 
 
-async def agenerate_completion(chat_request: dict, bot: Bot) -> AsyncGenerator:
+async def agenerate_completion(chat_request: CompletionCreateParams, bot: Bot) -> AsyncGenerator:
     print('[BOTS]', f"Received streaming request for bot `{bot.name}` with last message `{chat_request['messages'][-1]['content']}`")
 
     agent_input = {'messages': chat_request['messages']}

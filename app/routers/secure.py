@@ -3,9 +3,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
+from openai.types.chat.completion_create_params import CompletionCreateParams
+
 from app.auth import get_user, get_admin, get_api_key, generate_api_key, insert_api_keys
 from app.schemas import ChatRequest
-
 from app.integrations import IntegrationConfig
 
 from app.agent import generate_completion, agenerate_completion
@@ -45,22 +46,22 @@ async def chat(chat_request: ChatRequest, user: Annotated[dict, Depends(get_user
 
 
 @router.post('/chat/completions_new')
-async def chat_new(chat_request: ChatRequest, user: Annotated[dict, Depends(get_user)]):
-    bot = bot_registry.get(chat_request.model)
+async def chat_new(chat_request: CompletionCreateParams, user: Annotated[dict, Depends(get_user)]):
+    bot = bot_registry.get(chat_request['model'])
     if bot is None:
-        raise HTTPException(status_code=404, detail=f"Bot '{chat_request.model}' not found")
+        raise HTTPException(status_code=404, detail=f"Bot '{chat_request['model']}' not found")
 
     if bot.groups and len(set(bot.groups) & set(user['groups'])) == 0:
-        print('[AUTH]', f"User {user} doesn't have access to bot {chat_request.model}")
+        print('[AUTH]', f"User {user} doesn't have access to bot {chat_request['model']}")
         raise HTTPException(status_code=403, detail="Missing or invalid API key")
 
-    if chat_request.stream:
+    if chat_request.get('stream'):
         return StreamingResponse(
-            bot_agenerate_completion(chat_request.model_dump(), bot),
+            bot_agenerate_completion(chat_request, bot),
             media_type="text/event-stream"
         )
     else:
-        return await bot_generate_completion(chat_request.model_dump(), bot)
+        return await bot_generate_completion(chat_request, bot)
 
 
 @router.get('/models')
