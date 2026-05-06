@@ -19,6 +19,5 @@ class ServicedeskBot(AdminBot):
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'graph-rag-servicedesk', 'SI-ServiceDesk-Niv1']
 
     tool_name = 'search_servicedesk'
-    tool_description = "Searches EPFL's IT Service Desk knowledge base (guides, support articles, best practices on IT activities) with the given query. Returns matching document chunks."
 
     CATEGORIES = CATEGORIES

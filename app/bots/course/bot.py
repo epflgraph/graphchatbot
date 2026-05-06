@@ -1,3 +1,4 @@
+import inspect
 from pathlib import Path
 from typing import Optional
 
@@ -13,8 +14,7 @@ from app.bots.nodes.tools import make_tools_node
 from app.bots.prompts import resolve
 from app.interfaces.graphai import GraphAIClient
 
-_here = Path(__file__).parent
-_bots_root = _here.parent
+_bots_root = Path(__file__).parent.parent
 
 
 class CourseState(BaseState):
@@ -58,8 +58,6 @@ class CourseBot(Bot):
 
     Subclasses may override:
         CATEGORIES
-        retrieval_notes: str                — extra instructions appended to retrieval prompt
-        retrieval_prompt                    — override entirely if needed
         build_tools()
         build_graph()
     """
@@ -68,26 +66,9 @@ class CourseBot(Bot):
 
     CATEGORIES: dict = CATEGORIES
 
-    _retrieval_template: str = resolve('retrieval_prompt', _here, _bots_root)
-
-    @property
-    def retrieval_notes(self) -> str:
-        return ""
-
-    @property
-    def retrieval_prompt(self) -> str:
-        notes = self.retrieval_notes
-        if notes:
-            return self._retrieval_template + f'\n\n# Course-specific notes\n{notes}'
-        return self._retrieval_template
-
     # --- Tools ---
 
     async def search_course_material(self, query: str, filters) -> list:
-        """
-        Searches the course material with the given query and filters.
-        Returns a list of document chunks that best match the query while satisfying the filters.
-        """
         if isinstance(filters, BaseModel):
             filters_dict = filters.model_dump(exclude_none=True)
         elif isinstance(filters, dict):
@@ -121,7 +102,9 @@ class CourseBot(Bot):
         ]
 
     def build_tools(self) -> list:
-        return [tool('search_course_material', args_schema=self.tool_input_schema)(self.search_course_material)]
+        subclass_dir = Path(inspect.getfile(type(self))).parent
+        description = resolve('tool_description', subclass_dir, _bots_root)
+        return [tool('search_course_material', args_schema=self.tool_input_schema, description=description)(self.search_course_material)]
 
     def build_graph(self) -> CompiledStateGraph:
         tools = self.build_tools()

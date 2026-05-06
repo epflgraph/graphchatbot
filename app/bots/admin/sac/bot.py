@@ -16,6 +16,5 @@ class SacBot(AdminBot):
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'graph-rag-sac']
 
     tool_name = 'search_sac'
-    tool_description = "Searches EPFL's Service académique documents (admissions, registrations, record-keeping, resource management for all training courses) with the given query. Returns matching document chunks."
 
     CATEGORIES = CATEGORIES

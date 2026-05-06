@@ -1,11 +1,8 @@
-from pathlib import Path
 from typing import Annotated, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
 from app.bots.course.hinting.bot import HintingCourseBot
-
-_here = Path(__file__).parent
 
 
 class TheoryFilters(BaseModel):

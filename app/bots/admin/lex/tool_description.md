@@ -1,0 +1,1 @@
+Performs a search in EPFL's Polylex documents (Electronic compendium of EPFL laws, ordinances, regulations and directives) with the given query. Returns matching document chunks.

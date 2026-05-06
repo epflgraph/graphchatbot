@@ -1,3 +1,5 @@
+import inspect
+from pathlib import Path
 from typing import Optional
 
 from langchain.tools import tool
@@ -8,7 +10,10 @@ from app.bots.base import Bot, BaseState
 from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
+from app.bots.prompts import resolve
 from app.interfaces.graphai import GraphAIClient
+
+_bots_root = Path(__file__).parent.parent
 
 
 class AdminState(BaseState):
@@ -41,7 +46,6 @@ class AdminBot(Bot):
         index: str
         groups: list[str]
         tool_name: str          — name of the search tool exposed to the LLM
-        tool_description: str   — docstring for the search tool
         prompt.md               — full system prompt template (auto-resolved at class creation)
 
     Subclasses may override:
@@ -51,7 +55,6 @@ class AdminBot(Bot):
     """
 
     tool_name: str
-    tool_description: str
 
     CATEGORIES: dict = CATEGORIES
 
@@ -62,7 +65,9 @@ class AdminBot(Bot):
         return results
 
     def build_tools(self) -> list:
-        return [tool(self.tool_name, description=self.tool_description)(self._search)]
+        subclass_dir = Path(inspect.getfile(type(self))).parent
+        description = resolve('tool_description', subclass_dir, _bots_root)
+        return [tool(self.tool_name, description=description)(self._search)]
 
     def build_graph(self) -> CompiledStateGraph:
         tools = self.build_tools()

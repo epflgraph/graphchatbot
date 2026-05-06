@@ -1,11 +1,8 @@
-from pathlib import Path
 from typing import Annotated, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
 from app.bots.course.direct.bot import DirectCourseBot
-
-_here = Path(__file__).parent
 
 
 class TheoryFilters(BaseModel):
@@ -65,5 +62,3 @@ class MATH106eBot(DirectCourseBot):
     index = 'course_math106e'
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_math_106_e']
     tool_input_schema = ToolInput
-
-    retrieval_notes = (_here / 'retrieval_notes.md').read_text().strip()

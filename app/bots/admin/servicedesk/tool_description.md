@@ -1,0 +1,1 @@
+Searches EPFL's IT Service Desk knowledge base (guides, support articles, best practices on IT activities) with the given query. Returns matching document chunks.

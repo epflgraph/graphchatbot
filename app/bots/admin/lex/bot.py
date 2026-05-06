@@ -20,6 +20,5 @@ class LexBot(AdminBot):
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'graph-rag-lex']
 
     tool_name = 'search_lex'
-    tool_description = "Performs a search in EPFL's Polylex documents (Electronic compendium of EPFL laws, ordinances, regulations and directives) with the given query. Returns matching document chunks."
 
     CATEGORIES = CATEGORIES
