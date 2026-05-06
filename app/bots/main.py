@@ -21,9 +21,10 @@ MODEL_NODES = ('model',)
 
 
 async def generate_completion(chat_request: CompletionCreateParams, bot: Bot) -> dict:
-    print('[BOTS]', f"Received non-streaming request for bot `{bot.name}` with last message `{chat_request['messages'][-1]['content']}`")
+    messages = list(chat_request['messages'])
+    print('[BOTS]', f"Received non-streaming request for bot `{bot.name}` with last message `{messages[-1]['content']}`")
 
-    agent_input = {'messages': chat_request['messages']}
+    agent_input = {'messages': messages}
     agent_config = {
         'callbacks': [CallbackHandler()],
         'metadata': {'langfuse_tags': [bot.name]},
@@ -42,9 +43,10 @@ async def generate_completion(chat_request: CompletionCreateParams, bot: Bot) ->
 
 
 async def agenerate_completion(chat_request: CompletionCreateParams, bot: Bot) -> AsyncGenerator:
-    print('[BOTS]', f"Received streaming request for bot `{bot.name}` with last message `{chat_request['messages'][-1]['content']}`")
+    messages = list(chat_request['messages'])
+    print('[BOTS]', f"Received streaming request for bot `{bot.name}` with last message `{messages[-1]['content']}`")
 
-    agent_input = {'messages': chat_request['messages']}
+    agent_input = {'messages': messages}
     agent_config = {
         'callbacks': [CallbackHandler()],
         'metadata': {'langfuse_tags': [bot.name]},

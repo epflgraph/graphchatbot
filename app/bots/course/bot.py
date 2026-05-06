@@ -114,7 +114,7 @@ class CourseBot(Bot):
                 'content.en': r.get('content.en'),
                 'associated_video_lectures': [
                     {'title': v.get('title'), 'url': v.get('original_link')}
-                    for v in r.get('associated_video_lectures', [])
+                    for v in (r.get('associated_video_lectures') or [])
                 ] or None,
             }.items() if v is not None}
             for r in results
