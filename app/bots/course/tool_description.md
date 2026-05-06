@@ -21,3 +21,5 @@ Query rules:
 - query must always be included, either with content or as an empty string (query="").
 - Never set a filter field to None. Omit the field entirely if not needed.
 - You have exactly one opportunity to make tool calls: REQUEST ALL IN PARALLEL IN ONE SINGLE MESSAGE.
+
+{tool_notes}
