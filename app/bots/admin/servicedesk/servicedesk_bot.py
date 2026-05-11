@@ -1,4 +1,4 @@
-from app.bots.admin.bot import AdminBot
+from app.bots.admin.admin_bot import AdminBot
 
 
 CATEGORIES = {

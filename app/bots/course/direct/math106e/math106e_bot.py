@@ -2,7 +2,7 @@ from typing import Annotated, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
-from app.bots.course.direct.bot import DirectCourseBot
+from app.bots.course.direct.direct_bot import DirectCourseBot
 
 
 class TheoryFilters(BaseModel):

@@ -1,9 +1,13 @@
+import logging
+
 from langchain_core.messages import SystemMessage
 from langgraph.graph import END
 from langgraph.runtime import Runtime
 from langgraph.types import Command
 
 from app.bots.base import Bot
+
+logger = logging.getLogger(__name__)
 
 
 def make_model_node(tools: list):
@@ -25,7 +29,7 @@ def make_model_node(tools: list):
 
         messages = [SystemMessage(content=bot.prompt)] + state['messages']
 
-        print('[MODEL]', f"Calling LLM with {len(tools) if force_tools else 0} tool(s), force_tools={force_tools}")
+        logger.info(f"Calling LLM with {len(tools) if force_tools else 0} tool(s), force_tools={force_tools}")
         ai_message = await model.ainvoke(messages)
 
         if ai_message.tool_calls:

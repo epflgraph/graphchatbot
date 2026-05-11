@@ -1,4 +1,5 @@
 import inspect
+import logging
 from pathlib import Path
 
 from langchain.tools import tool
@@ -12,6 +13,8 @@ from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
 from app.bots.prompts import resolve
 from app.interfaces.graphai import GraphAIClient
+
+logger = logging.getLogger(__name__)
 
 _bots_root = Path(__file__).parent.parent
 
@@ -70,11 +73,11 @@ class CourseBot(Bot):
         else:
             filters_dict = {}
 
-        print(f"[{self.name.upper()} TOOL]", f"query=`{query}` filters=`{filters_dict}`")
+        logger.info(f"query=`{query}` filters=`{filters_dict}`")
 
         results = await GraphAIClient().rag_retrieve(index=self.index, texts=[query], filters=filters_dict)
 
-        print(f"[{self.name.upper()} TOOL]", f"Retrieved {len(results)} chunks.")
+        logger.info(f"Retrieved {len(results)} chunks.")
 
         return [
             {k: v for k, v in {

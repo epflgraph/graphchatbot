@@ -2,7 +2,7 @@ from typing import Annotated, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
-from app.bots.course.hinting.bot import HintingCourseBot
+from app.bots.course.hinting.hinting_bot import HintingCourseBot
 
 
 class TheoryFilters(BaseModel):

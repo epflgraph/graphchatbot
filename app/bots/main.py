@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import time
 from typing import AsyncGenerator
 
@@ -9,6 +10,8 @@ from openai.types.chat.completion_create_params import CompletionCreateParams
 
 from app.bots.base import Bot
 from app.config import config
+
+logger = logging.getLogger(__name__)
 
 langfuse = Langfuse(
     host=config.get('langfuse', {}).get('host'),
@@ -22,7 +25,7 @@ MODEL_NODES = ('model',)
 
 async def generate_completion(chat_request: CompletionCreateParams, bot: Bot) -> dict:
     messages = list(chat_request['messages'])
-    print('[BOTS]', f"Received non-streaming request for bot `{bot.name}` with last message `{messages[-1]['content']}`")
+    logger.info(f"Received non-streaming request for bot `{bot.name}` with last message `{messages[-1]['content']}`")
 
     agent_input = {'messages': messages}
     agent_config = {
@@ -44,7 +47,7 @@ async def generate_completion(chat_request: CompletionCreateParams, bot: Bot) ->
 
 async def agenerate_completion(chat_request: CompletionCreateParams, bot: Bot) -> AsyncGenerator:
     messages = list(chat_request['messages'])
-    print('[BOTS]', f"Received streaming request for bot `{bot.name}` with last message `{messages[-1]['content']}`")
+    logger.info(f"Received streaming request for bot `{bot.name}` with last message `{messages[-1]['content']}`")
 
     agent_input = {'messages': messages}
     agent_config = {
@@ -78,8 +81,8 @@ async def agenerate_completion(chat_request: CompletionCreateParams, bot: Bot) -
                 yield f"data: {json.dumps(chunk)}\n\n"
 
     except asyncio.CancelledError:
-        print('[BOTS]', "Client disconnected, stream cancelled")
+        logger.warning("Client disconnected, stream cancelled")
     except Exception as e:
-        print('[BOTS]', e)
+        logger.exception(e)
     finally:
         yield "data: [DONE]\n\n"

@@ -1,3 +1,4 @@
+import logging
 from typing import Literal
 
 from pydantic import BaseModel
@@ -6,6 +7,8 @@ from langgraph.runtime import Runtime
 
 from app.bots.base import Bot
 from app.llms import build_prompt_from_message_list, generate_structured_response
+
+logger = logging.getLogger(__name__)
 
 
 def make_classify_node(categories: dict[str, dict]):
@@ -34,7 +37,7 @@ The possible categories are the following:
             category: Literal[*list(categories.keys())]
 
         result = await generate_structured_response(bot.light_model, system_prompt, human_prompt, Category)
-        print('[CLASSIFY]', f"Classified as `{result.category}`")
+        logger.info(f"Classified as `{result.category}`")
 
         return {
             'category': result.category,

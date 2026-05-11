@@ -1,4 +1,5 @@
 import inspect
+import logging
 from pathlib import Path
 
 from langchain.tools import tool
@@ -11,6 +12,8 @@ from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
 from app.bots.prompts import resolve
 from app.interfaces.graphai import GraphAIClient
+
+logger = logging.getLogger(__name__)
 
 _bots_root = Path(__file__).parent.parent
 
@@ -53,9 +56,9 @@ class AdminBot(Bot):
     CATEGORIES: dict = CATEGORIES
 
     async def _search(self, query: str) -> list:
-        print(f"[{self.name.upper()} TOOL]", f"Called `{self.tool_name}` with query=`{query}`")
+        logger.info(f"Called `{self.tool_name}` with query=`{query}`")
         results = await GraphAIClient().rag_retrieve(index=self.index, texts=[query])
-        print(f"[{self.name.upper()} TOOL]", f"Retrieved {len(results)} chunks.")
+        logger.info(f"Retrieved {len(results)} chunks.")
         return results
 
     def build_tools(self) -> list:

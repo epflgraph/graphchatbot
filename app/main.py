@@ -13,6 +13,10 @@ from app.routers import secure, public
 
 from app.agent import init_agent
 from app.bots import registry as bot_registry
+from app.logging_config import setup_logging
+
+
+setup_logging()
 
 
 @asynccontextmanager

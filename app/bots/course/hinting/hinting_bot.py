@@ -1,4 +1,4 @@
-from app.bots.course.bot import CourseBot
+from app.bots.course.course_bot import CourseBot
 
 
 class HintingCourseBot(CourseBot):
