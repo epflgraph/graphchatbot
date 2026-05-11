@@ -1,9 +1,12 @@
+import logging
 import time
 
 import aiohttp
 import asyncio
 
 from app.config import config
+
+logger = logging.getLogger(__name__)
 
 
 class GraphAIClient:
@@ -41,10 +44,10 @@ class GraphAIClient:
                     try:
                         self.bearer_token = result["access_token"]
                     except KeyError:
-                        print(result)
+                        logger.error(f"Unexpected authentication response: {result}")
 
             except asyncio.TimeoutError:
-                print('[GAC CLIENT]', "Request to authenticate timed out, subsequent requests will more likely fail.")
+                logger.warning("Request to authenticate timed out, subsequent requests will more likely fail.")
 
     async def call_async_endpoint(self, endpoint, payload, timeout=10, verbose=False):
         # Make sure we are authenticated
@@ -58,7 +61,7 @@ class GraphAIClient:
                 response = await resp.json()
 
             if verbose:
-                print(response)
+                logger.debug(response)
 
             task_id = response["task_id"]
 
@@ -70,7 +73,7 @@ class GraphAIClient:
                     response = await resp.json()
 
                 if verbose:
-                    print(response)
+                    logger.debug(response)
 
                 # If result is available, return it
                 if response.get("task_result") is not None:
@@ -78,12 +81,12 @@ class GraphAIClient:
 
                 # If status is FAILURE, return immediately
                 if response.get("task_status") == "FAILURE":
-                    print(response)
+                    logger.error(f"Task failed: {response}")
                     return None
 
                 # Stop if timeout is reached
                 if time.time() > limit_time:
-                    print(f"Timeout reached for payload {payload}")
+                    logger.warning(f"Timeout reached for payload {payload}")
                     break
 
                 # Wait before next iteration
@@ -108,11 +111,11 @@ class GraphAIClient:
                     response = await resp.json()
 
                     if verbose:
-                        print(response)
+                        logger.debug(response)
 
                     return response
             except asyncio.TimeoutError:
-                print('[GAC CLIENT]', f"Request to {endpoint} timed out after {timeout} seconds, returning None")
+                logger.warning(f"Request to {endpoint} timed out after {timeout} seconds, returning None")
                 return None
 
     async def rag_retrieve(self, index: str, texts: list[str], limit: int = 10, filters: dict = None):
@@ -136,12 +139,12 @@ class GraphAIClient:
         try:
             response = await self.call_sync_endpoint(endpoint='/rag/retrieve', payload=payload)
         except Exception as e:
-            print('[GAC CLIENT]', f"Error retrieving document chunks: {e}")
+            logger.exception(f"Error retrieving document chunks: {e}")
             return []
 
         # Return empty if response is not marked as successful
         if not response.get('successful'):
-            print('[GAC CLIENT]', f"Unsuccessful retrieval of chunks: {response.get('result', [])}")
+            logger.warning(f"Unsuccessful retrieval of chunks: {response.get('result', [])}")
             return []
 
         return response.get('result', [])
@@ -170,12 +173,12 @@ class GraphAIClient:
             try:
                 response = self.call_sync_endpoint(endpoint='/rag/retrieve', payload=payload)
             except Exception as e:
-                print('[GAC CLIENT]', f"Error retrieving document chunks: {e}")
+                logger.exception(f"Error retrieving document chunks: {e}")
                 continue
 
             # Return empty if response is not marked as successful
             if not response.get('successful'):
-                print('[GAC CLIENT]', f"Unsuccessful retrieval of chunks: {response.get('result', [])}")
+                logger.warning(f"Unsuccessful retrieval of chunks: {response.get('result', [])}")
                 continue
 
             # Store the results to aggregate them later

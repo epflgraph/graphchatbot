@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -13,6 +14,7 @@ from app.agent import generate_completion, agenerate_completion
 from app.bots import registry as bot_registry
 from app.bots.main import generate_completion as bot_generate_completion, agenerate_completion as bot_agenerate_completion
 
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -33,7 +35,7 @@ async def chat(chat_request: ChatRequest, user: Annotated[dict, Depends(get_user
     # Check if user has access to the integration in the request
     integration = IntegrationConfig.from_name(chat_request.model)   # defaults to 'graph-chat'
     if integration.groups and len(set(integration.groups) & set(user['groups'])) == 0:
-        print('[AUTH]', f"User {user} doesn't have access to integration {chat_request.model}")
+        logger.warning(f"User {user} doesn't have access to integration {chat_request.model}")
         raise HTTPException(status_code=403, detail="Missing or invalid API key")
 
     if chat_request.stream:
@@ -52,7 +54,7 @@ async def chat_new(chat_request: CompletionCreateParams, user: Annotated[dict, D
         raise HTTPException(status_code=404, detail=f"Bot '{chat_request['model']}' not found")
 
     if bot.groups and len(set(bot.groups) & set(user['groups'])) == 0:
-        print('[AUTH]', f"User {user} doesn't have access to bot {chat_request['model']}")
+        logger.warning(f"User {user} doesn't have access to bot {chat_request['model']}")
         raise HTTPException(status_code=403, detail="Missing or invalid API key")
 
     if chat_request.get('stream'):
@@ -92,7 +94,7 @@ async def models(user: Annotated[dict, Depends(get_user)]):
 
 @router.get('/users')
 async def users(sciper: str, email: str, admin: Annotated[dict, Depends(get_admin)]):
-    print('[USERS]', f"Accepted request for api key for sciper={sciper} and email={email}")
+    logger.info(f"Accepted request for api key for sciper={sciper} and email={email}")
 
     # Fetch api key if it exists
     api_key = get_api_key(sciper, email)

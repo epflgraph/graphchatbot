@@ -1,7 +1,11 @@
+import logging
+
 from langchain_core.messages import (
     SystemMessage,
     HumanMessage,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def build_prompt_from_message_list(messages):
@@ -38,8 +42,7 @@ async def generate_structured_response(model, system_prompt, human_prompt, pydan
     try:
         result = await model.ainvoke(input=input_messages)
     except Exception as e:
-        print('[PREMODEL]', "ERROR: Feedback call failed")
-        print('[PREMODEL]', e)
+        logger.exception("Structured response call failed")
         return
 
     return result
