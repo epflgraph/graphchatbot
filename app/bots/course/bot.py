@@ -1,13 +1,12 @@
 import inspect
 from pathlib import Path
-from typing import Optional
 
 from langchain.tools import tool
 from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from pydantic import BaseModel
 
-from app.bots.base import Bot, BaseState
+from app.bots.base import Bot, BotState
 from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
@@ -15,11 +14,6 @@ from app.bots.prompts import resolve
 from app.interfaces.graphai import GraphAIClient
 
 _bots_root = Path(__file__).parent.parent
-
-
-class CourseState(BaseState):
-    category: Optional[str]
-    force_tools: bool
 
 
 CATEGORIES = {
@@ -109,7 +103,7 @@ class CourseBot(Bot):
     def build_graph(self) -> CompiledStateGraph:
         tools = self.build_tools()
 
-        workflow = StateGraph(CourseState, context_schema=Bot)
+        workflow = StateGraph(BotState, context_schema=Bot)
         workflow.add_node('classify', make_classify_node(self.CATEGORIES))
         workflow.add_node('model', make_model_node(tools))
         workflow.add_node('tools', make_tools_node(tools, back_to='model'))

@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from functools import cached_property
 from pathlib import Path
+from typing import Optional
 
 from langchain_openai import ChatOpenAI
 from langgraph.graph import MessagesState
@@ -12,9 +13,9 @@ from app.config import config
 from app.bots.prompts import resolve
 
 
-class BaseState(MessagesState):
-    """Minimal state shared by all bots. Extend this in bot classes that need extra fields."""
-    pass
+class BotState(MessagesState):
+    category: Optional[str]
+    force_tools: bool
 
 
 class Bot(ABC):
