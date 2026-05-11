@@ -53,14 +53,14 @@ Bot  (base class)
 │   ├── PlasmaBot
 │   ├── SacBot
 │   ├── ServicedeskBot
-│   └── LexBot           ← overrides CATEGORIES and build_tools (multi-tool)
+│   └── LexBot           ← overrides CATEGORIES
 ├── CourseBot            ← course tutors; provides graph, search_course_material, CATEGORIES
 │   ├── HintingCourseBot ← hint-based pedagogical style
 │   │   ├── MATH240Bot
 │   │   ├── MATH261Bot
-│   │   ├── MATH106eBot
 │   │   └── ...
 │   └── DirectCourseBot  ← direct/explanatory pedagogical style
+│       ├── MATH106eBot
 │       ├── CS500Bot
 │       └── ...
 └── GraphChatBot         ← EPFL knowledge graph; single concrete bot
@@ -121,11 +121,11 @@ app/
 │   │   ├── hinting/         ← HintingCourseBot subclasses
 │   │   │   ├── math240/
 │   │   │   │   └── bot.py   ← MATH240Bot(HintingCourseBot)
-│   │   │   ├── math261/
-│   │   │   │   └── bot.py   ← MATH261Bot(HintingCourseBot)
-│   │   │   └── math106e/
-│   │   │       └── bot.py   ← MATH106eBot(HintingCourseBot)
+│   │   │   └── math261/
+│   │   │       └── bot.py   ← MATH261Bot(HintingCourseBot)
 │   │   └── direct/          ← DirectCourseBot subclasses
+│   │       ├── math106e/
+│   │       │   └── bot.py   ← MATH106eBot(DirectCourseBot)
 │   │       └── cs500/
 │   │           └── bot.py   ← CS500Bot(DirectCourseBot)
 │   └── graph_chat/          ← GraphChatBot (concrete, registered)
@@ -138,8 +138,6 @@ app/
 - Tool logic is implemented once on the parent bot class; subclasses declare only what varies
 - `AdminBot` implements `_search(query)` and `build_tools()`. Subclasses declare `tool_name: str` and `tool_description: str`
 - `CourseBot` implements `search_course_material(query, filters)` and `build_tools()`. Subclasses declare `tool_input_schema` (the `ToolInput` Pydantic model with course-specific filters)
-- `LexBot` overrides `build_tools()` to return multiple tools (search_lex, get_orgchart, search_news)
-- Shared tools (e.g. `get_orgchart`, `search_news`) live in `app/agent/tools/` for now
 - No MCP server — not enough reuse outside this app to justify the overhead
 
 ---
