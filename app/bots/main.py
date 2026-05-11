@@ -55,30 +55,23 @@ async def agenerate_completion(chat_request: CompletionCreateParams, bot: Bot) -
         'metadata': {'langfuse_tags': [bot.name]},
     }
 
-    content = ''
-
     try:
-        async for event in bot.graph.astream_events(input=agent_input, config=agent_config, context=bot, version='v2'):
-            langgraph_node = event['metadata'].get('langgraph_node')
-            event_name = event.get('name')
-            event_type = event.get('event')
+        async for chunk, metadata in bot.graph.astream(input=agent_input, config=agent_config, context=bot, stream_mode="messages"):
+            if metadata.get('langgraph_node') not in MODEL_NODES:
+                continue
+            chunk_text = chunk.content if isinstance(chunk.content, str) else ''
+            if not chunk_text:
+                continue
 
-            if langgraph_node in MODEL_NODES and event_name == 'ChatOpenAI' and event_type == 'on_chat_model_stream':
-                try:
-                    chunk_text = event['data']['chunk'].text
-                except Exception:
-                    chunk_text = ''
+            sse_chunk = {
+                'id': '1',
+                'object': 'chat.completion.chunk',
+                'created': time.time(),
+                'model': chat_request['model'],
+                'choices': [{'delta': {'content': chunk_text}}],
+            }
 
-                chunk = {
-                    'id': '1',
-                    'object': 'chat.completion.chunk',
-                    'created': time.time(),
-                    'model': chat_request['model'],
-                    'choices': [{'delta': {'content': chunk_text}}],
-                }
-
-                content += chunk_text
-                yield f"data: {json.dumps(chunk)}\n\n"
+            yield f"data: {json.dumps(sse_chunk)}\n\n"
 
     except asyncio.CancelledError:
         logger.warning("Client disconnected, stream cancelled")

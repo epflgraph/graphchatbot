@@ -177,5 +177,7 @@ app/
 
 ---
 
-## Still To Decide
-- Streaming: replace `astream_events()` with `stream_mode="custom"` (explicit writer per node) or keep event filtering
+## Streaming
+- Use `stream_mode="messages"` (yields `(message_chunk, metadata)` tuples token by token)
+- Filter by `metadata["langgraph_node"] == "model"` to forward only model node tokens
+- Drop `astream_events()` — it is the legacy path
