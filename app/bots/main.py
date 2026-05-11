@@ -82,5 +82,4 @@ async def agenerate_completion(chat_request: CompletionCreateParams, bot: Bot) -
     except Exception as e:
         print('[BOTS]', e)
     finally:
-        print(content)
         yield "data: [DONE]\n\n"
