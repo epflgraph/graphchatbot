@@ -41,9 +41,9 @@ def init_bots() -> None:
                 logger.info(f'Registered bot: {instance.name}')
 
 
-def get(name: str) -> Bot | None:
+def get_bot(name: str) -> Bot | None:
     return _registry.get(name)
 
 
-def list_bots() -> list[str]:
-    return list(_registry.keys())
+def list_bots() -> list[Bot]:
+    return [*_registry.values()]

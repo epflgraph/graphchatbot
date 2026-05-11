@@ -49,7 +49,7 @@ async def chat(chat_request: ChatRequest, user: Annotated[dict, Depends(get_user
 
 @router.post('/chat/completions_new')
 async def chat_new(chat_request: CompletionCreateParams, user: Annotated[dict, Depends(get_user)]):
-    bot = bot_registry.get(chat_request['model'])
+    bot = bot_registry.get_bot(chat_request['model'])
     if bot is None:
         raise HTTPException(status_code=404, detail=f"Bot '{chat_request['model']}' not found")
 
@@ -88,6 +88,27 @@ async def models(user: Annotated[dict, Depends(get_user)]):
                 "owned_by": "epfl-graph-cede"
             }
             for model_name in model_names
+        ],
+    }
+
+
+@router.get('/models_new')
+async def models_new(user: Annotated[dict, Depends(get_user)]):
+    allowed_bots = []
+    for bot in bot_registry.list_bots():
+        if not bot.groups or len(set(bot.groups) & set(user['groups'])) > 0:
+            allowed_bots.append(bot.name)
+
+    return {
+        "object": "list",
+        "data": [
+            {
+                "id": name,
+                "object": "model",
+                "created": 1686935002,
+                "owned_by": "epfl-graph-cede"
+            }
+            for name in allowed_bots
         ],
     }
 

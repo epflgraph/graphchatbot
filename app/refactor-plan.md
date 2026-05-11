@@ -179,9 +179,8 @@ app/
 
 ## Schemas
 - Replace manual `app/schemas/` types with the ones from the `openai` SDK directly (`openai.types.chat`)
-- Already a dependency, types are Pydantic v2, compatible with FastAPI
+- Already a dependency, types are TypedDicts — FastAPI accepts them as request body types
 - Stays in sync with OpenAI spec automatically on SDK version bumps
-- May still need a thin wrapper for app-specific fields (e.g. auth)
 
 ## Routing
 - With per-bot graphs, routing is encoded in graph topology (conditional edges, node structure) — not in a shared runtime dict
