@@ -57,12 +57,14 @@ Bot  (base class)
 ├── CourseBot            ← course tutors; provides graph, search_course_material, CATEGORIES
 │   ├── HintingCourseBot ← hint-based pedagogical style
 │   │   ├── MATH240Bot
-│   │   ├── MATH261Bot
-│   │   └── ...
+│   │   └── MATH261Bot
 │   └── DirectCourseBot  ← direct/explanatory pedagogical style
 │       ├── MATH106eBot
-│       ├── CS500Bot
-│       └── ...
+│       ├── BIOENG310Bot
+│       ├── ENV342Bot
+│       ├── MATH535Bot
+│       ├── ME331Bot
+│       └── MICRO315Bot
 └── GraphChatBot         ← EPFL knowledge graph; single concrete bot
 ```
 
@@ -87,7 +89,7 @@ Bot  (base class)
 ---
 
 ## File Structure: By-Bot
-Discovery via filesystem scan at startup: any subdirectory of `app/bots/` containing a `bot.py` is registered as a bot. No manual registry, no `__subclasses__()` magic.
+Discovery via filesystem scan at startup: any subdirectory of `app/bots/` containing a `*_bot.py` file is registered as a bot. No manual registry, no `__subclasses__()` magic.
 
 Abstract parent classes (no `name`) live in subdirectories too — the registry skips them automatically.
 
@@ -103,33 +105,43 @@ app/
 │   │   ├── model.py
 │   │   └── tools.py
 │   ├── admin/               ← AdminBot (abstract, not registered)
-│   │   ├── bot.py
+│   │   ├── admin_bot.py
 │   │   ├── lex/
-│   │   │   └── bot.py       ← LexBot(AdminBot)
+│   │   │   └── lex_bot.py       ← LexBot(AdminBot)
 │   │   ├── sac/
-│   │   │   └── bot.py       ← SacBot(AdminBot)
+│   │   │   └── sac_bot.py       ← SacBot(AdminBot)
 │   │   ├── servicedesk/
-│   │   │   └── bot.py       ← ServicedeskBot(AdminBot)
+│   │   │   └── servicedesk_bot.py ← ServicedeskBot(AdminBot)
 │   │   ├── cmi/
-│   │   │   └── bot.py       ← CMiBot(AdminBot)
+│   │   │   └── cmi_bot.py       ← CMiBot(AdminBot)
 │   │   ├── cmi_restricted/
-│   │   │   └── bot.py       ← CMiRestrictedBot(AdminBot)
+│   │   │   └── cmi_restricted_bot.py ← CMiRestrictedBot(AdminBot)
 │   │   └── plasma/
-│   │       └── bot.py       ← PlasmaBot(AdminBot)
+│   │       └── plasma_bot.py    ← PlasmaBot(AdminBot)
 │   ├── course/              ← CourseBot, HintingCourseBot, DirectCourseBot (abstract, not registered)
-│   │   ├── bot.py
+│   │   ├── course_bot.py
 │   │   ├── hinting/         ← HintingCourseBot subclasses
+│   │   │   ├── hinting_bot.py
 │   │   │   ├── math240/
-│   │   │   │   └── bot.py   ← MATH240Bot(HintingCourseBot)
+│   │   │   │   └── math240_bot.py   ← MATH240Bot(HintingCourseBot)
 │   │   │   └── math261/
-│   │   │       └── bot.py   ← MATH261Bot(HintingCourseBot)
+│   │   │       └── math261_bot.py   ← MATH261Bot(HintingCourseBot)
 │   │   └── direct/          ← DirectCourseBot subclasses
+│   │       ├── direct_bot.py
 │   │       ├── math106e/
-│   │       │   └── bot.py   ← MATH106eBot(DirectCourseBot)
-│   │       └── cs500/
-│   │           └── bot.py   ← CS500Bot(DirectCourseBot)
+│   │       │   └── math106e_bot.py  ← MATH106eBot(DirectCourseBot)
+│   │       ├── bioeng310/
+│   │       │   └── bioeng310_bot.py ← BIOENG310Bot(DirectCourseBot)
+│   │       ├── env342/
+│   │       │   └── env342_bot.py    ← ENV342Bot(DirectCourseBot)
+│   │       ├── math535/
+│   │       │   └── math535_bot.py   ← MATH535Bot(DirectCourseBot)
+│   │       ├── me331/
+│   │       │   └── me331_bot.py     ← ME331Bot(DirectCourseBot)
+│   │       └── micro315/
+│   │           └── micro315_bot.py  ← MICRO315Bot(DirectCourseBot)
 │   └── graph_chat/          ← GraphChatBot (concrete, registered)
-│       └── bot.py
+│       └── graph_chat_bot.py
 ```
 
 ---
