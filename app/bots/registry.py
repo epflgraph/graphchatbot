@@ -36,7 +36,6 @@ def init_bots() -> None:
                 instance = attr()
                 _registry[instance.name] = instance
                 print(f'[BOTS] Registered bot: {instance.name}')
-                break
 
 
 def get(name: str) -> Bot | None:
