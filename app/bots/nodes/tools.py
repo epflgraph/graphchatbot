@@ -17,9 +17,11 @@ def make_tools_node(tools: list, back_to: str = 'model'):
         back_to: name of the node to route to after tool execution.
     """
 
+    tool_names = {t.name for t in tools}
+    _tool_node = ToolNode(tools)
+
     async def tools_node(state, runtime: Runtime) -> Command:
         tool_calls = state['messages'][-1].tool_calls
-        tool_names = [t.name for t in tools]
 
         for i, tc in enumerate(tool_calls):
             # Fix missing tool call ids (https://github.com/langchain-ai/langgraph/issues/4717)
@@ -36,7 +38,7 @@ def make_tools_node(tools: list, back_to: str = 'model'):
                         break
 
         logger.info(f"Executing {len(tool_calls)} tool call(s) in parallel")
-        result = await ToolNode(tools).ainvoke(state)
+        result = await _tool_node.ainvoke(state)
 
         update = {'messages': result['messages']}
         if 'force_tools' in state:
