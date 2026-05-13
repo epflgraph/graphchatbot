@@ -21,11 +21,9 @@ class BotState(MessagesState):
 
 
 class Bot(ABC):
-    # Every subclass must define these
     name: str
     groups: list[str]
 
-    # Subclasses may override these
     model: ChatOpenAI = ChatOpenAI(
         base_url=config.get("rcp", {})["base_url"],
         model="Qwen/Qwen3.6-35B-A3B",
