@@ -2,11 +2,11 @@ from app.bots.admin.admin_bot import AdminBot
 
 
 CATEGORIES = {
-    'greeting': {'description': "The user is just greeting the assistant or similar.", 'force_tools': False},
-    'guidelines': {'description': "Requests about guidelines and regulations.", 'force_tools': True},
-    'studies': {'description': "Requests about studies.", 'force_tools': True},
-    'other': {'description': "Other requests related to Service académique.", 'force_tools': True},
-    'unrelated': {'description': "The user's request is completely unrelated to Service académique or EPFL studies.", 'force_tools': False},
+    'greeting': {'description': "The user is just greeting the assistant or similar.", 'tool_choice': None},
+    'guidelines': {'description': "Requests about guidelines and regulations.", 'tool_choice': 'any'},
+    'studies': {'description': "Requests about studies.", 'tool_choice': 'any'},
+    'other': {'description': "Other requests related to Service académique.", 'tool_choice': 'any'},
+    'unrelated': {'description': "The user's request is completely unrelated to Service académique or EPFL studies.", 'tool_choice': None},
 }
 
 

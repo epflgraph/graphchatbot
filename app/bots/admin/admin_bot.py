@@ -19,15 +19,15 @@ logger = logging.getLogger(__name__)
 CATEGORIES = {
     'greeting': {
         'description': "The user is just greeting the assistant or similar.",
-        'force_tools': False,
+        'tool_choice': None,
     },
     'main': {
         'description': "The user has a substantive request within the bot's domain.",
-        'force_tools': True,
+        'tool_choice': 'any',
     },
     'unrelated': {
         'description': "The user's request is completely unrelated to the bot's domain.",
-        'force_tools': False,
+        'tool_choice': None,
     },
 }
 

@@ -17,7 +17,7 @@ BOTS_ROOT = Path(__file__).parent
 
 class BotState(MessagesState):
     category: Optional[str]
-    force_tools: bool
+    tool_choice: Optional[str]
 
 
 class Bot(ABC):

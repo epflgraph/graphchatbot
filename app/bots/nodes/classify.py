@@ -18,8 +18,8 @@ def make_classify_node(categories: dict[str, dict]):
     Args:
         categories: dict mapping category name to a dict with keys:
                     - 'description': str describing the category
-                    - 'force_tools': bool, whether to force tool use for this category
-                    e.g. {'greeting': {'description': 'The user is greeting...', 'force_tools': False}}
+                    - 'tool_choice': Optional[str], passed to bind_tools (None, 'any', or a tool name)
+                    e.g. {'greeting': {'description': 'The user is greeting...', 'tool_choice': None}}
     """
 
     async def classify_node(state, runtime: Runtime[Bot]) -> dict:
@@ -41,7 +41,7 @@ The possible categories are the following:
 
         return {
             'category': result.category,
-            'force_tools': categories[result.category]['force_tools'],
+            'tool_choice': categories[result.category]['tool_choice'],
         }
 
     return classify_node

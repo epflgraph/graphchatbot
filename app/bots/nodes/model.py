@@ -21,15 +21,17 @@ def make_model_node(tools: list):
     async def model_node(state, runtime: Runtime[Bot]) -> Command:
         bot = runtime.context
 
-        force_tools = state.get('force_tools', False)
-        if tools and force_tools:
-            model = bot.model.bind_tools(tools, tool_choice='any')
+        tool_choice = state.get('tool_choice')
+        if tool_choice:
+            model = bot.model.bind_tools(tools, tool_choice=tool_choice)
+        elif tools:
+            model = bot.model.bind_tools(tools)
         else:
             model = bot.model
 
         messages = [SystemMessage(content=bot.prompt)] + state['messages']
 
-        logger.info(f"Calling LLM with {len(tools) if force_tools else 0} tool(s), force_tools={force_tools}")
+        logger.info(f"Calling LLM with {len(tools)} tool(s), tool_choice={tool_choice}")
         ai_message = await model.ainvoke(messages)
 
         if ai_message.tool_calls:

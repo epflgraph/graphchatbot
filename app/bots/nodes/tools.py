@@ -40,9 +40,7 @@ def make_tools_node(tools: list, back_to: str = 'model'):
         logger.info(f"Executing {len(tool_calls)} tool call(s) in parallel")
         result = await _tool_node.ainvoke(state)
 
-        update = {'messages': result['messages']}
-        if 'force_tools' in state:
-            update['force_tools'] = False
+        update = {'messages': result['messages'], 'tool_choice': None}
 
         return Command(goto=back_to, update=update)
 

@@ -20,23 +20,23 @@ logger = logging.getLogger(__name__)
 CATEGORIES = {
     'greeting': {
         'description': "The user is just greeting the assistant or similar.",
-        'force_tools': False,
+        'tool_choice': None,
     },
     'theory': {
         'description': "The user's request is about a theoretical aspect of the course.",
-        'force_tools': True,
+        'tool_choice': 'any',
     },
     'practice': {
         'description': "The user's request is about an exercise, lab session, practice exam or similar.",
-        'force_tools': True,
+        'tool_choice': 'any',
     },
     'admin': {
         'description': "The user's request is about an administrative aspect of the course, like schedule, rooms, grading, or logistics.",
-        'force_tools': False,
+        'tool_choice': None,
     },
     'unrelated': {
         'description': "The user's request is completely unrelated to the course.",
-        'force_tools': False,
+        'tool_choice': None,
     },
 }
 

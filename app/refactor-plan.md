@@ -71,7 +71,7 @@ Bot  (base class)
 ### Graphs
 - Each bot compiles its own graph at startup, reused across requests
 - Graph topology is defined per bot class and can differ freely
-- `force_tools: bool` state flag controls tool binding per turn — set by classify, reset by tools node
+- `tool_chocie: str` is pass to bind_tools to force tool usage — set by classify, reset by tools node
 - Graphs are stateless (no checkpointers)
 
 ### Nodes

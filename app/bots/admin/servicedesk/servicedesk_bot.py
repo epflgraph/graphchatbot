@@ -2,14 +2,14 @@ from app.bots.admin.admin_bot import AdminBot
 
 
 CATEGORIES = {
-    'greeting': {'description': "The user is just greeting the assistant or similar.", 'force_tools': False},
-    'epfl': {'description': "Requests about EPFL IT services and infrastructure.", 'force_tools': True},
-    'public': {'description': "Requests about public-facing IT services.", 'force_tools': True},
-    'finances': {'description': "Requests about financial IT tools or processes.", 'force_tools': True},
-    'research': {'description': "Requests about research IT support.", 'force_tools': True},
-    'human-resources': {'description': "Requests about HR IT tools or processes.", 'force_tools': True},
-    'servicedesk': {'description': "Requests about Service Desk procedures or support.", 'force_tools': True},
-    'unrelated': {'description': "The user's request is completely unrelated to EPFL IT or Service Desk topics.", 'force_tools': False},
+    'greeting': {'description': "The user is just greeting the assistant or similar.", 'tool_choice': None},
+    'epfl': {'description': "Requests about EPFL IT services and infrastructure.", 'tool_choice': 'any'},
+    'public': {'description': "Requests about public-facing IT services.", 'tool_choice': 'any'},
+    'finances': {'description': "Requests about financial IT tools or processes.", 'tool_choice': 'any'},
+    'research': {'description': "Requests about research IT support.", 'tool_choice': 'any'},
+    'human-resources': {'description': "Requests about HR IT tools or processes.", 'tool_choice': 'any'},
+    'servicedesk': {'description': "Requests about Service Desk procedures or support.", 'tool_choice': 'any'},
+    'unrelated': {'description': "The user's request is completely unrelated to EPFL IT or Service Desk topics.", 'tool_choice': None},
 }
 
 
