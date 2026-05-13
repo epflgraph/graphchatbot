@@ -12,6 +12,8 @@ from langgraph.graph.state import CompiledStateGraph
 from app.config import config
 from app.bots.prompts import resolve
 
+BOTS_ROOT = Path(__file__).parent
+
 
 class BotState(MessagesState):
     category: Optional[str]
