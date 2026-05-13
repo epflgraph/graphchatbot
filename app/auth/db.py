@@ -4,6 +4,9 @@ import pymysql
 
 from app.config import config
 
+_SSL_CONTEXT = ssl.create_default_context()
+_schema_initialized = False
+
 
 def _connect():
     db_config = config['database']
@@ -12,7 +15,7 @@ def _connect():
         port=int(db_config['port']),
         user=db_config['user'],
         password=db_config['password'],
-        ssl=ssl.create_default_context(),
+        ssl=_SSL_CONTEXT,
         autocommit=True,
     )
 
@@ -51,8 +54,6 @@ def init_auth_schema():
 
 
 def get_api_key(sciper, email):
-    init_auth_schema()
-
     result = _execute(
         """
         SELECT `api_key` FROM `chatbot`.`api_keys`
@@ -71,8 +72,6 @@ def get_api_key(sciper, email):
 
 
 def get_user(api_key):
-    init_auth_schema()
-
     result = _execute(
         """
         SELECT `sciper`, `email`, `is_active`
@@ -96,8 +95,6 @@ def get_user(api_key):
 
 
 def insert_api_keys(records):
-    init_auth_schema()
-
     placeholders = []
     values = []
     for record in records:
@@ -115,8 +112,6 @@ def insert_api_keys(records):
 
 
 def deactivate_api_keys(conditions):
-    init_auth_schema()
-
     for field in conditions:
         values = conditions[field]
         if values:

@@ -12,6 +12,7 @@ from app.auth import get_user
 from app.routers import secure, public
 
 from app.agent import init_agent
+from app.auth.db import init_auth_schema
 from app.bots import registry as bot_registry
 from app.logging_config import setup_logging
 
@@ -32,6 +33,7 @@ async def lifespan(app: FastAPI):
     # Before startup                                               #
     ################################################################
     init_agent()
+    init_auth_schema()
     bot_registry.init_bots()
 
     ################################################################
