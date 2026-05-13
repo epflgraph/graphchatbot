@@ -205,3 +205,7 @@ class GraphAIClient:
         results = results[:limit]
 
         return results
+
+
+# Shared singleton — re-authenticates before each request so it never goes stale
+graphai = GraphAIClient()

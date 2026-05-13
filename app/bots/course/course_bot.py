@@ -12,7 +12,7 @@ from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
 from app.bots.prompts import resolve
-from app.interfaces.graphai import GraphAIClient
+from app.interfaces.graphai import graphai
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +73,7 @@ class CourseBot(Bot):
 
         logger.info(f"query=`{query}` filters=`{filters_dict}`")
 
-        results = await GraphAIClient().rag_retrieve(index=self.index, texts=[query], filters=filters_dict)
+        results = await graphai.rag_retrieve(index=self.index, texts=[query], filters=filters_dict)
 
         logger.info(f"Retrieved {len(results)} chunks.")
 

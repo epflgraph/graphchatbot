@@ -11,7 +11,7 @@ from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
 from app.bots.prompts import resolve
-from app.interfaces.graphai import GraphAIClient
+from app.interfaces.graphai import graphai
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class AdminBot(Bot):
 
     async def _search(self, query: str) -> list:
         logger.info(f"Called `{self.tool_name}` with query=`{query}`")
-        results = await GraphAIClient().rag_retrieve(index=self.index, texts=[query])
+        results = await graphai.rag_retrieve(index=self.index, texts=[query])
         logger.info(f"Retrieved {len(results)} chunks.")
         return results
 
