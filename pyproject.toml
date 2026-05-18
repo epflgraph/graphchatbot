@@ -31,6 +31,7 @@ dependencies = [
     "openai",
     "python-ldap",
     "elasticsearch-interface",
+    "graphes-client @ git+https://github.com/epflgraph/graphes-client.git@search",
 ]
 
 [tool.setuptools]
