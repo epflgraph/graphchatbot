@@ -20,6 +20,7 @@ dependencies = [
     "uvicorn",
     "pydantic",
     "requests",
+    "httpx",
     "levenshtein",
     "langchain",
     "langchain-core",

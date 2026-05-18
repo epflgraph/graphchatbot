@@ -6,8 +6,7 @@ from langgraph.graph.state import CompiledStateGraph
 
 # TODO move tool functions to graph_chat/tools
 from app.agent.tools.nodes import search_nodes
-from app.agent.tools.exoset import search_exercises
-from app.agent.tools.news import search_news
+from app.bots.graph_chat.graph_chat_tools import search_exoset, search_news
 from app.bots.base import Bot, BotState
 from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.model import make_model_node
@@ -85,7 +84,7 @@ class GraphChatBot(Bot):
         return [
             tool('search_graph')(search_nodes),
             tool('search_news')(search_news),
-            tool('search_exoset')(search_exercises),
+            tool('search_exoset')(search_exoset),
         ]
 
     def build_graph(self) -> CompiledStateGraph:
