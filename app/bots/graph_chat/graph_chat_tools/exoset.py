@@ -3,7 +3,7 @@ import asyncio
 import httpx
 import pandas as pd
 
-from elasticsearch_interface.es import ESGraphSearch
+from graphes.core.graphes import GraphES
 
 from app.config import config
 
@@ -41,6 +41,8 @@ async def search_exoset(query: str, language: str = 'EN') -> list:
     The parameter `language` will prioritise exercises in that language, if available.
     """
 
+    # TODO Migrate this to use graphregistry rather than exoset API
+
     print("[EXOSET TOOL]", f"Called the `search_exercises` tool with input `{query}` and language `{language}`")
 
     if language.lower() in ['fr', 'french', 'français']:
@@ -52,8 +54,8 @@ async def search_exoset(query: str, language: str = 'EN') -> list:
         print("[EXOSET TOOL]", f"Found {len(_exoset_cache[query])} cached exercises for query `{query}` and language `{language}`, returning those")
         return _exoset_cache[query]
 
-    es = ESGraphSearch(config['elasticsearch'], config['elasticsearch']['index'])
-    nodes = es.search(query, node_type='Concept', limit=50, return_links=False, return_scores=True)
+    client = GraphES()
+    nodes = client.search(query=query, node_types=['Concept'], index_name=config['elasticsearch']['index'], limit=50)
 
     print("[EXOSET TOOL]", f"Got {len(nodes)} concepts to query for exercises: {[node['name']['en'] for node in nodes]}")
 
@@ -94,3 +96,8 @@ async def search_exoset(query: str, language: str = 'EN') -> list:
     _exoset_cache[query] = all_exercises
 
     return all_exercises
+
+if __name__ == '__main__':
+    exos = asyncio.run(search_exoset('double pendulum'))
+
+    print(exos)
