@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Optional
 
@@ -38,17 +39,19 @@ class MICRO452DebateBot(DebateCourseBot):
         logger.info(f"keywords={keywords!r} case_study_number={case_study_number!r}")
 
         if case_study_number:
-            case_study_results = await graphai.rag_retrieve(
-                index=self.index,
-                texts=keywords,
-                limit=9999,
-                filters={'type': 'case_study', 'week': 1, 'number': str(case_study_number)},
-            )
-            theory_results = await graphai.rag_retrieve(
-                index=self.index,
-                texts=keywords,
-                limit=5,
-                filters={'type': 'theory', 'subtype': 'lecture_slides'},
+            case_study_results, theory_results = await asyncio.gather(
+                graphai.rag_retrieve(
+                    index=self.index,
+                    texts=keywords,
+                    limit=9999,
+                    filters={'type': 'case_study', 'week': 1, 'number': str(case_study_number)},
+                ),
+                graphai.rag_retrieve(
+                    index=self.index,
+                    texts=keywords,
+                    limit=5,
+                    filters={'type': 'theory', 'subtype': 'lecture_slides'},
+                ),
             )
             results = case_study_results + theory_results
         else:

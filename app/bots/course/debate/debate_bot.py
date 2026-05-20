@@ -15,10 +15,10 @@ logger = logging.getLogger(__name__)
 
 STAGES = ['no_case_study', 'no_position', 'early', 'mid', 'late', 'ended']
 
-STAGE_DESCRIPTIONS = {
-    'early': "The debate is in an early stage: most ideas have not yet been exchanged or developed.",
-    'mid': "The debate is in an intermediate stage: some ideas have been developed, but there is more to discuss.",
-    'late': "The debate is in a late stage: most ideas have been discussed and there is little left to explore.",
+STAGE_CATEGORIES = {
+    'early': {'description': "The debate is in an early stage: most ideas have not yet been exchanged or developed."},
+    'mid':   {'description': "The debate is in an intermediate stage: some ideas have been developed, but there is more to discuss."},
+    'late':  {'description': "The debate is in a late stage: most ideas have been discussed and there is little left to explore."},
 }
 
 
@@ -31,22 +31,10 @@ class DebateCourseBot(CourseBot):
 
     model_nodes: tuple[str, ...] = tuple(f'model_{stage}' for stage in STAGES)
 
-    STAGE_THRESHOLDS: list[tuple[int, list[str]]] = [
-        (0, ['early']),
-        (4, ['early', 'mid']),
-        (6, ['mid', 'late']),
-    ]
+    STAGE_CATEGORIES: dict = STAGE_CATEGORIES
 
     def build_graph(self) -> CompiledStateGraph:
         tools = self.build_tools()
-
-        def eligible_stages(state):
-            count = len(state['messages'])
-            stages = self.STAGE_THRESHOLDS[0][1]
-            for min_count, s in self.STAGE_THRESHOLDS:
-                if count >= min_count:
-                    stages = s
-            return {s: {'description': STAGE_DESCRIPTIONS[s]} for s in stages}
 
         workflow = StateGraph(DebateCourseBotState, context_schema=Bot)
 
@@ -66,7 +54,7 @@ class DebateCourseBot(CourseBot):
             if_no='classify_stage',
         ))
 
-        workflow.add_node('classify_stage', make_classify_node(eligible_stages))
+        workflow.add_node('classify_stage', make_classify_node(self.STAGE_CATEGORIES))
         workflow.add_conditional_edges('classify_stage', lambda s: f"model_{s['category']}")
 
         for stage in STAGES:
