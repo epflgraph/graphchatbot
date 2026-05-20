@@ -10,12 +10,14 @@ from app.bots.base import Bot
 logger = logging.getLogger(__name__)
 
 
-def make_model_node(tools: list):
+def make_model_node(tools: list, prompt_name: str | None = None, state_update: dict | None = None):
     """
     Returns a model node that calls the bot's LLM with the given tools.
 
     Args:
-        tools: list of tool functions to bind to the model. Pass [] for a no-tools node.
+        tools:        list of tool functions to bind to the model. Pass [] for a no-tools node.
+        prompt_name:  name of the prompt file to resolve via bot.prompt(). Defaults to 'prompt'.
+        state_update: extra state fields merged into the update when routing to tools.
     """
 
     async def model_node(state, runtime: Runtime[Bot]) -> Command:
@@ -29,13 +31,13 @@ def make_model_node(tools: list):
         else:
             model = bot.model
 
-        messages = [SystemMessage(content=bot.prompt)] + state['messages']
+        messages = [SystemMessage(content=bot.prompt(prompt_name))] + state['messages']
 
         logger.info(f"Calling LLM with {len(tools)} tool(s), tool_choice={tool_choice}")
         ai_message = await model.ainvoke(messages)
 
         if ai_message.tool_calls:
-            return Command(goto='tools', update={'messages': [ai_message]})
+            return Command(goto='tools', update={'messages': [ai_message], **(state_update or {})})
         else:
             return Command(goto=END, update={'messages': [ai_message]})
 
