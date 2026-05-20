@@ -134,7 +134,7 @@ def create_agent():
             print('[MODEL]', f"Calling LLM forcing tool call `{tool_name}`")
         else:
             # Instantiate chat model (without tools)
-            model = integration.model.bind_tools([], tool_choice='none')
+            model = integration.model
             messages_with_system_prompt = [SystemMessage(content=integration.system_prompt)] + state['messages']
 
             print('[MODEL]', "Calling LLM without forcing any tool call")
