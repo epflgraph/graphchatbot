@@ -43,7 +43,7 @@ def make_tools_node(tools: list, back_to: str | None = 'model'):
 
         update = {'messages': result['messages'], 'tool_choice': None}
 
-        destination = back_to if back_to else state.get('active_node', 'model')
+        destination = back_to if back_to else state.get('active_node') or 'model'
         return Command(goto=destination, update=update)
 
     return tools_node

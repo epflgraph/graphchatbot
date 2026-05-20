@@ -1,0 +1,82 @@
+import logging
+from typing import Optional
+
+from langgraph.graph import StateGraph
+from langgraph.graph.state import CompiledStateGraph
+
+from app.bots.base import Bot, BotState
+from app.bots.course.course_bot import CourseBot
+from app.bots.nodes.classify import make_classify_node
+from app.bots.nodes.gate import make_gate_node
+from app.bots.nodes.model import make_model_node
+from app.bots.nodes.tools import make_tools_node
+
+logger = logging.getLogger(__name__)
+
+STAGES = ['no_case_study', 'no_position', 'early', 'mid', 'late', 'ended']
+
+STAGE_DESCRIPTIONS = {
+    'early': "The debate is in an early stage: most ideas have not yet been exchanged or developed.",
+    'mid': "The debate is in an intermediate stage: some ideas have been developed, but there is more to discuss.",
+    'late': "The debate is in a late stage: most ideas have been discussed and there is little left to explore.",
+}
+
+
+class DebateCourseBotState(BotState):
+    active_node: Optional[str]
+
+
+class DebateCourseBot(CourseBot):
+    """CourseBot variant that uses a peer-debate pedagogical style."""
+
+    STAGE_THRESHOLDS: list[tuple[int, list[str]]] = [
+        (0, ['early']),
+        (4, ['early', 'mid']),
+        (6, ['mid', 'late']),
+    ]
+
+    def build_graph(self) -> CompiledStateGraph:
+        tools = self.build_tools()
+
+        def eligible_stages(state):
+            count = len(state['messages'])
+            stages = self.STAGE_THRESHOLDS[0][1]
+            for min_count, s in self.STAGE_THRESHOLDS:
+                if count >= min_count:
+                    stages = s
+            return {s: {'description': STAGE_DESCRIPTIONS[s]} for s in stages}
+
+        workflow = StateGraph(DebateCourseBotState, context_schema=Bot)
+
+        workflow.add_node('gate_case_study', make_gate_node(
+            question="Is it clear which case study to discuss at this point in the conversation?",
+            if_yes='gate_position',
+            if_no='model_no_case_study',
+        ))
+        workflow.add_node('gate_position', make_gate_node(
+            question="Has the student stated which answer options they think are correct or incorrect, or at least started giving some arguments?",
+            if_yes='gate_ended',
+            if_no='model_no_position',
+        ))
+        workflow.add_node('gate_ended', make_gate_node(
+            question="Has the complete solution to the case study already been explicitly revealed in this conversation?",
+            if_yes='model_ended',
+            if_no='classify_stage',
+        ))
+
+        workflow.add_node('classify_stage', make_classify_node(eligible_stages))
+        workflow.add_conditional_edges('classify_stage', lambda s: f"model_{s['category']}")
+
+        for stage in STAGES:
+            node_name = f'model_{stage}'
+            workflow.add_node(node_name, make_model_node(
+                tools,
+                prompt_name=stage,
+                state_update={'active_node': node_name},
+            ))
+
+        workflow.add_node('tools', make_tools_node(tools, back_to=None))
+
+        workflow.set_entry_point('gate_case_study')
+
+        return workflow.compile()
