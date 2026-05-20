@@ -29,6 +29,8 @@ class DebateCourseBotState(BotState):
 class DebateCourseBot(CourseBot):
     """CourseBot variant that uses a peer-debate pedagogical style."""
 
+    model_nodes: tuple[str, ...] = tuple(f'model_{stage}' for stage in STAGES)
+
     STAGE_THRESHOLDS: list[tuple[int, list[str]]] = [
         (0, ['early']),
         (4, ['early', 'mid']),

@@ -43,6 +43,8 @@ class Bot(ABC):
 
     light_model: ChatOpenAI = model
 
+    model_nodes: tuple[str, ...] = ('model',)
+
     def prompt_context(self) -> dict:
         return {'today': datetime.now().strftime("%Y-%m-%d")}
 

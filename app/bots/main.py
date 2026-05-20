@@ -20,9 +20,6 @@ langfuse = Langfuse(
     environment=config.get('langfuse', {}).get('environment'),
 )
 
-MODEL_NODES = ('model',)
-
-
 async def generate_completion(chat_request: CompletionCreateParams, bot: Bot) -> dict:
     messages = list(chat_request['messages'])
     logger.info(f"Received non-streaming request for bot `{bot.name}` with last message `{messages[-1]['content']}`")
@@ -57,7 +54,7 @@ async def agenerate_completion(chat_request: CompletionCreateParams, bot: Bot) -
 
     try:
         async for chunk, metadata in bot.graph.astream(input=agent_input, config=agent_config, context=bot, stream_mode="messages"):
-            if metadata.get('langgraph_node') not in MODEL_NODES:
+            if metadata.get('langgraph_node') not in bot.model_nodes:
                 continue
             chunk_text = chunk.content if isinstance(chunk.content, str) else ''
             if not chunk_text:
