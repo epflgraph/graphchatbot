@@ -8,13 +8,14 @@ from langgraph.types import Command
 logger = logging.getLogger(__name__)
 
 
-def make_tools_node(tools: list, back_to: str = 'model'):
+def make_tools_node(tools: list, back_to: str | None = 'model'):
     """
     Returns a tools node that executes all tool calls in the last message.
 
     Args:
         tools:   list of tool functions available to the model.
         back_to: name of the node to route to after tool execution.
+                 If None, reads the destination from state['active_node'].
     """
 
     tool_names = {t.name for t in tools}
@@ -42,6 +43,7 @@ def make_tools_node(tools: list, back_to: str = 'model'):
 
         update = {'messages': result['messages'], 'tool_choice': None}
 
-        return Command(goto=back_to, update=update)
+        destination = back_to if back_to else state.get('active_node', 'model')
+        return Command(goto=destination, update=update)
 
     return tools_node
