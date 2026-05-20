@@ -1,4 +1,4 @@
-import sys
+import inspect
 from abc import ABC, abstractmethod
 from datetime import datetime
 from functools import cached_property
@@ -43,19 +43,13 @@ class Bot(ABC):
 
     light_model: ChatOpenAI = model
 
-    @cached_property
-    def _prompt_template(self) -> str:
-        module = sys.modules[type(self).__module__]
-        cls_dir = Path(module.__file__).parent
-        root = Path(__file__).parent  # app/bots/
-        return resolve('prompt', cls_dir, root)
-
     def prompt_context(self) -> dict:
         return {'today': datetime.now().strftime("%Y-%m-%d")}
 
-    @property
-    def prompt(self) -> str:
-        return self._prompt_template.format(**self.prompt_context())
+    def prompt(self, name: str | None = None) -> str:
+        cls_dir = Path(inspect.getfile(type(self))).parent
+        template = resolve(name or 'prompt', cls_dir, BOTS_ROOT)
+        return template.format(**self.prompt_context())
 
     @abstractmethod
     def build_graph(self) -> CompiledStateGraph: ...
