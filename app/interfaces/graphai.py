@@ -149,63 +149,6 @@ class GraphAIClient:
 
         return response.get('result', [])
 
-    def sequential_rag_retrieve(self, index: str, texts: list[str], limit: int = 10, filters: dict = None):
-        # Clean texts
-        texts = [text.strip() for text in texts if text.strip()]
-
-        # Default to empty string if no texts
-        if not texts:
-            texts = ['']
-
-        results = {}
-        for text in texts:
-            # Prepare payload
-            payload = {
-                'index': index,
-                'text': text,
-                'limit': limit,
-            }
-
-            if filters:
-                payload['filters'] = filters
-
-            # Send request and return empty if it fails
-            try:
-                response = self.call_sync_endpoint(endpoint='/rag/retrieve', payload=payload)
-            except Exception as e:
-                logger.exception(f"Error retrieving document chunks: {e}")
-                continue
-
-            # Return empty if response is not marked as successful
-            if not response.get('successful'):
-                logger.warning(f"Unsuccessful retrieval of chunks: {response.get('result', [])}")
-                continue
-
-            # Store the results to aggregate them later
-            i = 0
-            for result in response.get('result', []):
-                # Score increment is 1 (existence) plus a bonus between 0 and 1 (position)
-                score_increment = 2 - i / (limit + 1)
-                i += 1
-
-                result_id = result.get('id')
-                if not result_id:
-                    continue
-
-                if result_id in results:
-                    results[result_id]['.score'] += score_increment
-                else:
-                    results[result_id] = result
-                    result['.score'] = score_increment
-
-        # Sort the results in a list by descending score (which is an integer between 1 and n_keywords)
-        results = sorted(results.values(), key=lambda result: result['.score'], reverse=True)
-
-        # Keep no more than limit results
-        results = results[:limit]
-
-        return results
-
 
 # Shared singleton — re-authenticates before each request so it never goes stale
 graphai = GraphAIClient()
