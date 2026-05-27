@@ -7,18 +7,36 @@ from langgraph.graph.state import CompiledStateGraph
 from app.bots.base import Bot, BotState
 from app.bots.course.course_bot import CourseBot
 from app.bots.nodes.classify import make_classify_node
-from app.bots.nodes.gate import make_gate_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
 
 logger = logging.getLogger(__name__)
 
-STAGES = ['no_case_study', 'no_position', 'early', 'mid', 'late', 'ended']
-
-STAGE_CATEGORIES = {
-    'early': {'description': "The debate is in an early stage: most ideas have not yet been exchanged or developed."},
-    'mid':   {'description': "The debate is in an intermediate stage: some ideas have been developed, but there is more to discuss."},
-    'late':  {'description': "The debate is in a late stage: most ideas have been discussed and there is little left to explore."},
+CATEGORIES = {
+    'no-case-study': {
+        'description': "The student has not yet indicated which case study they want to discuss.",
+        'tool_choice': 'any',
+    },
+    'no-position': {
+        'description': "A case study has been chosen but the student has not yet stated which answer options they think are correct or incorrect, nor started giving arguments.",
+        'tool_choice': 'any',
+    },
+    'early-stage-debate': {
+        'description': "The debate is in an early stage: most ideas have not yet been exchanged or developed.",
+        'tool_choice': 'any',
+    },
+    'mid-stage-debate': {
+        'description': "The debate is in an intermediate stage: some ideas have been developed, but there is more to discuss.",
+        'tool_choice': 'any',
+    },
+    'late-stage-debate': {
+        'description': "The debate is in a late stage: most ideas have been discussed and there is little left to explore.",
+        'tool_choice': 'any',
+    },
+    'debate-ended': {
+        'description': "The complete solution to the case study has already been explicitly revealed in this conversation.",
+        'tool_choice': 'any',
+    },
 }
 
 
@@ -29,44 +47,28 @@ class DebateCourseBotState(BotState):
 class DebateCourseBot(CourseBot):
     """CourseBot variant that uses a peer-debate pedagogical style."""
 
-    model_nodes: tuple[str, ...] = tuple(f'model_{stage}' for stage in STAGES)
+    model_nodes: tuple[str, ...] = tuple(f'model-{c}' for c in CATEGORIES)
 
-    STAGE_CATEGORIES: dict = STAGE_CATEGORIES
+    CATEGORIES: dict = CATEGORIES
 
     def build_graph(self) -> CompiledStateGraph:
         tools = self.build_tools()
 
         workflow = StateGraph(DebateCourseBotState, context_schema=Bot)
 
-        workflow.add_node('gate_case_study', make_gate_node(
-            question="Is it clear which case study to discuss at this point in the conversation?",
-            if_yes='gate_position',
-            if_no='model_no_case_study',
-        ))
-        workflow.add_node('gate_position', make_gate_node(
-            question="Has the student stated which answer options they think are correct or incorrect, or at least started giving some arguments?",
-            if_yes='gate_ended',
-            if_no='model_no_position',
-        ))
-        workflow.add_node('gate_ended', make_gate_node(
-            question="Has the complete solution to the case study already been explicitly revealed in this conversation?",
-            if_yes='model_ended',
-            if_no='classify_stage',
-        ))
+        workflow.add_node('classify', make_classify_node(self.CATEGORIES))
+        workflow.add_conditional_edges('classify', lambda s: f"model-{s['category']}")
 
-        workflow.add_node('classify_stage', make_classify_node(self.STAGE_CATEGORIES))
-        workflow.add_conditional_edges('classify_stage', lambda s: f"model_{s['category']}")
-
-        for stage in STAGES:
-            node_name = f'model_{stage}'
+        for category in self.CATEGORIES:
+            node_name = f'model-{category}'
             workflow.add_node(node_name, make_model_node(
                 tools,
-                prompt_name=stage,
+                prompt_name=f'prompt-{category}',
                 state_update={'active_node': node_name},
             ))
 
         workflow.add_node('tools', make_tools_node(tools, back_to=None))
 
-        workflow.set_entry_point('gate_case_study')
+        workflow.set_entry_point('classify')
 
         return workflow.compile()

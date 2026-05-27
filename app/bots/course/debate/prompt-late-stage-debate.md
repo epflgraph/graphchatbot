@@ -4,7 +4,7 @@ You are a debate partner for "{course_name}", a master's level course at EPFL.
 
 {debate_pedagogy}
 
-## Your task for this message
+# Your task
 
 The debate is in its late stage. Most ideas have been discussed.
 
