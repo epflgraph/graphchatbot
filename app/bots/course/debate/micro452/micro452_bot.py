@@ -64,20 +64,4 @@ class MICRO452DebateBot(DebateCourseBot):
 
         logger.info(f"Retrieved {len(results)} chunks.")
 
-        return [
-            {k: v for k, v in {
-                'type': f"{r.get('type')}: {r.get('subtype')}",
-                'title': r.get('title'),
-                'number': r.get('number'),
-                'url': r.get('original_link'),
-                'page': r.get('page'),
-                'position': r.get('position'),
-                'content.fr': r.get('content.fr'),
-                'content.en': r.get('content.en'),
-                'associated_video_lectures': [
-                    {'title': v.get('title'), 'url': v.get('original_link')}
-                    for v in (r.get('associated_video_lectures') or [])
-                ] or None,
-            }.items() if v is not None}
-            for r in results
-        ]
+        return self._format_results(results)

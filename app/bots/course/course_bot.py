@@ -63,20 +63,8 @@ class CourseBot(Bot):
 
     # --- Tools ---
 
-    async def search_course_material(self, query: str, filters) -> list:
-        if isinstance(filters, BaseModel):
-            filters_dict = filters.model_dump(exclude_none=True)
-        elif isinstance(filters, dict):
-            filters_dict = {k: v for k, v in filters.items() if v is not None}
-        else:
-            filters_dict = {}
-
-        logger.info(f"query=`{query}` filters=`{filters_dict}`")
-
-        results = await graphai.rag_retrieve(index=self.index, texts=[query], filters=filters_dict)
-
-        logger.info(f"Retrieved {len(results)} chunks.")
-
+    @staticmethod
+    def _format_results(results: list) -> list:
         return [
             {k: v for k, v in {
                 'type': f"{r.get('type')}: {r.get('subtype')}",
@@ -95,6 +83,22 @@ class CourseBot(Bot):
             }.items() if v is not None}
             for r in results
         ]
+
+    async def search_course_material(self, query: str, filters) -> list:
+        if isinstance(filters, BaseModel):
+            filters_dict = filters.model_dump(exclude_none=True)
+        elif isinstance(filters, dict):
+            filters_dict = {k: v for k, v in filters.items() if v is not None}
+        else:
+            filters_dict = {}
+
+        logger.info(f"query=`{query}` filters=`{filters_dict}`")
+
+        results = await graphai.rag_retrieve(index=self.index, texts=[query], filters=filters_dict)
+
+        logger.info(f"Retrieved {len(results)} chunks.")
+
+        return self._format_results(results)
 
     def build_tools(self) -> list:
         subclass_dir = Path(inspect.getfile(type(self))).parent
