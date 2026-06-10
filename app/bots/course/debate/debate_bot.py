@@ -51,6 +51,9 @@ class DebateCourseBot(CourseBot):
 
     CATEGORIES: dict = CATEGORIES
 
+    def prompt(self, name: str | None = None) -> str:
+        return super().prompt(name or 'prompt-no-case-study')
+
     def build_graph(self) -> CompiledStateGraph:
         tools = self.build_tools()
 
