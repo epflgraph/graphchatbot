@@ -1,10 +1,8 @@
 from typing import Annotated, Literal, Optional, Union
 
-from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
 from app.bots.course.hinting.hinting_bot import HintingCourseBot
-from app.config import config
 
 
 class TheoryFilters(BaseModel):
@@ -64,13 +62,3 @@ class BIOENG310Bot(HintingCourseBot):
     index = 'course_bioeng310'
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_bioeng_310']
     tool_input_schema = ToolInput
-
-    model = ChatOpenAI(
-        base_url=config.get("rcp", {})["base_url"],
-        model="Qwen/Qwen3-30B-A3B-Instruct-2507",
-        api_key=config.get("rcp", {})["api_key"],
-        timeout=60,
-        stream_usage=True,
-    )
-
-    light_model = model
