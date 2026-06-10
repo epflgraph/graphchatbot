@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from functools import cached_property
 from pathlib import Path
-from typing import Optional
 
 from langchain_openai import ChatOpenAI
 from langgraph.graph import MessagesState
@@ -16,8 +15,8 @@ BOTS_ROOT = Path(__file__).parent
 
 
 class BotState(MessagesState):
-    category: Optional[str]
-    tool_choice: Optional[str]
+    category: str | None
+    tool_choice: str | None
 
 
 class Bot(ABC):

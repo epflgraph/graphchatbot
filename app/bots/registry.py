@@ -48,4 +48,4 @@ def get_bot(name: str) -> Bot | None:
 
 
 def list_bots() -> list[Bot]:
-    return [*_registry.values()]
+    return list(_registry.values())
