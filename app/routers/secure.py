@@ -36,9 +36,11 @@ async def chat(chat_request: CompletionCreateParams, user: Annotated[dict, Depen
 
 @router.get('/models')
 async def models(user: Annotated[dict, Depends(get_user)]):
+    user_groups = set(user['groups'])
     allowed_bots = []
     for bot in bot_registry.list_bots():
-        if not bot.groups or len(set(bot.groups) & set(user['groups'])) > 0:
+        shared_groups = set(bot.groups) & user_groups if bot.groups else set()
+        if not bot.groups or shared_groups:
             allowed_bots.append(bot.name)
 
     return {
