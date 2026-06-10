@@ -41,9 +41,8 @@ class GraphAIClient:
                 ) as resp:
                     result = await resp.json()
 
-                    try:
-                        self.bearer_token = result["access_token"]
-                    except KeyError:
+                    self.bearer_token = result.get("access_token")
+                    if not self.bearer_token:
                         logger.error(f"Unexpected authentication response: {result}")
 
             except asyncio.TimeoutError:
@@ -118,7 +117,7 @@ class GraphAIClient:
                 logger.warning(f"Request to {endpoint} timed out after {timeout} seconds, returning None")
                 return None
 
-    async def rag_retrieve(self, index: str, texts: list[str], limit: int = 10, filters: dict = None):
+    async def rag_retrieve(self, index: str, texts: list[str], limit: int = 10, filters: dict | None = None):
         # Clean texts
         texts = [text.strip() for text in texts if text.strip()]
 
