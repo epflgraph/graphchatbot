@@ -65,8 +65,9 @@ class CourseBot(Bot):
 
     @staticmethod
     def _format_results(results: list) -> list:
-        return [
-            {k: v for k, v in {
+        formatted = []
+        for r in results:
+            item = {
                 'type': f"{r.get('type')}: {r.get('subtype')}",
                 'title': r.get('title'),
                 'week': r.get('week'),
@@ -76,13 +77,17 @@ class CourseBot(Bot):
                 'position': r.get('position'),
                 'content.fr': r.get('content.fr'),
                 'content.en': r.get('content.en'),
-                'associated_video_lectures': [
+            }
+
+            video_lectures = r.get('associated_video_lectures') or []
+            if video_lectures:
+                item['associated_video_lectures'] = [
                     {'title': v.get('title'), 'url': v.get('original_link')}
-                    for v in (r.get('associated_video_lectures') or [])
-                ] or None,
-            }.items() if v is not None}
-            for r in results
-        ]
+                    for v in video_lectures
+                ]
+
+            formatted.append({k: v for k, v in item.items() if v is not None})
+        return formatted
 
     async def search_course_material(self, query: str, filters) -> list:
         if isinstance(filters, BaseModel):
