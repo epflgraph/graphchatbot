@@ -1,7 +1,11 @@
+import logging
+
 import requests
 from requests.adapters import HTTPAdapter, Retry
 
 from app.config import config
+
+logger = logging.getLogger(__name__)
 
 
 def get_user_groups(sciper):
@@ -19,18 +23,18 @@ def get_user_groups(sciper):
         response = session.get(url, auth=auth, timeout=10)
 
         if not response.ok:
-            print('[GROUPS]', f"Failed to fetch groups for {sciper}: HTTP {response.status_code}")
+            logger.warning(f"Failed to fetch groups for {sciper}: HTTP {response.status_code}")
             return []
 
         data = response.json()
         return [group['name'] for group in data.get('groups', [])]
     except requests.RequestException as e:
         # This catches connection errors, timeouts, etc.
-        print('[GROUPS]', f"Error fetching groups for {sciper}: {e}")
+        logger.warning(f"Error fetching groups for {sciper}: {e}")
         return []
     except ValueError:
         # This catches JSON decoding errors
-        print('[GROUPS]', f"Invalid JSON received for {sciper}")
+        logger.warning(f"Invalid JSON received for {sciper}")
         return []
 
 
