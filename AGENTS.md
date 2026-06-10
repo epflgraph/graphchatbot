@@ -1,12 +1,12 @@
 # GraphChatBot — Agent Reference
 
-## Active Refactor (In Progress)
+## Recent Refactor
 
-The codebase is transitioning from a legacy `app/integrations/` system to a new `app/bots/` architecture.
+The codebase was refactored from a legacy `app/integrations/` system to the current `app/bots/` architecture.
 
-- **New code** → `app/bots/`
-- **Legacy code** → `app/integrations/` (being deprecated, do not add to it)
-- **Goal**: Each bot is a self-contained class under `app/bots/`, discovered at runtime by scanning for `*_bot.py` files
+- **Current code** → `app/bots/` (active)
+- **Legacy code** → `app/integrations/` (retained for reference, do not add to it)
+- **Architecture**: Each bot is a self-contained class under `app/bots/`, discovered at runtime by scanning for `*_bot.py` files
 
 ## Architecture
 
