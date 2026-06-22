@@ -54,7 +54,7 @@ class AdminBot(Bot):
     CATEGORIES: dict = CATEGORIES
 
     async def _search(self, query: str) -> list:
-        logger.info(f"Called `{self.tool_name}` with query=`{query}`")
+        logger.info(f"Called `{self.tool_name}`")
         results = await graphai.rag_retrieve(index=self.index, texts=[query])
         logger.info(f"Retrieved {len(results)} chunks.")
         return results

@@ -36,7 +36,7 @@ class MICRO452DebateBot(DebateCourseBot):
         case_study_number: Optional[int] = None,
     ) -> list:
         keywords = keywords or []
-        logger.info(f"keywords={keywords!r} case_study_number={case_study_number!r}")
+        logger.info(f"case_study_number={case_study_number!r}")
 
         if case_study_number:
             case_study_results, theory_results = await asyncio.gather(

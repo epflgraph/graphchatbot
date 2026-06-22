@@ -97,7 +97,7 @@ class CourseBot(Bot):
         else:
             filters_dict = {}
 
-        logger.info(f"query=`{query}` filters=`{filters_dict}`")
+        logger.info(f"filters=`{filters_dict}`")
 
         results = await graphai.rag_retrieve(index=self.index, texts=[query], filters=filters_dict)
 

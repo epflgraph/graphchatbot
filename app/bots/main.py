@@ -22,7 +22,7 @@ langfuse = Langfuse(
 
 async def generate_completion(chat_request: CompletionCreateParams, bot: Bot) -> dict:
     messages = list(chat_request['messages'])
-    logger.info(f"Received non-streaming request for bot `{bot.name}` with last message `{messages[-1]['content']}`")
+    logger.info(f"Received non-streaming request for bot `{bot.name}` with {len(messages)} message(s)")
 
     agent_input = {'messages': messages}
     agent_config = {
@@ -44,7 +44,7 @@ async def generate_completion(chat_request: CompletionCreateParams, bot: Bot) ->
 
 async def agenerate_completion(chat_request: CompletionCreateParams, bot: Bot) -> AsyncGenerator:
     messages = list(chat_request['messages'])
-    logger.info(f"Received streaming request for bot `{bot.name}` with last message `{messages[-1]['content']}`")
+    logger.info(f"Received streaming request for bot `{bot.name}` with {len(messages)} message(s)")
 
     agent_input = {'messages': messages}
     agent_config = {
@@ -73,6 +73,6 @@ async def agenerate_completion(chat_request: CompletionCreateParams, bot: Bot) -
     except asyncio.CancelledError:
         logger.warning("Client disconnected, stream cancelled")
     except Exception as e:
-        logger.exception(e)
+        logger.error(f"Streaming failed for bot `{bot.name}`, model `{chat_request['model']}`: {type(e).__name__}")
     finally:
         yield "data: [DONE]\n\n"
