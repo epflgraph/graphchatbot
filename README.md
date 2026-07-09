@@ -39,8 +39,7 @@ app/
 │   └── graph_chat/      # GraphChatBot
 ├── interfaces/graphai.py # GraphAI RAG client
 ├── llms/utils.py        # Structured output helpers
-├── routers/             # FastAPI public and secure routers
-└── auth/                # Authentication and authorization
+└── routers/             # FastAPI public routers
 ```
 
 ### Key Design Decisions
