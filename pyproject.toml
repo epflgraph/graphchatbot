@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "graphchatbot"
-version = "0.2.0"
+version = "2.0.0"
 authors = [
   { name="Aitor Pérez", email="aitor.perez@epfl.ch" }
 ]
-description = "GraphChatBot is an API that uses langchain to provide services leveraging LLMs in the context of the knowledge graph of the project EPFL Graph."
+description = "FastAPI backend for the EPFL Graph and CEDE chatbots: a modular framework to build and serve educational tutors, the EPFL Graph chatbot and other administrative RAG assistants."
 readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [

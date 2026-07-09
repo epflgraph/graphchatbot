@@ -1,0 +1,26 @@
+[elasticsearch]
+host: es.graphcert.cede-apps.ch
+port: 9200
+username: xxxx
+password: xxxx
+cafile: /path/to/your/es.crt
+index: graphsearch_prod
+
+[rcp]
+base_url: https://inference.rcp.epfl.ch/v1
+api_key: xxxx
+
+[graphsearch]
+base_url: https://graphsearch.epfl.ch
+
+[graphai]
+host: https://graphai.graphcert.cede-apps.ch
+port: 443
+username: xxxx
+password: xxxx
+
+[langfuse]
+host: https://langfuse.cede-apps.ch
+secret_key: xxxx
+public_key: xxxx
+environment: local

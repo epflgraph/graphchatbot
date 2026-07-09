@@ -4,7 +4,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![LangGraph](https://img.shields.io/badge/LangGraph-1C3C3C?logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/)
 
-This is the API backend powering a number of EPFL chatbot agents developed by the [Center for Digital Education (CEDE)](https://www.epfl.ch/education/educational-initiatives/cede/), including educational tutors, administrative assistants, and the **EPFL Graph** conversational bot. All bots are built with [LangChain](https://python.langchain.com/) and [LangGraph](https://langchain-ai.github.io/langgraph/).
+This is the FastAPI backend for the EPFL Graph and CEDE chatbots, developed by the [Center for Digital Education (CEDE)](https://www.epfl.ch/education/educational-initiatives/cede/): a modular framework to build and serve educational tutors, the EPFL Graph chatbot and other administrative RAG assistants. All bots are built with [LangChain](https://python.langchain.com/) and [LangGraph](https://langchain-ai.github.io/langgraph/).
 
 The system is designed around a modular, self-discovering **bot architecture**: each bot is a standalone agent with its own prompts, tools, and conversation graph. New bots are automatically detected at runtime—no manual registration required.
 
@@ -14,7 +14,7 @@ All agents use models from the inference service at EPFL's [Research Computing P
 
 ## Overview
 
-GraphChatBot exposes a **FastAPI** application with OpenAI-compatible streaming endpoints that serve a variety of task-specific AI tutors and assistants. Bots can be tailored for:
+This repository exposes a **FastAPI** application with OpenAI-compatible streaming endpoints that serve a variety of task-specific AI tutors and assistants. Bots can be tailored for:
 
 - **Administrative tasks** (e.g. answering questions about institutional docs via RAG)
 - **Course tutoring** (e.g. pedagogical Q&A with classification into theory / practice / admin / unrelated)

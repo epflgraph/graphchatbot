@@ -42,9 +42,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="EPFL Graph Chatbot",
-    description="API that serves the EPFL Graph chatbot",
-    version="1.0.0",
+    title="EPFL Graph and CEDE Chatbots",
+    description="FastAPI backend for the EPFL Graph and CEDE chatbots: a modular framework to build and serve educational tutors, the EPFL Graph chatbot and other administrative RAG assistants.",
+    version="2.0.0",
     lifespan=lifespan
 )
 
