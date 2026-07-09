@@ -5,4 +5,4 @@ class CMiRestrictedBot(AdminBot):
     name = 'cmi_restricted'
     index = 'course_cmirestricted'
     groups = ['graph-chatbot-admins', 'graph-rag-vip', 'cmi-chat-bot-private']
-    tool_name = 'search_cmi'
+    tool_name = 'search_cmi_restricted'
