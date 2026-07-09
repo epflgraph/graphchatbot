@@ -8,10 +8,9 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 
-from app.routers import public
-
 from app.bots import registry as bot_registry
 from app.logging_config import setup_logging
+from app.routers import public
 
 
 setup_logging()
