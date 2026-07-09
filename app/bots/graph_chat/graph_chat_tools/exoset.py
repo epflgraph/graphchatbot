@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 import httpx
 import pandas as pd
@@ -6,6 +7,8 @@ import pandas as pd
 from graphes.core.graphes import GraphES
 
 from app.config import config
+
+logger = logging.getLogger(__name__)
 
 API_URL = "https://exoset.epfl.ch/graphapi"
 TEST_API_URL = "https://test-exoset.epfl.ch/graphapi"
@@ -21,7 +24,7 @@ async def _fetch_concept_exercises(client: httpx.AsyncClient, node: dict) -> pd.
         exercises['coef'] = node['score']
         return exercises
     except Exception:
-        print("[EXOSET TOOL]", "The request to EXOSET PROD API failed. Trying EXOSET TEST API...")
+        logger.info("[EXOSET TOOL] The request to EXOSET PROD API failed. Trying EXOSET TEST API...")
 
     try:
         response = await client.post(TEST_API_URL, params={'concept': node['name']['en']})
@@ -30,7 +33,7 @@ async def _fetch_concept_exercises(client: httpx.AsyncClient, node: dict) -> pd.
         exercises['coef'] = node['score']
         return exercises
     except Exception:
-        print("[EXOSET TOOL]", "The request to EXOSET TEST API failed. Returning no exercises.")
+        logger.info("[EXOSET TOOL] The request to EXOSET TEST API failed. Returning no exercises.")
 
     return pd.DataFrame([])
 
@@ -43,7 +46,7 @@ async def search_exoset(query: str, language: str = 'EN') -> list:
 
     # TODO Migrate this to use graphregistry rather than exoset API
 
-    print("[EXOSET TOOL]", f"Called the `search_exercises` tool with input `{query}` and language `{language}`")
+    logger.info("[EXOSET TOOL] Called the `search_exercises` tool with input `%s` and language `%s`", query, language)
 
     if language.lower() in ['fr', 'french', 'français']:
         language = 'FR'
@@ -51,7 +54,7 @@ async def search_exoset(query: str, language: str = 'EN') -> list:
         language = 'EN'
 
     if query in _exoset_cache:
-        print("[EXOSET TOOL]", f"Found {len(_exoset_cache[query])} cached exercises for query `{query}` and language `{language}`, returning those")
+        logger.info("[EXOSET TOOL] Found %d cached exercises for query `%s` and language `%s`, returning those", len(_exoset_cache[query]), query, language)
         return _exoset_cache[query]
 
     client = GraphES()
@@ -63,10 +66,10 @@ async def search_exoset(query: str, language: str = 'EN') -> list:
         limit=50,
     )
 
-    print("[EXOSET TOOL]", f"Got {len(nodes)} concepts to query for exercises: {[node['name']['en'] for node in nodes]}")
+    logger.info("[EXOSET TOOL] Got %d concepts to query for exercises: %s", len(nodes), [node['name']['en'] for node in nodes])
 
     if len(nodes) == 0:
-        print("[EXOSET TOOL]", "No concepts found, returning empty list")
+        logger.info("[EXOSET TOOL] No concepts found, returning empty list")
         return []
 
     async with httpx.AsyncClient() as client:
@@ -93,12 +96,12 @@ async def search_exoset(query: str, language: str = 'EN') -> list:
     all_exercises = all_exercises.groupby(by=['title', 'url']).aggregate(score=('score', 'sum')).reset_index()
     all_exercises = all_exercises.sort_values(by='score', ascending=False).reset_index(drop=True)
 
-    print("[EXOSET TOOL]", f"Found {len(all_exercises)} exercises among all concepts")
+    logger.info("[EXOSET TOOL] Found %d exercises among all concepts", len(all_exercises))
 
     all_exercises = all_exercises[:20]
     all_exercises = all_exercises.to_dict(orient='records')
 
-    print("[EXOSET TOOL]", f"Storing {len(all_exercises)} exercises for query `{query}` and language `{language}` in cache")
+    logger.info("[EXOSET TOOL] Storing %d exercises for query `%s` and language `%s` in cache", len(all_exercises), query, language)
     _exoset_cache[query] = all_exercises
 
     return all_exercises
