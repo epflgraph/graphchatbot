@@ -74,7 +74,7 @@ CATEGORIES = {
 
 class GraphChatBot(Bot):
     name = 'graph-chat'
-    groups = None
+    groups = []
 
     CATEGORIES = CATEGORIES
 
