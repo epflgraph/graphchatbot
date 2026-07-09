@@ -1,43 +1,48 @@
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "graphchatbot"
-version = "0.2.0"
+version = "2.0.0"
 authors = [
   { name="Aitor Pérez", email="aitor.perez@epfl.ch" }
 ]
-description = "GraphChatBot is an API that uses langchain to provide services leveraging LLMs in the context of the knowledge graph of the project EPFL Graph."
+description = "FastAPI backend for the EPFL Graph and CEDE chatbots: a modular framework to build and serve educational tutors, the EPFL Graph chatbot and other administrative RAG assistants."
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.11"
 classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Framework :: FastAPI",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Operating System :: OS Independent"
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-    "fastapi",
-    "uvicorn",
-    "pydantic",
-    "requests",
-    "levenshtein",
-    "langchain",
-    "langchain-core",
-    "langchain-community",
-    "langchain-openai",
-    "langgraph",
-    "langfuse",
-    "openai",
-    "python-ldap",
-    "elasticsearch-interface",
-    "db-cache-manager",
+    "fastapi==0.135",
+    "uvicorn==0.42",
+    "pydantic==2.12",
+    "python-dotenv==1.2",
+    "httpx==0.28",
+    "pandas==3.0",
+    "langchain==1.3",
+    "langchain-core==1.4",
+    "langchain-openai==1.2",
+    "langgraph==1.2",
+    "langfuse==4.6",
+    "openai==2.29",
+    "graphes-client @ git+https://github.com/epflgraph/graphes-client.git@search",
 ]
-
-[tool.setuptools]
-packages = ["app"]
 
 [project.urls]
 "Homepage" = "https://github.com/epflgraph/graphchatbot"
-"Documentation" = "https://github.com/epflgraph/graphchatbot"
+"Documentation" = "https://github.com/epflgraph/graphchatbot#readme"
 "Source code" = "https://github.com/epflgraph/graphchatbot"
 "Bug Tracker" = "https://github.com/epflgraph/graphchatbot/issues"
+"Changelog" = "https://github.com/epflgraph/graphchatbot/blob/main/CHANGELOG.md"

@@ -1,64 +1,167 @@
-# EPFL Graph Chatbot
+# EPFL Graph and CEDE Chatbots
 
-Chatbot for the EPFL Graph project 🤖
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![LangGraph](https://img.shields.io/badge/LangGraph-1C3C3C?logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/)
+
+This is the FastAPI backend for the EPFL Graph and CEDE chatbots, developed by the [Center for Digital Education (CEDE)](https://www.epfl.ch/education/educational-initiatives/cede/): a modular framework to build and serve educational tutors, the EPFL Graph chatbot and other administrative RAG assistants. All bots are built with [LangChain](https://python.langchain.com/) and [LangGraph](https://langchain-ai.github.io/langgraph/).
+
+The system is designed around a modular, self-discovering **bot architecture**: each bot is a standalone agent with its own prompts, tools, and conversation graph. New bots are automatically detected at runtime—no manual registration required.
+
+All agents use models from the inference service at EPFL's [Research Computing Platform](https://portal.rcp.epfl.ch), which guarantees that data is never sent to external providers.
+
+---
 
 ## Overview
-The chatbot for the EPFL Graph is a service that leverages LLMs to provide answers in natural language about the data in the EPFL Graph as well as other EPFL-related services. It is deployed as an API using the [FastAPI](https://fastapi.tiangolo.com/) framework, and is implemented leveraging the [LangChain](https://python.langchain.com/v0.2/docs/introduction/) and [LangGraph](https://langchain-ai.github.io/langgraph/) Python packages.
 
-Via the `/chat` endpoint, the user can engage in a conversation with an agent that will use the different tools at its disposal to provide answers to the user's requests. The following list covers the functions that are available for the agent to use:
-* **search_nodes**: Searches for nodes in the EPFL Graph of one or more `node_type` matching a given `query` (e.g. "Course" about "solar cells") and returns a list of nodes with links that match the given query.
-* **search_exercises**: Takes a `query` (e.g. "oscillators") and returns a list of exercises from the EXOSET database that best match the given query.
-* **search_news**: Takes a `query` (e.g. "sustainability") and returns a list of official EPFL news that match the given query.
+This repository exposes a **FastAPI** application with OpenAI-compatible streaming endpoints that serve a variety of task-specific AI tutors and assistants. Bots can be tailored for:
 
-The chatbot is instructed to steer away from any discussion not appropriate or not concerning EPFL. However, since it uses LLMs, it can be affected by their [known issues](https://en.wikipedia.org/wiki/Large_language_model#Wider_impact), such as hallucinations, biases or other issues.
+- **Administrative tasks** (e.g. answering questions about institutional docs via RAG)
+- **Course tutoring** (e.g. pedagogical Q&A with classification into theory / practice / admin / unrelated)
+- **Custom workflows** (build any LangGraph topology and plug it in)
 
-## Safety measures
-A lot of effort has been put in making the chatbot less susceptible to hallucinations or biases when retrieving information from the tools. To that end, several measures have been put in place:
-* The LLM is instructed to always provide a url linking to the relevant content on [GraphSearch](https://graphsearch.epfl.ch), [EXOSET](https://exoset.epfl.ch) or [EPFL news](https://actu.epfl.ch).
-* Every time the LLM generates a message, the agent automatically checks whether it contains a link which was not returned by the tools, and rolls back and re-generates the message if that is the case.
-* The `/chat` endpoint returns a list of `tool_interactions`, which is a history of the tool calls that the agent has performed. This information can be used to do further checks if needed and be displayed to the end user for transparency (e.g. "Searched for **Courses** related to **Nanotechnology**").  
-* Should any sensitive information be supposed to be kept away from the LLM, the system is ready to put in place a way of obfuscating the actual content of the nodes in the EPFL Graph (e.g. by replacing people's names). This is not done by default as the information is considered to be of low risk, most of it being publicly available (publications, people's affiliations, courses, etc.).  
+---
 
-Despite all these efforts, the nature of LLMs makes it impossible to prevent undesired interactions completely. In addition, the EPFL Graph chatbot is at least as susceptible to adversarial attacks as its underlying LLM.
+## Project Architecture
 
-## Setup
-Install this package in editable mode with
 ```
+app/
+├── main.py              # FastAPI entry point
+├── config.py            # INI + environment variable loading
+├── bots/
+│   ├── base.py          # Bot ABC, BotState, model configuration
+│   ├── registry.py      # Auto-discovery of bot classes via filesystem scanning
+│   ├── prompts.py       # Recursive Markdown prompt resolution
+│   ├── main.py          # LLM completion / streaming helpers
+│   ├── nodes/           # Reusable LangGraph nodes (classify, model, tools)
+│   ├── admin/           # AdminBot + concrete admin bots
+│   ├── course/          # CourseBot + pedagogical variants
+│   └── graph_chat/      # GraphChatBot
+├── interfaces/graphai.py # GraphAI RAG client
+├── llms/utils.py        # Structured output helpers
+└── routers/             # FastAPI public routers
+```
+
+### Key Design Decisions
+
+- **Auto-discovery**: Bots are found by scanning `app/bots/` for classes defined in `*_bot.py` files
+- **No central registry**: Drop a new bot directory in the right place and restart—the registry picks it up automatically
+- **Prompts as Markdown**: Prompts are composed recursively from Markdown fragments, allowing easy inheritance and overrides
+- **Stateless graphs**: LangGraph graphs are compiled once at startup (`@cached_property`) and reused per request
+- **Streaming-first**: All endpoints support streaming message completion via `stream_mode="messages"`
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- **Python** >= 3.11
+- A running RAG backend (GraphAI / Elasticsearch) if using RAG-enabled bots
+- An [RCP API key](https://portal.rcp.epfl.ch)
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/epflgraph/graphchatbot.git
+cd graphchatbot
+
+# Create a virtual environment
+python -m venv venv
+source venv/bin/activate   # On Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -e .
 ```
 
-Add a configuration file `config.ini` in the project root with the following content:
-```
-[database]
-host: <host>
-port: <port>
-user: <user>
-password: <pass>
+### Configuration
 
-[elasticsearch]
-host: <host>
-port: <port>
-username: <user>
-password: <pass>
-cafile: </path/to/certificate/file>
+Copy the example configuration file and fill in your credentials:
 
-[openai]
-api_key: <openai_key>
-
-[graphsearch]
-base_url: <base url for node links>
+```bash
+cp config.ini.example config.ini
 ```
 
-Then deploy the API with
-```
-uvicorn main:app --reload --port 5100
+Edit `config.ini` to set:
+- RCP base url and API key
+- GraphAI / Elasticsearch connection details
+- Langfuse credentials for tracing
+
+### Running Locally
+
+```bash
+# Standard
+python -m app.main
+
+# With auto-reload (development)
+uvicorn app.main:app --reload --port 8000
 ```
 
-Now the API should be listening on port `5100`. You can start interacting directly through HTTP requests or load the provided (temporary) frontend typing
-```
-localhost:5100
-```
-in a browser's URL bar.
+The API documentation will be available at `http://localhost:8000/docs`.
 
-## Docs
-An OpenAPI documentation file is generated automatically by FastAPI. It can be accessed from the `/docs` endpoint.
+---
+
+## Adding a New Bot
+
+Creating a new bot requires **zero** modifications to existing code.
+
+1. **Create the bot directory**  
+   Inside `app/bots/<category>/<botname>/`, create:
+   - `<botname>_bot.py` — class definition
+   - `<prompt_file>.md` — system prompt templates for the agent, or omit as needed to fall back to higher-level prompt files
+   - `tool_description.md` — tool-calling hints
+
+2. **Pick the right base class**
+
+   | Base Class | Use Case |
+   |------------|----------|
+   | `AdminBot` | Single-tool RAG bot for institutional docs |
+   | `CourseBot` | Course tutor with built-in message classification (theory / practice / admin / unrelated) |
+   | `HintingCourseBot` | Course tutor that provides hints instead of direct answers |
+   | `DirectCourseBot` | Course tutor that gives direct answers |
+   | `Bot` (ABC) | Fully custom LangGraph topology |
+
+   Each bot class **must** define:
+   - `name: str` (unique identifier)
+   - `groups: list[str]` (authorized user groups; use `[]` for public/unrestricted bots)
+   - Any required configuration fields
+
+3. **Restart the application** — the registry auto-discovers and instantiates the bot.
+
+### Prompt Resolution
+
+The built-in prompt system (`app/bots/prompts.py`) composites bot prompts from recursive Markdown fragments:
+
+- `{fragment}` → inline another `.md` file (searched upwards from the bot directory)
+- `{{placeholder}}` → dynamic value filled at runtime via `str.format(...)`
+
+---
+
+## Testing
+
+### Inspect a Bot
+
+```python
+from app.bots.registry import init_bots, get_bot
+
+init_bots()
+bot = get_bot("MY-BOT-NAME")
+
+print(bot.prompt())            # View resolved prompt
+print(bot.build_tools())       # Inspect tool schemas
+print(bot.graph)               # Verify graph compiles
+```
+
+### Run the Test Suite
+
+To be added.
+
+---
+
+## Development Guidelines
+
+- **Async everywhere**: All node functions and tools must be `async`
+- **Python 3.11+ types**: Use `list[str]`, `dict[str, ...]`, `str | None`
+- **No hardcoded secrets**: Always pull from `config.ini` / `.env` via `config.get("section", {}).get("key")`
+- **Logging**: Use `logging.getLogger(__name__)`; the logging format is configured in `app.logging_config`

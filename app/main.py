@@ -6,12 +6,14 @@ It defines the input and output models and creates the endpoints.
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 
-from app.auth import get_user
-from app.routers import secure, public
+from app.bots import registry as bot_registry
+from app.logging_config import setup_logging
+from app.routers import public
 
-from app.agent import init_agent
+
+setup_logging()
 
 
 @asynccontextmanager
@@ -26,7 +28,7 @@ async def lifespan(app: FastAPI):
     ################################################################
     # Before startup                                               #
     ################################################################
-    init_agent()
+    bot_registry.init_bots()
 
     ################################################################
     # Yield execution to API                                       #
@@ -40,18 +42,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="EPFL Graph Chatbot",
-    description="API that serves the EPFL Graph chatbot",
-    version="1.0.0",
+    title="EPFL Graph and CEDE Chatbots",
+    description="FastAPI backend for the EPFL Graph and CEDE chatbots: a modular framework to build and serve educational tutors, the EPFL Graph chatbot and other administrative RAG assistants.",
+    version="2.0.0",
     lifespan=lifespan
 )
 
 app.include_router(
     public.router,
-)
-app.include_router(
-    secure.router,
-    dependencies=[Depends(get_user)]
 )
 
 if __name__ == "__main__":

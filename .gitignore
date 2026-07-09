@@ -13,6 +13,8 @@ config.docker.ini
 config.local.ini
 config-prod.ini
 config-test.ini
+.env
+graphes-config.yaml
 
 # Certificates
 *.crt
