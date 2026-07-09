@@ -19,7 +19,6 @@ dependencies = [
     "fastapi",
     "uvicorn",
     "pydantic",
-    "requests",
     "httpx",
     "levenshtein",
     "langchain",

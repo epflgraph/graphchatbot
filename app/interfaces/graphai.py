@@ -1,8 +1,8 @@
+import asyncio
 import logging
 import time
 
-import aiohttp
-import asyncio
+import httpx
 
 from app.config import config
 
@@ -32,21 +32,17 @@ class GraphAIClient:
             'client_secret': '',
         }
 
-        async with aiohttp.ClientSession() as session:
-            try:
-                async with session.post(
-                        f"{self.url}/token",
-                        headers=headers,
-                        data=data
-                ) as resp:
-                    result = await resp.json()
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(f"{self.url}/token", headers=headers, data=data)
+                result = resp.json()
 
-                    self.bearer_token = result.get("access_token")
-                    if not self.bearer_token:
-                        logger.error(f"Unexpected authentication response: {result}")
+                self.bearer_token = result.get("access_token")
+                if not self.bearer_token:
+                    logger.error(f"Unexpected authentication response: {result}")
 
-            except asyncio.TimeoutError:
-                logger.warning("Request to authenticate timed out, subsequent requests will more likely fail.")
+        except httpx.TimeoutException:
+            logger.warning("Request to authenticate timed out, subsequent requests will more likely fail.")
 
     async def call_async_endpoint(self, endpoint, payload, timeout=10, verbose=False):
         # Make sure we are authenticated
@@ -54,10 +50,10 @@ class GraphAIClient:
 
         headers = {'Authorization': f'Bearer {self.bearer_token}'}
 
-        async with aiohttp.ClientSession() as session:
+        async with httpx.AsyncClient(timeout=timeout) as client:
             # Make first request, which will return a task_id
-            async with session.post(f"{self.url}{endpoint}", headers=headers, json=payload) as resp:
-                response = await resp.json()
+            resp = await client.post(f"{self.url}{endpoint}", headers=headers, json=payload)
+            response = resp.json()
 
             if verbose:
                 logger.debug(response)
@@ -68,8 +64,8 @@ class GraphAIClient:
             limit_time = time.time() + timeout
 
             while True:
-                async with session.get(f"{self.url}{endpoint}/status/{task_id}", headers=headers) as resp:
-                    response = await resp.json()
+                resp = await client.get(f"{self.url}{endpoint}/status/{task_id}", headers=headers)
+                response = resp.json()
 
                 if verbose:
                     logger.debug(response)
@@ -99,23 +95,18 @@ class GraphAIClient:
 
         headers = {'Authorization': f'Bearer {self.bearer_token}'}
 
-        async with aiohttp.ClientSession() as session:
-            try:
-                async with session.post(
-                        f"{self.url}{endpoint}",
-                        headers=headers,
-                        json=payload,
-                        timeout=timeout
-                ) as resp:
-                    response = await resp.json()
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                resp = await client.post(f"{self.url}{endpoint}", headers=headers, json=payload)
+                response = resp.json()
 
-                    if verbose:
-                        logger.debug(response)
+                if verbose:
+                    logger.debug(response)
 
-                    return response
-            except asyncio.TimeoutError:
-                logger.warning(f"Request to {endpoint} timed out after {timeout} seconds, returning None")
-                return None
+                return response
+        except httpx.TimeoutException:
+            logger.warning(f"Request to {endpoint} timed out after {timeout} seconds, returning None")
+            return None
 
     async def rag_retrieve(self, index: str, texts: list[str], limit: int = 10, filters: dict | None = None):
         # Clean texts
