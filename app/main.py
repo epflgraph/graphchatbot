@@ -6,10 +6,9 @@ It defines the input and output models and creates the endpoints.
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 
-from app.auth import get_user
-from app.routers import secure, public
+from app.routers import public
 
 from app.auth.db import init_auth_schema
 from app.bots import registry as bot_registry
@@ -54,10 +53,6 @@ app = FastAPI(
 
 app.include_router(
     public.router,
-)
-app.include_router(
-    secure.router,
-    dependencies=[Depends(get_user)]
 )
 
 if __name__ == "__main__":
