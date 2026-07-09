@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "graphchatbot"
@@ -10,10 +10,19 @@ authors = [
 ]
 description = "FastAPI backend for the EPFL Graph and CEDE chatbots: a modular framework to build and serve educational tutors, the EPFL Graph chatbot and other administrative RAG assistants."
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.11"
 classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Framework :: FastAPI",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Operating System :: OS Independent"
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
     "fastapi==0.135",
@@ -31,11 +40,9 @@ dependencies = [
     "graphes-client @ git+https://github.com/epflgraph/graphes-client.git@search",
 ]
 
-[tool.setuptools]
-packages = ["app"]
-
 [project.urls]
 "Homepage" = "https://github.com/epflgraph/graphchatbot"
-"Documentation" = "https://github.com/epflgraph/graphchatbot"
+"Documentation" = "https://github.com/epflgraph/graphchatbot#readme"
 "Source code" = "https://github.com/epflgraph/graphchatbot"
 "Bug Tracker" = "https://github.com/epflgraph/graphchatbot/issues"
+"Changelog" = "https://github.com/epflgraph/graphchatbot/blob/main/CHANGELOG.md"
