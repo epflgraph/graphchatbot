@@ -85,7 +85,6 @@ cp config.ini.example config.ini
 
 Edit `config.ini` to set:
 - RCP base url and API key
-- Model names
 - GraphAI / Elasticsearch connection details
 - Langfuse credentials for tracing
 
@@ -125,7 +124,7 @@ Creating a new bot requires **zero** modifications to existing code.
 
    Each bot class **must** define:
    - `name: str` (unique identifier)
-   - `groups` attribute (authorized user groups)
+   - `groups: list[str]` (authorized user groups; use `[]` for public/unrestricted bots)
    - Any required configuration fields
 
 3. **Restart the application** — the registry auto-discovers and instantiates the bot.
@@ -156,11 +155,7 @@ print(bot.graph)               # Verify graph compiles
 
 ### Run the Test Suite
 
-(If tests are available in the project:)
-
-```bash
-pytest
-```
+To be added.
 
 ---
 
@@ -169,4 +164,4 @@ pytest
 - **Async everywhere**: All node functions and tools must be `async`
 - **Python 3.11+ types**: Use `list[str]`, `dict[str, ...]`, `str | None`
 - **No hardcoded secrets**: Always pull from `config.ini` / `.env` via `config.get("section", {}).get("key")`
-- **Logging**: Use `logging.getLogger(__name__)`; structured logging is configured in `app.logging_config`
+- **Logging**: Use `logging.getLogger(__name__)`; the logging format is configured in `app.logging_config`

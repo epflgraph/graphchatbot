@@ -1,4 +1,4 @@
-# GraphChatBot — Agent Reference
+# EPFL Graph and CEDE Chatbots — Agent Reference
 
 ## Recent Refactor
 
@@ -113,7 +113,7 @@ b.graph                # Verify graph compiles
 
 - Do **not** modify `app/integrations/` — it is legacy
 - Do **not** add bots to a manual registry — discovery is automatic
-- Do **not** hardcode model names or API keys — use `config.ini` / `.env`
-- Never read config files.
+- Do **not** hardcode API keys — use `config.ini` / `.env`
+- Never commit config files or secrets
 - Bot names must be unique; duplicates log a warning and overwrite
 - Abstract bot classes (no `name: str` attribute) are skipped by the registry
