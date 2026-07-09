@@ -1,0 +1,37 @@
+#=======================#
+# GraphES Configuration #
+#=======================#
+
+# Index environments
+environments:
+
+  # Environment: test
+  test_env:
+    host_address: 127.0.0.1
+    port: 9200
+    username: <YOUR_USERNAME>
+    password: <YOUR_PASSWORD>
+
+  # Environment: staging
+  stag_env:
+    host_address: 127.0.0.1
+    port: 9201
+    username: <YOUR_USERNAME>
+    password: <YOUR_PASSWORD>
+
+  # Environment: production
+  prod_env:
+    host_address: es.graphcert.cede-apps.ch
+    port: 9200
+    username: <YOUR_USERNAME>
+    password: <YOUR_PASSWORD>
+
+  # Environment: some other
+  some_other_env:
+    host_address: 127.0.0.1
+    port: 9203
+    username: <YOUR_USERNAME>
+    password: <YOUR_PASSWORD>
+
+# Default environment to use when not specified in the command line
+default_env: prod_env
