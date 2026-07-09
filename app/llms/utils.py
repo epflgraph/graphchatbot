@@ -41,7 +41,7 @@ async def generate_structured_response(model, system_prompt, human_prompt, pydan
     # Send request to LLM
     try:
         result = await model.ainvoke(input=input_messages)
-    except Exception as e:
+    except Exception:
         logger.exception("Structured response call failed")
         return
 

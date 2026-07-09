@@ -24,7 +24,7 @@ def init_bots() -> None:
 
         try:
             module = importlib.import_module(module_path)
-        except Exception as e:
+        except Exception:
             logger.exception(f'Failed to import {module_path}')
             continue
 

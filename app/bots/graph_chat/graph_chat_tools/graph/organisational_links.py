@@ -44,7 +44,7 @@ organisational_fields_mapping = {
 def get_organisational_field_details(source_node_type, target_node_type):
     try:
         return organisational_fields_mapping[source_node_type][target_node_type]
-    except Exception as e:
+    except Exception:
         print('[WARNING]', f"No organisational fields defined for node types {source_node_type} and {target_node_type}")
         return {}
 
