@@ -55,7 +55,13 @@ async def search_exoset(query: str, language: str = 'EN') -> list:
         return _exoset_cache[query]
 
     client = GraphES()
-    nodes = client.search(query=query, node_types=['Concept'], index_name=config['elasticsearch']['index'], limit=50)
+    nodes = await asyncio.to_thread(
+        client.search,
+        query=query,
+        node_types=['Concept'],
+        index_name=config['elasticsearch']['index'],
+        limit=50,
+    )
 
     print("[EXOSET TOOL]", f"Got {len(nodes)} concepts to query for exercises: {[node['name']['en'] for node in nodes]}")
 
