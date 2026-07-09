@@ -40,7 +40,7 @@ app/
 2. Create a directory: `app/bots/<category>/<botname>/`
 
 3. Add files:
-   - `*_bot.py` — class definition (must set `name: str`, `groups`, and required fields)
+   - `*_bot.py` — class definition (must set `name: str`, `groups: list[str]`, and required fields)
    - `course_name.md` — short name used in prompts
    - `coursebook.md` — course details/content for prompts
    - `tool_notes.md` — optional, course-specific tool-calling notes
@@ -73,7 +73,7 @@ Each fragment is resolved by walking up the directory tree, so a bot can overrid
 
 - **Async everywhere**: Node functions and tools are `async`
 - **Type hints**: Use `list[str]`, `dict[str, ...]`, `str | None` (Python 3.11+)
-- **Models**: `langchain_openai.ChatOpenAI`, configured via `app.config.config`
+- **Models**: `langchain_openai.ChatOpenAI`. Credentials (`base_url`, `api_key`) are read from `config.ini`; the shared base model name and generation parameters in `app.bots.base.Bot` are currently hardcoded.
 - **Graphs**: Stateless, compiled at startup via `@cached_property`, reused per request
 - **Streaming**: Use `stream_mode="messages"`, filter by `metadata["langgraph_node"]`
 - **Tools**: Declare via `langchain.tools.tool`, with Pydantic `args_schema`
@@ -116,4 +116,4 @@ b.graph                # Verify graph compiles
 - Do **not** hardcode model names or API keys — use `config.ini` / `.env`
 - Never read config files.
 - Bot names must be unique; duplicates log a warning and overwrite
-- Abstract bot classes (no `name` attribute) are skipped by the registry
+- Abstract bot classes (no `name: str` attribute) are skipped by the registry
