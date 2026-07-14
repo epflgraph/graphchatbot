@@ -81,7 +81,7 @@ Before summarizing data numerically, we first look at it visually. A good graph 
 
 **Key concepts**
 
-- **Mean:** the arithmetic average, $\bar{x} = \frac{\sum x_i}{n}$. Sensitive to outliers.
+- **Mean:** the arithmetic average. Sensitive to outliers.
 - **Median:** the middle value of ordered data; robust to outliers and a better summary for skewed distributions.
 - **Mode:** the most frequent value(s); the only measure of central tendency valid for purely categorical data.
 - **Range:** maximum minus minimum — simple but sensitive to outliers.
@@ -100,7 +100,7 @@ The chi-square distribution underlies a family of hypothesis tests for categoric
 
 **Key concepts**
 
-- **Chi-square test statistic:** $\chi^2 = \sum \frac{(O_i - E_i)^2}{E_i}$, comparing observed counts $O_i$ to expected counts $E_i$ under a null hypothesis.
+- **Chi-square test statistic:** comparing observed counts $O_i$ to expected counts $E_i$ under a null hypothesis.
 - **Goodness-of-fit test:** tests whether a single categorical variable follows a specified distribution (e.g., are dice rolls uniform?).
 - **Test of independence:** tests whether two categorical variables are associated, using a contingency table; expected counts are computed as (row total × column total) / grand total.
 - **Test of homogeneity:** tests whether several populations share the same distribution across categories — mechanically identical to the independence test but conceptually different in setup.
@@ -130,10 +130,10 @@ The chi-square distribution underlies a family of hypothesis tests for categoric
 
 **Key concepts**
 
-- **Simple linear regression model:** $\hat{y} = b_0 + b_1 x$, fit by the method of least squares, which minimizes the sum of squared residuals.
+- **Simple linear regression model:** fit by the method of least squares, which minimizes the sum of squared residuals.
 - **Slope ($b_1$):** the predicted change in $y$ for a one-unit increase in $x$.
 - **Intercept ($b_0$):** the predicted value of $y$ when $x = 0$ — meaningful only if $x=0$ falls within (or near) the observed range of the data.
-- **Residuals:** $e_i = y_i - \hat{y}_i$; residual plots are used to check the linearity and constant-variance assumptions.
+- **Residuals:** residual plots are used to check the linearity and constant-variance assumptions.
 - **$r^2$ in regression:** the proportion of variability in $y$ explained by the regression line.
 - **Prediction vs. extrapolation:** predictions within the range of observed $x$ values are generally reliable; predictions well outside that range (extrapolation) are not.
 - **Assumptions:** linearity, independence of errors, roughly constant variance (homoscedasticity), and approximately normal residuals.
@@ -150,7 +150,7 @@ The course closes with Analysis of Variance, which extends the two-sample compar
 
 - **Purpose:** ANOVA tests whether the means of three or more independent groups are all equal, avoiding the inflated Type I error rate that would result from running many pairwise t-tests.
 - **Between-group vs. within-group variance:** ANOVA compares variability *between* group means to variability *within* groups.
-- **F-statistic:** $F = \frac{\text{Mean Square Between}}{\text{Mean Square Within}}$. A large $F$ suggests that between-group differences are large relative to natural variability within groups.
+- **F-statistic:** A large $F$ suggests that between-group differences are large relative to natural variability within groups.
 - **ANOVA table:** organizes sums of squares (SSB, SSW, SST), degrees of freedom, mean squares, the F-statistic, and the p-value.
 - **Assumptions:** independent samples, approximately normal populations, and approximately equal variances across groups (homogeneity of variance).
 - **Interpreting a significant result:** a significant ANOVA tells us *at least one* group mean differs from the others, but not *which* ones — this motivates post-hoc comparisons (mentioned conceptually, e.g., Tukey's HSD), which distinguish specific pairs of group means that differ.
