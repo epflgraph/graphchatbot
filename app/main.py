@@ -12,7 +12,6 @@ from app.bots import registry as bot_registry
 from app.logging_config import setup_logging
 from app.routers import public
 
-
 setup_logging()
 
 
@@ -45,7 +44,7 @@ app = FastAPI(
     title="EPFL Graph and CEDE Chatbots",
     description="FastAPI backend for the EPFL Graph and CEDE chatbots: a modular framework to build and serve educational tutors, the EPFL Graph chatbot and other administrative RAG assistants.",
     version="2.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 app.include_router(

@@ -6,7 +6,7 @@ from langchain.tools import tool
 from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from app.bots.base import Bot, BotState, BOTS_ROOT
+from app.bots.base import BOTS_ROOT, Bot, BotState
 from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
@@ -17,17 +17,17 @@ logger = logging.getLogger(__name__)
 
 
 CATEGORIES = {
-    'greeting': {
-        'description': "The user is just greeting the assistant or similar.",
-        'tool_choice': None,
+    "greeting": {
+        "description": "The user is just greeting the assistant or similar.",
+        "tool_choice": None,
     },
-    'main': {
-        'description': "The user has a substantive request within the bot's domain.",
-        'tool_choice': 'any',
+    "main": {
+        "description": "The user has a substantive request within the bot's domain.",
+        "tool_choice": "any",
     },
-    'unrelated': {
-        'description': "The user's request is completely unrelated to the bot's domain.",
-        'tool_choice': None,
+    "unrelated": {
+        "description": "The user's request is completely unrelated to the bot's domain.",
+        "tool_choice": None,
     },
 }
 
@@ -61,17 +61,17 @@ class AdminBot(Bot):
 
     def build_tools(self) -> list:
         subclass_dir = Path(inspect.getfile(type(self))).parent
-        description = resolve('tool_description', subclass_dir, BOTS_ROOT)
+        description = resolve("tool_description", subclass_dir, BOTS_ROOT)
         return [tool(self.tool_name, description=description)(self._search)]
 
     def build_graph(self) -> CompiledStateGraph:
         tools = self.build_tools()
 
         workflow = StateGraph(BotState, context_schema=Bot)
-        workflow.add_node('classify', make_classify_node(self.CATEGORIES))
-        workflow.add_node('model', make_model_node(tools))
-        workflow.add_node('tools', make_tools_node(tools, back_to='model'))
-        workflow.set_entry_point('classify')
-        workflow.add_edge('classify', 'model')
+        workflow.add_node("classify", make_classify_node(self.CATEGORIES))
+        workflow.add_node("model", make_model_node(tools))
+        workflow.add_node("tools", make_tools_node(tools, back_to="model"))
+        workflow.set_entry_point("classify")
+        workflow.add_edge("classify", "model")
 
         return workflow.compile()

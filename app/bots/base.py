@@ -8,8 +8,8 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import MessagesState
 from langgraph.graph.state import CompiledStateGraph
 
-from app.config import config
 from app.bots.prompts import resolve
+from app.config import config
 
 BOTS_ROOT = Path(__file__).parent
 
@@ -42,14 +42,14 @@ class Bot(ABC):
 
     light_model: ChatOpenAI = model
 
-    model_nodes: tuple[str, ...] = ('model',)
+    model_nodes: tuple[str, ...] = ("model",)
 
     def prompt_context(self) -> dict:
-        return {'today': datetime.now().strftime("%Y-%m-%d")}
+        return {"today": datetime.now().strftime("%Y-%m-%d")}
 
     def prompt(self, name: str | None = None) -> str:
         cls_dir = Path(inspect.getfile(type(self))).parent
-        template = resolve(name or 'prompt', cls_dir, BOTS_ROOT)
+        template = resolve(name or "prompt", cls_dir, BOTS_ROOT)
         return template.format(**self.prompt_context())
 
     @abstractmethod

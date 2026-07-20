@@ -1,8 +1,8 @@
 import logging
 
 from langchain_core.messages import (
-    SystemMessage,
     HumanMessage,
+    SystemMessage,
 )
 
 logger = logging.getLogger(__name__)
@@ -13,17 +13,19 @@ def build_prompt_from_message_list(messages):
     human_prompt = []
     for message in messages:
         # Keep only human and ai messages
-        if message.type not in ('human', 'ai'):
+        if message.type not in ("human", "ai"):
             continue
 
         # Extract only text from messages to send (otherwise images or other media types can fill the context window)
         if isinstance(message.content, str):
             message_content = message.content
         else:
-            message_content = '\n'.join([content_piece['text'] for content_piece in message.content if content_piece['type'] == 'text'])
+            message_content = "\n".join(
+                [content_piece["text"] for content_piece in message.content if content_piece["type"] == "text"]
+            )
 
-        human_prompt.append(f'----{message.type.upper()}----\n{message_content}')
-    human_prompt = '\n\n'.join(human_prompt)
+        human_prompt.append(f"----{message.type.upper()}----\n{message_content}")
+    human_prompt = "\n\n".join(human_prompt)
 
     return human_prompt
 

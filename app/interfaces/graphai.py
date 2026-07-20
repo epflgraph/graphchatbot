@@ -10,26 +10,25 @@ logger = logging.getLogger(__name__)
 
 
 class GraphAIClient:
-
     def __init__(self):
         self.url = f"{config['graphai']['host']}:{config['graphai']['port']}"
-        self.username = config['graphai']['username']
-        self.password = config['graphai']['password']
+        self.username = config["graphai"]["username"]
+        self.password = config["graphai"]["password"]
 
         self.bearer_token = None
 
     async def authenticate(self):
         headers = {
-            'accept': 'application/json',
-            'Content-Type': 'application/x-www-form-urlencoded',
+            "accept": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
         }
         data = {
-            'grant_type': 'password',
-            'username': self.username,
-            'password': self.password,
-            'scope': '',
-            'client_id': '',
-            'client_secret': '',
+            "grant_type": "password",
+            "username": self.username,
+            "password": self.password,
+            "scope": "",
+            "client_id": "",
+            "client_secret": "",
         }
 
         try:
@@ -48,7 +47,7 @@ class GraphAIClient:
         # Make sure we are authenticated
         await self.authenticate()
 
-        headers = {'Authorization': f'Bearer {self.bearer_token}'}
+        headers = {"Authorization": f"Bearer {self.bearer_token}"}
 
         async with httpx.AsyncClient(timeout=timeout) as client:
             # Make first request, which will return a task_id
@@ -93,7 +92,7 @@ class GraphAIClient:
         # Make sure we are authenticated
         await self.authenticate()
 
-        headers = {'Authorization': f'Bearer {self.bearer_token}'}
+        headers = {"Authorization": f"Bearer {self.bearer_token}"}
 
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
@@ -113,31 +112,31 @@ class GraphAIClient:
         texts = [text.strip() for text in texts if text.strip()]
 
         # Join texts into one string
-        texts = '    '.join(texts)
+        texts = "    ".join(texts)
 
         # Prepare payload
         payload = {
-            'index': index,
-            'text': texts,
-            'limit': limit,
+            "index": index,
+            "text": texts,
+            "limit": limit,
         }
 
         if filters:
-            payload['filters'] = filters
+            payload["filters"] = filters
 
         # Send request and return empty if it fails
         try:
-            response = await self.call_sync_endpoint(endpoint='/rag/retrieve', payload=payload)
+            response = await self.call_sync_endpoint(endpoint="/rag/retrieve", payload=payload)
         except Exception as e:
             logger.exception(f"Error retrieving document chunks: {e}")
             return []
 
         # Return empty if response is not marked as successful
-        if not response.get('successful'):
+        if not response.get("successful"):
             logger.warning(f"Unsuccessful retrieval of chunks: {response.get('result', [])}")
             return []
 
-        return response.get('result', [])
+        return response.get("result", [])
 
 
 # Shared singleton — re-authenticates before each request so it never goes stale
