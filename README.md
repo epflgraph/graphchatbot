@@ -155,7 +155,11 @@ print(bot.graph)               # Verify graph compiles
 
 ### Run the Test Suite
 
-To be added.
+```bash
+make test      # run unittest discover over tests/ with coverage
+make lint      # check linting and formatting (no writes)
+make lint-fix  # auto-fix lint issues and reformat
+```
 
 ---
 

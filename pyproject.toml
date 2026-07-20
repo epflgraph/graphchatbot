@@ -2,11 +2,18 @@
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
 [project]
 name = "graphchatbot"
 version = "2.0.0"
 authors = [
-  { name="Aitor Pérez", email="aitor.perez@epfl.ch" }
+  { name="Aitor Pérez", email="aitor.perez@epfl.ch" },
+  { name="Spiros Chalkias", email="spyridon.chalkias@epfl.ch" }
 ]
 description = "FastAPI backend for the EPFL Graph and CEDE chatbots: a modular framework to build and serve educational tutors, the EPFL Graph chatbot and other administrative RAG assistants."
 readme = "README.md"
@@ -35,10 +42,45 @@ dependencies = [
     "langchain-core==1.4",
     "langchain-openai==1.2",
     "langgraph==1.2",
-    "langfuse==4.6",
+    "langfuse==4.14.1",
     "openai==2.29",
     "graphes-client @ git+https://github.com/epflgraph/graphes-client.git@search",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff==0.15.22",
+    "coverage==7.15.2",
+    "pre-commit==4.6.0",
+]
+
+[tool.ruff]
+line-length = 120
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # isort
+    "I",
+    # Ban inline imports
+    "PLC0415",
+]
+ignore = [
+    # E501: line length handled by the formatter
+    "E501",
+]
+exclude = ["*.pyi"]
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
 
 [project.urls]
 "Homepage" = "https://github.com/epflgraph/graphchatbot"
