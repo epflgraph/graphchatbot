@@ -5,7 +5,7 @@ help:
 	@echo "  install-uv    Install uv (if not already present)"
 	@echo "  install-dev   Install development dependencies"
 	@echo "  install       Install production dependencies"
-	@echo "  lint          Run ruff check and format diff"
+	@echo "  lint          Run ruff check and format check"
 	@echo "  lint-fix      Run ruff check --fix and apply formatting"
 	@echo "  test          Run unit tests with coverage"
 	@echo "  clean         Remove test/coverage artifacts"
@@ -23,7 +23,7 @@ install: install-uv
 
 lint:
 	uv run ruff check app tests
-	uv run ruff format app tests --diff
+	uv run ruff format app tests --check
 
 lint-fix:
 	uv run ruff check app tests --fix
