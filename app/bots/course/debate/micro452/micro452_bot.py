@@ -14,6 +14,7 @@ class ToolInput(BaseModel):
     """
     Search schema for MICRO-452 case study material.
     """
+
     keywords: Optional[list[str]] = Field(
         default=None,
         description="Keywords to search for in the theory material. Ignored when case_study_number is not provided.",
@@ -25,9 +26,9 @@ class ToolInput(BaseModel):
 
 
 class MICRO452DebateBot(DebateCourseBot):
-    name = 'MICRO-452-case-studies'
-    index = 'course_micro_452_case_studies'
-    groups = ['graph-chatbot-admins', 'graph-rag-vip', 'MICRO-452-admin', 'MICRO-452-case-studies']
+    name = "MICRO-452-case-studies"
+    index = "course_micro_452_case_studies"
+    groups = ["graph-chatbot-admins", "graph-rag-vip", "MICRO-452-admin", "MICRO-452-case-studies"]
     tool_input_schema = ToolInput
 
     async def search_course_material(
@@ -44,13 +45,13 @@ class MICRO452DebateBot(DebateCourseBot):
                     index=self.index,
                     texts=keywords,
                     limit=9999,
-                    filters={'type': 'case_study', 'week': 1, 'number': str(case_study_number)},
+                    filters={"type": "case_study", "week": 1, "number": str(case_study_number)},
                 ),
                 graphai.rag_retrieve(
                     index=self.index,
                     texts=keywords,
                     limit=5,
-                    filters={'type': 'theory', 'subtype': 'lecture_slides'},
+                    filters={"type": "theory", "subtype": "lecture_slides"},
                 ),
             )
             results = case_study_results + theory_results
@@ -59,7 +60,7 @@ class MICRO452DebateBot(DebateCourseBot):
                 index=self.index,
                 texts=keywords,
                 limit=9999,
-                filters={'type': 'case_study', 'week': 1, 'subtype': 'question'},
+                filters={"type": "case_study", "week": 1, "subtype": "question"},
             )
 
         logger.info(f"Retrieved {len(results)} chunks.")

@@ -23,7 +23,7 @@ def make_model_node(tools: list, prompt_name: str | None = None, state_update: d
     async def model_node(state, runtime: Runtime[Bot]) -> Command:
         bot = runtime.context
 
-        tool_choice = state.get('tool_choice')
+        tool_choice = state.get("tool_choice")
         if tool_choice:
             model = bot.model.bind_tools(tools, tool_choice=tool_choice)
         elif tools:
@@ -31,14 +31,14 @@ def make_model_node(tools: list, prompt_name: str | None = None, state_update: d
         else:
             model = bot.model
 
-        messages = [SystemMessage(content=bot.prompt(prompt_name))] + state['messages']
+        messages = [SystemMessage(content=bot.prompt(prompt_name))] + state["messages"]
 
         logger.info(f"Calling LLM with {len(tools)} tool(s), tool_choice={tool_choice}")
         ai_message = await model.ainvoke(messages)
 
         if ai_message.tool_calls:
-            return Command(goto='tools', update={'messages': [ai_message], **(state_update or {})})
+            return Command(goto="tools", update={"messages": [ai_message], **(state_update or {})})
         else:
-            return Command(goto=END, update={'messages': [ai_message]})
+            return Command(goto=END, update={"messages": [ai_message]})
 
     return model_node

@@ -34,6 +34,7 @@ class ToolInput(BaseModel):
     Search schema for Statistics course material.
     Keep queries concise (≤ 15 words). For exercises leave query="" and rely on filters.
     """
+
     query: str = Field("", description="Concise keywords (≤15 words).")
     filters: Annotated[Union[TheoryFilters, PracticeFilters], Field(discriminator="type")] = Field(
         default_factory=lambda: TheoryFilters(type="theory"),
@@ -42,7 +43,7 @@ class ToolInput(BaseModel):
 
 
 class StatisticsBot(DirectCourseBot):
-    name = 'statistics'
-    index = 'course_swissunidemo'
+    name = "statistics"
+    index = "course_swissunidemo"
     groups = []
     tool_input_schema = ToolInput

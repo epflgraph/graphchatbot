@@ -10,13 +10,13 @@ async def search_graph(query: str) -> list:
     """
     client = GraphES()
 
-    nodes = client.search(query=query, index_name=config['elasticsearch']['index'], limit=5)
+    nodes = client.search(query=query, index_name=config["elasticsearch"]["index"], limit=5)
     nodes = clean_nodes(nodes)
 
     return nodes
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import asyncio
 
     nodes = asyncio.run(search_graph(query="Anna Fontcuberta"))

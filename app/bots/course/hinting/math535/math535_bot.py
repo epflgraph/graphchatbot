@@ -34,6 +34,7 @@ class ToolInput(BaseModel):
     Search schema for MATH-535 course material.
     Keep queries concise (≤ 15 words). For exercises leave query="" and rely on filters.
     """
+
     query: str = Field("", description="Concise keywords (≤15 words).")
     filters: Annotated[Union[TheoryFilters, PracticeFilters], Field(discriminator="type")] = Field(
         default_factory=lambda: TheoryFilters(type="theory"),
@@ -42,7 +43,7 @@ class ToolInput(BaseModel):
 
 
 class MATH535Bot(HintingCourseBot):
-    name = 'MATH-535'
-    index = 'course_math535'
-    groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_math_535']
+    name = "MATH-535"
+    index = "course_math535"
+    groups = ["graph-chatbot-admins", "graph-rag-vip", "chatbot_math_535"]
     tool_input_schema = ToolInput

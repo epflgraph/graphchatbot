@@ -7,6 +7,12 @@
 # Pycache
 __pycache__
 
+# Test and coverage artifacts
+.coverage
+coverage/
+coverage.xml
+.ruff_cache
+
 # Config files (might include sensitive information or depend on the deployment)
 config.ini
 config.docker.ini
@@ -24,6 +30,9 @@ data
 
 # Python package egg folder
 *egg-info
+
+# Lock files
+uv.lock
 
 # Python virtual environment
 venv

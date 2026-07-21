@@ -72,7 +72,7 @@ Each fragment is resolved by walking up the directory tree, so a bot can overrid
 ## Key Conventions
 
 - **Async everywhere**: Node functions and tools are `async`
-- **Type hints**: Use `list[str]`, `dict[str, ...]`, `str | None` (Python 3.11+)
+- **Type hints**: Use `list[str]`, `dict[str, ...]`, `str | None` (Python 3.12)
 - **Models**: `langchain_openai.ChatOpenAI`. Credentials (`base_url`, `api_key`) are read from `config.ini`; the shared base model name and generation parameters in `app.bots.base.Bot` are currently hardcoded.
 - **Graphs**: Stateless, compiled at startup via `@cached_property`, reused per request
 - **Streaming**: Use `stream_mode="messages"`, filter by `metadata["langgraph_node"]`

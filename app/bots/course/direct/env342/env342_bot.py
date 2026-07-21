@@ -48,6 +48,7 @@ class ToolInput(BaseModel):
     Search schema for ENV-342 course material.
     Keep queries concise (≤ 15 words). For exercises leave query="" and rely on filters.
     """
+
     query: str = Field("", description="Concise keywords (≤15 words).")
     filters: Annotated[Union[TheoryFilters, PracticeFilters, ExamFilters], Field(discriminator="type")] = Field(
         default_factory=lambda: TheoryFilters(type="theory"),
@@ -56,7 +57,7 @@ class ToolInput(BaseModel):
 
 
 class ENV342Bot(DirectCourseBot):
-    name = 'ENV-342'
-    index = 'course_env342'
-    groups = ['graph-chatbot-admins', 'graph-rag-vip', 'chatbot_env_342']
+    name = "ENV-342"
+    index = "course_env342"
+    groups = ["graph-chatbot-admins", "graph-rag-vip", "chatbot_env_342"]
     tool_input_schema = ToolInput

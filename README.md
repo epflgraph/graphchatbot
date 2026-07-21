@@ -1,6 +1,7 @@
 # EPFL Graph and CEDE Chatbots
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
+[![CI](https://github.com/epflgraph/graphchatbot/actions/workflows/ci.yaml/badge.svg)](https://github.com/epflgraph/graphchatbot/actions/workflows/ci.yaml)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![LangGraph](https://img.shields.io/badge/LangGraph-1C3C3C?logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/)
 
@@ -56,7 +57,7 @@ app/
 
 ### Prerequisites
 
-- **Python** >= 3.11
+- **Python** 3.12
 - A running RAG backend (GraphAI / Elasticsearch) if using RAG-enabled bots
 - An [RCP API key](https://portal.rcp.epfl.ch)
 
@@ -155,13 +156,17 @@ print(bot.graph)               # Verify graph compiles
 
 ### Run the Test Suite
 
-To be added.
+```bash
+make test      # run unittest discover over tests/ with coverage
+make lint      # check linting and formatting (no writes)
+make lint-fix  # auto-fix lint issues and reformat
+```
 
 ---
 
 ## Development Guidelines
 
 - **Async everywhere**: All node functions and tools must be `async`
-- **Python 3.11+ types**: Use `list[str]`, `dict[str, ...]`, `str | None`
+- **Python 3.12 types**: Use `list[str]`, `dict[str, ...]`, `str | None`
 - **No hardcoded secrets**: Always pull from `config.ini` / `.env` via `config.get("section", {}).get("key")`
 - **Logging**: Use `logging.getLogger(__name__)`; the logging format is configured in `app.logging_config`

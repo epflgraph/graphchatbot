@@ -1,9 +1,8 @@
 import logging
 from typing import Callable, Literal
 
-from pydantic import BaseModel
-
 from langgraph.runtime import Runtime
+from pydantic import BaseModel
 
 from app.bots.base import Bot
 from app.llms import build_prompt_from_message_list, generate_structured_response
@@ -30,13 +29,13 @@ def make_classify_node(categories: dict[str, dict] | Callable):
 
         categories_dict = categories(state) if callable(categories) else categories
 
-        categories_prompt = '\n'.join([f'* {name}: {cat["description"]}' for name, cat in categories_dict.items()])
+        categories_prompt = "\n".join([f"* {name}: {cat['description']}" for name, cat in categories_dict.items()])
         system_prompt = f"""You will be given a conversation between a Human and an AI system.
 Your task is to classify the conversation based on the last request.
 The possible categories are the following:
 {categories_prompt}"""
 
-        human_prompt = build_prompt_from_message_list(state['messages'])
+        human_prompt = build_prompt_from_message_list(state["messages"])
 
         class Category(BaseModel):
             category: Literal[*list(categories_dict.keys())]
@@ -50,8 +49,8 @@ The possible categories are the following:
         logger.info(f"Classified as `{category}`")
 
         return {
-            'category': category,
-            'tool_choice': categories_dict[category].get('tool_choice'),
+            "category": category,
+            "tool_choice": categories_dict[category].get("tool_choice"),
         }
 
     return classify_node
