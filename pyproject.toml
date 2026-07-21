@@ -18,7 +18,7 @@ authors = [
 description = "FastAPI backend for the EPFL Graph and CEDE chatbots: a modular framework to build and serve educational tutors, the EPFL Graph chatbot and other administrative RAG assistants."
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.12"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Framework :: FastAPI",
@@ -27,8 +27,6 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
