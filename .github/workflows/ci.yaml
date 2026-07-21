@@ -57,7 +57,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
+      code-quality: write
+      pull-requests: read
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -87,9 +88,9 @@ jobs:
             coverage/
           if-no-files-found: error
 
-      - name: Coverage
-        if: github.event_name == 'pull_request'
-        uses: orgoro/coverage@v3.3.1
+      - name: Upload coverage to GitHub
+        uses: actions/upload-code-coverage@v1
         with:
-          coverageFile: coverage.xml
-          token: ${{ secrets.GITHUB_TOKEN }}
+          file: coverage.xml
+          language: Python
+          label: code-coverage/unittest
