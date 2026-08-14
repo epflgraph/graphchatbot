@@ -5,22 +5,33 @@ from langgraph.graph import END
 from langgraph.runtime import Runtime
 from langgraph.types import Command
 
-from app.bots.base import Bot
+from app.bots.base import Bot, BotState
 
 logger = logging.getLogger(__name__)
 
 
-def make_model_node(tools: list, prompt_name: str | None = None, state_update: dict | None = None):
+def make_model_node(
+    tools: list,
+    prompt_name: str | None = None,
+    on_text: str = END,
+    on_tools: str = "tools",
+    state_update: dict | None = None,
+):
     """
-    Returns a model node that calls the bot's LLM with the given tools.
+    Returns a model node that calls the bot's LLM and routes the result.
 
     Args:
         tools:        list of tool functions to bind to the model. Pass [] for a no-tools node.
-        prompt_name:  name of the prompt file to resolve via bot.prompt(). Defaults to 'prompt'.
-        state_update: extra state fields merged into the update when routing to tools.
+        prompt_name:  name of the prompt file to resolve via bot.prompt(). Falls back to the
+                      bot's own `DEFAULT_PROMPT_NAME` when omitted.
+        on_text:      node to route to when the model returns a plain-text response.
+                      Defaults to END for backward compatibility.
+        on_tools:     node to route to when the model makes tool calls.
+                      Defaults to 'tools' for backward compatibility.
+        state_update: extra state fields merged into the update after the LLM call.
     """
 
-    async def model_node(state, runtime: Runtime[Bot]) -> Command:
+    async def model_node(state: BotState, runtime: Runtime[Bot]) -> Command:
         bot = runtime.context
 
         tool_choice = state.get("tool_choice")
@@ -36,9 +47,7 @@ def make_model_node(tools: list, prompt_name: str | None = None, state_update: d
         logger.info(f"Calling LLM with {len(tools)} tool(s), tool_choice={tool_choice}")
         ai_message = await model.ainvoke(messages)
 
-        if ai_message.tool_calls:
-            return Command(goto="tools", update={"messages": [ai_message], **(state_update or {})})
-        else:
-            return Command(goto=END, update={"messages": [ai_message]})
+        update = {"messages": [ai_message], **(state_update or {})}
+        return Command(goto=on_tools if ai_message.tool_calls else on_text, update=update)
 
     return model_node
