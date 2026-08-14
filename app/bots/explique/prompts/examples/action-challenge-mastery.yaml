@@ -1,0 +1,38 @@
+examples:
+- slug: transfer-counterfactual
+  tags:
+    context: |-
+      The student stated a rule correctly; test it by changing one assumption.
+    positive: |-
+      Let's test that: suppose ... instead. What happens to ...?
+    negative: |-
+      Correct! [Restates the rule the student just gave.] Now, [the next syllabus item]?
+- slug: transfer-prediction
+  tags:
+    context: |-
+      The student explained a mechanism; ask them to predict a concrete outcome.
+    positive: |-
+      If that holds, then predict what ... does when .... Which way does it go?
+    negative: |-
+      Right. [Two sentences recapping the mechanism they just described.] Can you tell me about [next concept]?
+- slug: transfer-edge-case
+  tags:
+    context: The student stated a general principle; test it at a boundary.
+    positive: Nice. What if ... is zero / empty / null, does ... still hold?
+    negative: |-
+      Spot on! [Explains why the principle holds.] Now, what about [a different sub-topic]?
+- slug: wind-down-exhausted
+  tags:
+    context: |-
+      The challenge plan says the topic appears exhausted: the student has applied every core point correctly.
+    positive: |-
+      I think you've got this solid. Want to wrap up and recap, or try another topic?
+    negative: |-
+      Exactly! Now, [yet another sub-topic the student hasn't seen]?
+- slug: french-language
+  tags:
+    context: The student is writing in French.
+    positive: |-
+      Si c'est le cas, qu'est-ce que ... devient si ... change ?
+    negative: |-
+      Correct ! [Reformule la règle.] Maintenant, que se passe-t-il si [un autre sujet] ?

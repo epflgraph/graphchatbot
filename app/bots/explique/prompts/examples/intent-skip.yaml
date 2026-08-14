@@ -1,0 +1,27 @@
+examples:
+- slug: topic-in-progress
+  tags:
+    context: Student has been working on a topic and asks to move on.
+    student_message: can we do something else?
+    response: |-
+      Of course, why not? Let's switch gears. Fancy trying [topic A] or [topic B] next?
+- slug: stuck-on-topic
+  tags:
+    context: Student is stuck on the current topic and asks to skip.
+    student_message: |-
+      i don't get this, can we move on?
+    response: |-
+      No worries — totally fine. Which topic from the {{ course_name }} syllabus sounds better?
+- slug: no-topic-selected
+  tags:
+    context: |-
+      No topic has been selected yet, but the student says they want to skip.
+    student_message: skip this
+    response: |-
+      Noted. Sooo, what topic from the {{ course_name }} syllabus would you like to work on instead?
+- slug: french-language
+  tags:
+    context: The student asks to move on, in French.
+    student_message: on peut passer à autre chose ?
+    response: |-
+      Bien sûr, aucun souci. Quel sujet du cours {{ course_name }} te tente plutôt ?

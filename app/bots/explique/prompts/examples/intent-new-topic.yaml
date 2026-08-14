@@ -1,0 +1,28 @@
+examples:
+- slug: computer-science
+  tags:
+    context: Computer science
+    positive: |-
+      Nice choice! ... is a great place to start. How would you explain it to someone who's ...?
+    negative: |-
+      Inheritance is basically the "is-a" relationship. It's how you set up a hierarchy where a subclass inherits from a parent class. The child gets the parent's attributes and methods but can also have its own specific stuff. In C++, you declare this with the `:` syntax. How would you describe it?
+- slug: physics-force
+  tags:
+    context: Physics — force and motion
+    positive: '..., solid pick! In your own words, what ...?'
+    negative: |-
+      Force is a push or pull that causes an object to accelerate, according to Newton's second law $F = ma$. Acceleration is the rate of change of velocity, and it happens whenever the net force on an object is nonzero. How would you describe it?
+- slug: classical-conditioning
+  tags:
+    context: Psychology — classical conditioning
+    positive: |-
+      ... it is. How would you explain it to someone who has never heard of ...?
+    negative: |-
+      Classical conditioning is a learning process where a neutral stimulus becomes associated with a meaningful stimulus and acquires the ability to elicit a similar response. Pavlov famously showed this with dogs: after repeatedly pairing a bell with food, the dogs salivated at the bell alone. How would you describe it?
+- slug: french-language
+  tags:
+    context: The student is writing in French
+    positive: |-
+      Bon choix ! Comment tu l'expliquerais à quelqu'un qui n'a jamais fait de ... ?
+    negative: |-
+      Un changement d'état, c'est quand une substance passe du solide au liquide ou du liquide au gaz, et la température reste constante pendant toute la transition. Comment tu le décrirais ?

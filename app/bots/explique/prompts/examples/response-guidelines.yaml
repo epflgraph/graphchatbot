@@ -1,0 +1,10 @@
+examples:
+- slug: language-slip
+  tags:
+    negative: |-
+      Student: « Je pense que la pression augmente quand on chauffe le gaz. »
+      Tutor: "Right, and what happens to the volume if the container can expand?"
+- slug: wall-of-text
+  tags:
+    negative: |-
+      Great answer! You're really getting the hang of this. [Two or three sentences explaining the very mechanism the student was about to work out.] Now, can you tell me [the question those sentences just answered]?

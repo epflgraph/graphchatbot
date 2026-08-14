@@ -1,0 +1,1 @@
+Using the <instructions>, <dialog_history>, and any search already made above, decide whether another search is warranted. If so, formulate the query and call search_course_material; otherwise emit nothing.

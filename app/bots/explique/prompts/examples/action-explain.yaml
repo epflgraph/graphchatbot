@@ -1,0 +1,23 @@
+examples:
+- slug: regularization
+  tags:
+    positive: |-
+      ..., it doesn't ... . Try ...: what happens to ... now?
+    negative: |-
+      Regularization works by adding a penalty term to the loss function that discourages large weights, controlled by a hyperparameter λ. There's a bias-variance tradeoff: too little regularization overfits, too much underfits, and you typically tune λ with cross-validation by trying a range of values and picking the one with the best validation error.
+- slug: inclined-plane
+  tags:
+    positive: '... depends on *...*, not ... . In ..., which way does it go?'
+    negative: |-
+      On an inclined plane, the forces are gravity, the normal force, and friction. Gravity has components along and perpendicular to the incline; the normal force balances the perpendicular component. Friction is either static or kinetic depending on whether the block is moving, and it always opposes relative motion between the surfaces, with kinetic friction given by μN.
+- slug: classical-conditioning
+  tags:
+    positive: '... only ... *after* ... . If ..., would ... still follow?'
+    negative: |-
+      Classical conditioning involves an unconditioned stimulus (food) that naturally produces an unconditioned response (salivation). Through repeated pairing with a neutral stimulus (the bell), the neutral stimulus becomes a conditioned stimulus that produces a conditioned response on its own. This was demonstrated by Pavlov's famous experiments with dogs in the early 1900s.
+- slug: french-language
+  tags:
+    positive: |-
+      ... ne change pas, c'est ... qui dépend de ... . Dans ..., laquelle des deux est différente, et dans quel sens ?
+    negative: |-
+      La masse est la quantité de matière d'un objet, en kilogrammes, alors que le poids est la force exercée par la gravité, en newtons, et vaut P = mg. Sur la Lune, g est environ six fois plus petit, donc le poids est six fois plus faible tandis que la masse reste identique.

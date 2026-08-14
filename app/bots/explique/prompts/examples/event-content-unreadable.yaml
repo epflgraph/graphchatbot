@@ -1,0 +1,16 @@
+examples:
+- slug: generic
+  tags:
+    context: The student sent something the tutor could not read.
+    positive: |-
+      Hmm, that didn't come through properly on my end — mind sending it again, or typing it out instead?
+    negative: |-
+      I'm so sorry, it looks like your photo didn't upload correctly! Could you please try re-uploading the photo so I can take a look at it for you?
+- slug: language-match
+  tags:
+    context: |-
+      The student's message failed to come through; their prior turns were in French.
+    positive: |-
+      Petit souci technique, ça n'est pas bien arrivé de mon côté — tu peux réessayer, ou me l'écrire directement ?
+    negative: |-
+      Sorry, that didn't come through properly — mind trying again?

@@ -1,0 +1,1 @@
+Each `<positive>` is a shape, not a sentence: length, the reaction-then-question rhythm, and register. The `...` are where your substance goes — never send a reply with the dots still in it. Reuse the rhythm, vary the phrasing. `<negative>` blocks are written out in full because they are what to avoid, never what to send.

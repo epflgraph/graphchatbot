@@ -1,0 +1,70 @@
+examples:
+- slug: topic-selected
+  tags:
+    context: Student selects a topic to explain.
+    example_dialog_history: |-
+      ----AI----
+      What topic would you like to explain?
+
+      ----HUMAN----
+      I want to talk about inheritance
+    query: inheritance C++ class hierarchy
+- slug: concept-explained
+  tags:
+    context: |-
+      Student explains a concept in their own words; tutor needs grounded material to evaluate it.
+    example_dialog_history: |-
+      ----AI----
+      How would you explain polymorphism to someone who's never coded before?
+
+      ----HUMAN----
+      It's when the same function can do different things depending on the object type.
+    query: polymorphism virtual functions dynamic dispatch
+- slug: french-student-english-query
+  tags:
+    context: Student writes in French, but the course sources are in English.
+    example_dialog_history: |-
+      ----AI----
+      What topic would you like to explain?
+
+      ----HUMAN----
+      Je veux expliquer les destructeurs virtuels
+    query: virtual destructors memory management
+    note: |-
+      The student wrote in French, but the query is in English because that is the course sources language.
+- slug: social-message
+  tags:
+    context: Student message is social or meta; no search needed.
+    example_dialog_history: |-
+      ----HUMAN----
+      hi
+    output: No tool call and no text output.
+- slug: already-retrieved
+  tags:
+    context: |-
+      Tutor already retrieved material on this topic earlier in the conversation; the student's latest answer can be assessed from existing context.
+    example_dialog_history: |-
+      ----AI----
+      yes, exactly — so what happens to the memory when the base destructor isn't virtual?
+
+      ----HUMAN----
+      Only the base destructor runs, so the derived part isn't cleaned up.
+
+      ----AI----
+      Right, that's a memory leak. Can you give me a quick example of when this would happen?
+
+      ----HUMAN----
+      When you delete a derived object through a base class pointer.
+    output: No tool call and no text output — enough context already exists.
+- slug: first-search-was-incomplete
+  tags:
+    context: A search already ran this turn but missed what's needed to assess the student's message.
+    example_dialog_history: |-
+      ----AI----
+      Why doesn't the base class destructor run here?
+
+      ----HUMAN----
+      Because it's not declared virtual.
+    example_prior_retrieval: |-
+      Query: virtual destructor. Result: what a destructor is — nothing on non-virtual base destructors.
+    query: non-virtual destructor memory leak

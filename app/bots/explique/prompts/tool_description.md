@@ -1,0 +1,1 @@
+Retrieve course reference material for the concept the student is currently explaining or asking about in "{{ course_name }}". Provide a concise query with a few relevant keywords, preferring terminology that matches the course content.
