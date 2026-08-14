@@ -19,6 +19,10 @@ port: 443
 username: xxxx
 password: xxxx
 
+[explique]
+; Photo transcription cache dir. Empty keeps it at app/bots/explique/.transcription_cache.
+cache_dir:
+
 [langfuse]
 host: https://langfuse.cede-apps.ch
 secret_key: xxxx
