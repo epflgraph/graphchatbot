@@ -51,5 +51,11 @@ app.include_router(
     public.router,
 )
 
+# The same routes aliased: a stock OpenAI client appends `/v1` to its base URL.
+app.include_router(
+    public.router,
+    prefix="/v1",
+)
+
 if __name__ == "__main__":
     uvicorn.run(app)
