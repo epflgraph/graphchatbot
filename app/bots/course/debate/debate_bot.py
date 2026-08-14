@@ -51,15 +51,15 @@ class DebateCourseBot(CourseBot):
 
     CATEGORIES: dict = CATEGORIES
 
-    def prompt(self, name: str | None = None) -> str:
-        return super().prompt(name or "prompt-no-case-study")
+    # A debate opens on the case-study choice, not on a generic `prompt.md`.
+    DEFAULT_PROMPT_NAME = "prompt-no-case-study"
 
     def build_graph(self) -> CompiledStateGraph:
         tools = self.build_tools()
 
         workflow = StateGraph(DebateCourseBotState, context_schema=Bot)
 
-        workflow.add_node("classify", make_classify_node(self.CATEGORIES))
+        workflow.add_node("classify", make_classify_node(self.CATEGORIES, fallback="no-case-study"))
         workflow.add_conditional_edges("classify", lambda s: f"model-{s['category']}")
 
         for category in self.CATEGORIES:

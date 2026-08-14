@@ -14,7 +14,7 @@ def clean_link(link):
         "name_fr": link.get("link_name", {}).get("fr", ""),
         "short_description_en": link.get("link_short_description", {}).get("en", ""),
         "short_description_fr": link.get("link_short_description", {}).get("fr", ""),
-        "url": f"{config['graphsearch']['base_url']}/{link.get('link_type', '').lower()}/{link.get('link_id', '')}",
+        "url": f"{config.graphsearch.base_url}/{link.get('link_type', '').lower()}/{link.get('link_id', '')}",
     }
 
     return link
@@ -79,7 +79,7 @@ def clean_node(node, node_types):
         "name_fr": node.get("name", {}).get("fr", ""),
         "short_description_en": node.get("short_description", {}).get("en", ""),
         "short_description_fr": node.get("short_description", {}).get("fr", ""),
-        "url": f"{config['graphsearch']['base_url']}/{node.get('doc_type', '').lower()}/{node.get('doc_id', '')}",
+        "url": f"{config.graphsearch.base_url}/{node.get('doc_type', '').lower()}/{node.get('doc_id', '')}",
         **organisational_fields,
         "nearest_nodes": semantic_links,
     }

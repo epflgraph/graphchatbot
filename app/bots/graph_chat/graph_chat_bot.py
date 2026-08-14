@@ -89,7 +89,7 @@ class GraphChatBot(Bot):
         tools = self.build_tools()
 
         workflow = StateGraph(BotState, context_schema=Bot)
-        workflow.add_node("classify", make_classify_node(self.CATEGORIES))
+        workflow.add_node("classify", make_classify_node(self.CATEGORIES, fallback="greeting"))
         workflow.add_node("model", make_model_node(tools))
         workflow.add_node("tools", make_tools_node(tools, back_to="model"))
         workflow.set_entry_point("classify")

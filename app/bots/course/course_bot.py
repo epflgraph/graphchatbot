@@ -11,8 +11,8 @@ from app.bots.base import BOTS_ROOT, Bot, BotState
 from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
-from app.bots.prompts import resolve
-from app.interfaces.graphai import graphai
+from app.bots.prompt_resolution import resolve
+from app.interfaces.graphai import RAGResult, graphai
 
 logger = logging.getLogger(__name__)
 
@@ -64,45 +64,39 @@ class CourseBot(Bot):
     # --- Tools ---
 
     @staticmethod
-    def _format_results(results: list) -> list:
+    def _format_results(result: RAGResult) -> list[dict]:
         formatted = []
-        for r in results:
+        for chunk in result.chunks:
             item = {
-                "type": f"{r.get('type')}: {r.get('subtype')}",
-                "title": r.get("title"),
-                "week": r.get("week"),
-                "number": r.get("number"),
-                "url": r.get("original_link"),
-                "page": r.get("page"),
-                "position": r.get("position"),
-                "content.fr": r.get("content.fr"),
-                "content.en": r.get("content.en"),
+                "type": chunk.chunk_type,
+                "title": chunk.title,
+                "week": chunk.week,
+                "number": chunk.number,
+                "url": chunk.original_link,
+                "page": chunk.page,
+                "position": chunk.position,
+                "content.fr": chunk.content_fr,
+                "content.en": chunk.content_en,
             }
 
-            video_lectures = r.get("associated_video_lectures") or []
+            video_lectures = chunk.associated_video_lectures or []
             if video_lectures:
                 item["associated_video_lectures"] = [
-                    {"title": v.get("title"), "url": v.get("original_link")} for v in video_lectures
+                    {"title": video_lecture.title, "url": video_lecture.original_link}
+                    for video_lecture in video_lectures
                 ]
 
-            formatted.append({k: v for k, v in item.items() if v is not None})
+            formatted.append({key: value for key, value in item.items() if value is not None})
         return formatted
 
-    async def search_course_material(self, query: str, filters) -> list:
-        if isinstance(filters, BaseModel):
-            filters_dict = filters.model_dump(exclude_none=True)
-        elif isinstance(filters, dict):
-            filters_dict = {k: v for k, v in filters.items() if v is not None}
-        else:
-            filters_dict = {}
+    async def search_course_material(self, query: str, filters: BaseModel | None = None) -> list:
+        logger.info(f"filters=`{filters}`")
 
-        logger.info(f"filters=`{filters_dict}`")
+        result = await graphai.rag_retrieve(index=self.index, texts=[query], filters=filters)
 
-        results = await graphai.rag_retrieve(index=self.index, texts=[query], filters=filters_dict)
+        logger.info(f"Retrieved {len(result.chunks)} chunks.")
 
-        logger.info(f"Retrieved {len(results)} chunks.")
-
-        return self._format_results(results)
+        return self._format_results(result)
 
     def build_tools(self) -> list:
         subclass_dir = Path(inspect.getfile(type(self))).parent
@@ -117,7 +111,7 @@ class CourseBot(Bot):
         tools = self.build_tools()
 
         workflow = StateGraph(BotState, context_schema=Bot)
-        workflow.add_node("classify", make_classify_node(self.CATEGORIES))
+        workflow.add_node("classify", make_classify_node(self.CATEGORIES, fallback="greeting"))
         workflow.add_node("model", make_model_node(tools))
         workflow.add_node("tools", make_tools_node(tools, back_to="model"))
         workflow.set_entry_point("classify")

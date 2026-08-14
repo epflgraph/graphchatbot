@@ -10,7 +10,7 @@ from app.bots.base import BOTS_ROOT, Bot, BotState
 from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
-from app.bots.prompts import resolve
+from app.bots.prompt_resolution import resolve
 from app.interfaces.graphai import graphai
 
 logger = logging.getLogger(__name__)
@@ -53,11 +53,11 @@ class AdminBot(Bot):
 
     CATEGORIES: dict = CATEGORIES
 
-    async def _search(self, query: str) -> list:
+    async def _search(self, query: str) -> list[dict]:
         logger.info(f"Called `{self.tool_name}`")
-        results = await graphai.rag_retrieve(index=self.index, texts=[query])
-        logger.info(f"Retrieved {len(results)} chunks.")
-        return results
+        result = await graphai.rag_retrieve(index=self.index, texts=[query])
+        logger.info(f"Retrieved {len(result.chunks)} chunks.")
+        return [chunk.to_dict() for chunk in result.chunks]
 
     def build_tools(self) -> list:
         subclass_dir = Path(inspect.getfile(type(self))).parent
@@ -68,7 +68,7 @@ class AdminBot(Bot):
         tools = self.build_tools()
 
         workflow = StateGraph(BotState, context_schema=Bot)
-        workflow.add_node("classify", make_classify_node(self.CATEGORIES))
+        workflow.add_node("classify", make_classify_node(self.CATEGORIES, fallback="greeting"))
         workflow.add_node("model", make_model_node(tools))
         workflow.add_node("tools", make_tools_node(tools, back_to="model"))
         workflow.set_entry_point("classify")

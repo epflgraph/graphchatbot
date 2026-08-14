@@ -66,7 +66,7 @@ async def search_exoset(query: str, language: str = "EN") -> list:
         client.search,
         query=query,
         node_types=["Concept"],
-        index_name=config["elasticsearch"]["index"],
+        index_name=config.elasticsearch.index,
         limit=50,
     )
 

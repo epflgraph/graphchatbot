@@ -10,7 +10,7 @@ async def search_graph(query: str) -> list:
     """
     client = GraphES()
 
-    nodes = client.search(query=query, index_name=config["elasticsearch"]["index"], limit=5)
+    nodes = client.search(query=query, index_name=config.elasticsearch.index, limit=5)
     nodes = clean_nodes(nodes)
 
     return nodes
