@@ -23,4 +23,17 @@ async def evaluate_node(state: ExpliqueBotState, runtime: Runtime[Bot]) -> State
         state=state,
         fallback=StudentState(),
     )
+
+    logger.info(
+        "Evaluated Student State: mastery=%r; gap_severity=%r; gap_type=%r; persistence=%r; engagement_level=%r; "
+        "suspected_misconceptions=%r; reasoning=%s",
+        student_state.mastery,
+        student_state.gap_severity,
+        student_state.gap_type,
+        student_state.persistence,
+        student_state.engagement_level,
+        student_state.suspected_misconceptions,
+        student_state.reasoning,
+    )
+
     return {"student_state": student_state}
