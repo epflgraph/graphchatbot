@@ -52,14 +52,14 @@ async def search_exoset(query: str, language: str = "EN") -> list:
     else:
         language = "EN"
 
-    if query in _exoset_cache:
+    if (query, language) in _exoset_cache:
         logger.info(
             "[EXOSET TOOL] Found %d cached exercises for query `%s` and language `%s`, returning those",
-            len(_exoset_cache[query]),
+            len(_exoset_cache[(query, language)]),
             query,
             language,
         )
-        return _exoset_cache[query]
+        return _exoset_cache[(query, language)]
 
     client = GraphES()
     nodes = await asyncio.to_thread(
@@ -112,12 +112,6 @@ async def search_exoset(query: str, language: str = "EN") -> list:
         query,
         language,
     )
-    _exoset_cache[query] = all_exercises
+    _exoset_cache[(query, language)] = all_exercises
 
     return all_exercises
-
-
-if __name__ == "__main__":
-    exos = asyncio.run(search_exoset("double pendulum"))
-
-    print(exos)
