@@ -14,11 +14,3 @@ async def search_graph(query: str) -> list:
     nodes = clean_nodes(nodes)
 
     return nodes
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    nodes = asyncio.run(search_graph(query="Anna Fontcuberta"))
-
-    print(nodes)
