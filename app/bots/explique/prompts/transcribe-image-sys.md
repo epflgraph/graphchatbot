@@ -15,3 +15,4 @@ Use <dialog_history> only to resolve ambiguous notation, symbols, or vocabulary 
 
 ### Output Format
 {"transcription": "the transcribed turn, in the student's own voice"}
+</instructions>
