@@ -39,10 +39,3 @@ class CompilerRegistry:
             if compiler is not None:
                 return compiler
         raise UndefinedCompilerError(task, override)
-
-    def describe(self) -> str:
-        """The registered mapping, for logging at startup."""
-        return "\n".join(
-            f"  {task!s}{f'[{override!s}]' if override else ''} -> {compiler.__name__}"
-            for (task, override), compiler in self._compilers.items()
-        )
