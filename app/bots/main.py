@@ -47,9 +47,9 @@ async def generate_completion(chat_request: CompletionCreateParams, bot: Bot) ->
     return {
         "id": "1",
         "object": "chat.completion",
-        "created": time.time(),
+        "created": int(time.time()),
         "model": chat_request["model"],
-        "choices": [{"message": {"role": "assistant", "content": content}}],
+        "choices": [{"index": 0, "message": {"role": "assistant", "content": content}, "finish_reason": "stop"}],
     }
 
 
@@ -71,9 +71,9 @@ async def agenerate_completion(chat_request: CompletionCreateParams, bot: Bot) -
             sse_chunk = {
                 "id": "1",
                 "object": "chat.completion.chunk",
-                "created": time.time(),
+                "created": int(time.time()),
                 "model": chat_request["model"],
-                "choices": [{"delta": {"content": chunk_text}}],
+                "choices": [{"index": 0, "delta": {"content": chunk_text}}],
             }
 
             yield f"data: {json.dumps(sse_chunk)}\n\n"
