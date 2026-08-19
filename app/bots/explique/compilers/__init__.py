@@ -1,4 +1,5 @@
 from app.bots.explique.compilers.classify import ClassifyCompiler
+from app.bots.explique.compilers.detect_language import LanguageDetectorCompiler
 from app.bots.explique.compilers.evaluate import EvaluateCompiler
 from app.bots.explique.compilers.plan_challenge import PlanChallengeCompiler
 from app.bots.explique.compilers.practice import PracticeCompiler
@@ -18,6 +19,7 @@ from app.compilation.registry import CompilerRegistry
 
 COMPILERS = CompilerRegistry(
     ImageTranscriptionCompiler,
+    LanguageDetectorCompiler,
     ClassifyCompiler,
     RetrieveCompiler,
     EvaluateCompiler,

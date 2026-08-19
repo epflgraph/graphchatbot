@@ -38,6 +38,7 @@ class ConversationView(StrEnum):
 class ResponseContext(PromptContext):
     messages: tuple[BaseMessage, ...]
     rejected_responses: tuple[RejectedResponse, ...]
+    lang_code: str | None
 
 
 class SummaryResponseContext(ResponseContext):
@@ -77,7 +78,11 @@ class ResponseCompiler(ExpliqueCompiler):
 
     @classmethod
     def build_context(cls, bot: Bot, state: Mapping[str, Any]) -> ResponseContext:
-        return ResponseContext(messages=cls.history(bot, state), rejected_responses=cls.rejected_responses(state))
+        return ResponseContext(
+            messages=cls.history(bot, state),
+            rejected_responses=cls.rejected_responses(state),
+            lang_code=state.get("lang_code"),
+        )
 
     @classmethod
     def compile_messages(cls, bot: Bot, context: ResponseContext) -> list[BaseMessage]:
@@ -166,6 +171,7 @@ class EndSessionResponseCompiler(ResponseCompiler):
         return SummaryResponseContext(
             messages=cls.history(bot, state),
             rejected_responses=cls.rejected_responses(state),
+            lang_code=state.get("lang_code"),
             session_summary=state.get("session_summary") or SessionSummary(),
         )
 
@@ -217,6 +223,7 @@ class TutoringResponseCompiler(ResponseCompiler):
         return TutoringResponseContext(
             messages=cls.history(bot, state),
             rejected_responses=cls.rejected_responses(state),
+            lang_code=state.get("lang_code"),
             student_state=student_state,
             tutor_action=tutor_action,
             action_template=f"action-{tutor_action}.md",

@@ -3,7 +3,7 @@ from typing import Iterator
 from langchain_core.messages import BaseMessage
 
 from app.bots.explique.quiz_page import Quiz
-from app.llms.utils import DialogView, flatten_content
+from app.llms.utils import DialogView, flatten_content, stringify_messages
 
 
 def keep_dialog_roles(message: BaseMessage) -> BaseMessage | None:
@@ -56,6 +56,21 @@ def all_assistant_turns(dialog: DialogView, messages: list[BaseMessage]) -> tupl
     that only carries a tool call never counts as a reply at all.
     """
     return tuple(flatten_content(message.content) for message in dialog.messages(messages) if message.type == "ai")
+
+
+def last_student_turn(messages: list[BaseMessage]) -> str:
+    """The student's latest turn, as plain text. Read after transcription,
+    so a photo turn reads as what the image said."""
+    for message in reversed(messages):
+        if message.type == "human":
+            return flatten_content(message.content)
+    return ""
+
+
+def prior_turns(dialog: DialogView, messages: list[BaseMessage], count: int) -> str:
+    """The `count` turns before the latest one, stringified; empty at the start of
+    a session. Read through `dialog`, so a rendered quiz counts as the questions it asked."""
+    return stringify_messages(dialog.messages(messages)[-(count + 1) : -1])
 
 
 def _last_assistant_turns(messages: list[BaseMessage]) -> Iterator[BaseMessage]:

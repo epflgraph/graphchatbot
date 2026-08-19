@@ -9,6 +9,7 @@ class ExpliqueTask(Task):
     """The tutor's tasks — the compiler registry's primary key."""
 
     TRANSCRIBE_IMAGE = "transcribe-image"
+    DETECT_LANGUAGE = "detect-language"
     CLASSIFY = "classify"
     RETRIEVE = "retrieve"
     EVALUATE = "evaluate"

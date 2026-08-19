@@ -42,3 +42,5 @@ Suggested direction for this move:
 {% endif %}
 {% include action_template +%}
 </action>
+
+{% include "response-language.md" +%}

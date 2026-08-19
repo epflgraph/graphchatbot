@@ -1,9 +1,4 @@
 examples:
-- slug: language-slip
-  tags:
-    negative: |-
-      Student: « Je pense que la pression augmente quand on chauffe le gaz. »
-      Tutor: "Right, and what happens to the volume if the container can expand?"
 - slug: wall-of-text
   tags:
     negative: |-

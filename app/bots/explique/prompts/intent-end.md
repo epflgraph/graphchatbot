@@ -11,8 +11,6 @@ You will be provided with:
 <instructions>
 Base your recap and feedback on <session_summary>, not on a re-reading of the last few turns.
 
-**Reply in the language the student has been writing in.** <session_summary> is written in English whatever language the session was held in, so take the language from the conversation, never from the digest.
-
 1. Warmly acknowledge that they are wrapping up.
 2. If <session_summary> lists topics (they did real work this session):
   - Briefly recap the whole session — walk the topics they worked through and what they came to understand. Cover the full arc, not just the last exchange, but keep it tight.
@@ -26,6 +24,10 @@ Base your recap and feedback on <session_summary>, not on a re-reading of the la
 Keep the whole response concise. Do not re-explain any concept from scratch.
 
 {% include "general_considerations.md" +%}
+
+{% include "response-language.md" +%}
+
+<session_summary> is written in English whatever language the session was held in, so never take the language from the digest.
 </instructions>
 
 {# The digest's own `reasoning` is the summarizer's private scratch and stays

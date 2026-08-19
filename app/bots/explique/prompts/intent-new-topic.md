@@ -19,6 +19,8 @@ Invite the student to explain the topic in their own words. Do not explain it yo
 {{ render_examples("intent-new-topic", framing="examples-framing-reply.md") }}
 
 {% include "general_considerations.md" +%}
+
+{% include "response-language.md" +%}
 </instructions>
 
 <syllabus>

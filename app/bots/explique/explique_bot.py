@@ -9,7 +9,9 @@ from langgraph.graph.state import CompiledStateGraph
 from app.bots.base import Bot
 from app.bots.explique.compilers import COMPILERS
 from app.bots.explique.compilers.base import ExpliqueTask
+from app.bots.explique.languages import LANGUAGES
 from app.bots.explique.models import MessageEvent, StudentIntent
+from app.bots.explique.nodes.detect_language import detect_language_node
 from app.bots.explique.nodes.evaluate import evaluate_node
 from app.bots.explique.nodes.evaluate_response import make_evaluate_response_node
 from app.bots.explique.nodes.plan_challenge import plan_challenge_node
@@ -33,6 +35,7 @@ class Node(StrEnum):
     targets, and the streaming filter (`model_nodes`) can't drift apart."""
 
     TRANSCRIBE_IMAGE = "transcribe_image"
+    DETECT_LANGUAGE = "detect_language"
     CLASSIFY = "classify"
     RETRIEVE = "retrieve"
     TOOLS = "tools"
@@ -141,7 +144,7 @@ class ExpliqueBot(Bot):
         return render_prompt(self.prompt_search_path, "course_name.md")
 
     def prompt_context(self) -> dict:
-        return super().prompt_context() | {"course_name": self.course_name}
+        return super().prompt_context() | {"course_name": self.course_name, "languages": LANGUAGES}
 
     # --- RAG ----------------------------------------
 
@@ -157,13 +160,18 @@ class ExpliqueBot(Bot):
     # --- Graph --------------------------------------
 
     @staticmethod
-    def _route_after_transcribe_image(state: ExpliqueBotState) -> Node:
+    def _route_after_transcribe_image(state: ExpliqueBotState) -> Node | tuple[Node, ...]:
         """A turn whose content couldn't be transcribed (see
         `nodes/transcribe_image.py`) is answered directly, without running
-        classify/evaluate against a placeholder standing in for it."""
+        classify/evaluate against a placeholder standing in for it — and without
+        detecting the student's language, since there is no readable turn to read it from.
+
+        A readable turn fans out: `detect_language` is a leaf whose write lands
+        before the next superstep reads it, so nothing has to join it back.
+        """
         if state.get("category") == MessageEvent.CONTENT_UNREADABLE:
             return Node.RESPOND
-        return Node.CLASSIFY
+        return (Node.CLASSIFY, Node.DETECT_LANGUAGE)
 
     @staticmethod
     def _route_after_classify(state: ExpliqueBotState) -> Node:
@@ -210,6 +218,7 @@ class ExpliqueBot(Bot):
         """Compile the explique flow:
 
         transcribe_image ─┬─ (content unreadable) ────────────────────────────────────────► respond
+                          ├─ detect_language (leaf; writes `lang_code`)
                           └─ classify ─┬─ (chit-chat / off-topic / skip-topic) ─► respond
                                        └─ retrieve ─┬─ (tool call) ────► tools ──────┐
                                                     └─ (no tool call) ───────────────┴─► post_retrieve ─┬─ (new-topic) ──────────────► respond
@@ -238,6 +247,7 @@ class ExpliqueBot(Bot):
 
         workflow = StateGraph(ExpliqueBotState, context_schema=Bot)
         workflow.add_node(Node.TRANSCRIBE_IMAGE, image_transcriber_node)
+        workflow.add_node(Node.DETECT_LANGUAGE, detect_language_node)
         workflow.add_node(
             Node.CLASSIFY,
             make_classify_node(

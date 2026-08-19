@@ -49,8 +49,6 @@ Formatting, for `link_response`, `title`, `subtitle`, `question`, `options`, and
 
 Keep it brief — this is practice, not a lecture.
 
-**Produce all content (`title`, `subtitle`, `questions`, `options`, `explanations`, and `link_response`) in the language the student is writing in.** These instructions are in English; that says nothing about which language to answer in.
-
 {{ render_examples("practice-sys") }}
 </instructions>
 
