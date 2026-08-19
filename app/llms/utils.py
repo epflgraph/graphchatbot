@@ -125,6 +125,17 @@ def flatten_messages(messages: list[BaseMessage]) -> list[BaseMessage]:
     ]
 
 
+def drop_system_messages(messages: list[BaseMessage]) -> list[BaseMessage]:
+    """Return `messages` with any system turns removed.
+
+    Some models (e.g. Qwen 3.6) reject system messages that are not the very
+    first message. Stripping user-supplied system prompts before prepending the
+    bot's own keeps the conversation valid and prevents users from overriding
+    the bot's pedagogical instructions.
+    """
+    return [message for message in messages if message.type != "system"]
+
+
 def wall_clock_timeout(model: BaseChatModel) -> float:
     """The seconds a call on `model` is bounded to, from its own `request_timeout`.
 
