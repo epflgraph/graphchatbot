@@ -1,33 +1,46 @@
 import logging
 
 from langchain_core.messages import AIMessage
+from langgraph.constants import TAG_NOSTREAM
+from langgraph.graph import END
 from langgraph.runtime import Runtime
+from langgraph.types import Command
 
-from app.bots.base import Bot, StateUpdate
+from app.bots.base import Bot
 from app.bots.explique.compilers import COMPILERS
 from app.bots.explique.compilers.base import ExpliqueTask
 from app.bots.explique.models import StudentIntent
 from app.bots.explique.state import ExpliqueBotState
+from app.llms.utils import flatten_content
 
 logger = logging.getLogger(__name__)
 
 
-async def respond_node(state: ExpliqueBotState, runtime: Runtime[Bot]) -> StateUpdate:
-    """Generate the tutor's response: a registry lookup by category (`compilers/respond.py`),
-    except `request-practice`, whose material comes from the `practice` node and is returned
-    verbatim, falling through to the compiler only if that node produced nothing."""
-    bot = runtime.context
-    category = state.get("category")
+def make_respond_node(on_candidate_response: str):
+    """Generates the tutor's response and sends it to be checked before delivery."""
 
-    if category == StudentIntent.REQUEST_PRACTICE:
-        practice_response = state.get("practice_response")
-        if practice_response is not None:
-            logger.info("Returning practice material")
-            return {"messages": [AIMessage(content=practice_response)]}
+    async def respond_node(state: ExpliqueBotState, runtime: Runtime[Bot]) -> Command:
+        """Looks up the reply by category, except a filled practice request,
+        whose material comes from `practice` and skips generation entirely."""
+        bot = runtime.context
+        category = state.get("category")
 
-    logger.info("Responding to a %s turn", category)
+        if category == StudentIntent.REQUEST_PRACTICE:
+            practice_response = state.get("practice_response")
+            if practice_response is not None:
+                logger.info("Returning practice material")
+                # Precomputed, so a retry would spend the budget for nothing.
+                return Command(goto=END, update={"messages": [AIMessage(content=practice_response)]})
 
-    compiler = COMPILERS.get(ExpliqueTask.RESPOND, category)
-    response = await bot.model_for(compiler.config.model_choice).ainvoke(compiler.compile(bot, state))
+        logger.info("Responding to a %s turn", category)
 
-    return {"messages": [response]}
+        compiler = COMPILERS.get(ExpliqueTask.RESPOND, category)
+        # TAG_NOSTREAM stops tokens streaming as they're produced; writing to
+        # `candidate_response` instead of `messages` stops the finished message from
+        # leaking too; both matter, since a rejected reply is regenerated here.
+        model = bot.model_for(compiler.config.model_choice).with_config(tags=[TAG_NOSTREAM])
+        response = await model.ainvoke(compiler.compile(bot, state))
+
+        return Command(goto=on_candidate_response, update={"candidate_response": flatten_content(response.content)})
+
+    return respond_node

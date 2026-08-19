@@ -48,6 +48,16 @@ EXPLIQUE_DIALOG = DialogView((keep_dialog_roles, summarize_quiz))
 EXPLIQUE_SOURCED_DIALOG = DialogView((summarize_quiz,))
 
 
+def all_assistant_turns(dialog: DialogView, messages: list[BaseMessage]) -> tuple[str, ...]:
+    """Every assistant turn in the transcript, as plain text.
+
+    Read through `dialog` rather than off `messages`, so a rendered quiz counts as
+    the questions it asked instead of as ~25 KB of markup, and the empty ai turn
+    that only carries a tool call never counts as a reply at all.
+    """
+    return tuple(flatten_content(message.content) for message in dialog.messages(messages) if message.type == "ai")
+
+
 def _last_assistant_turns(messages: list[BaseMessage]) -> Iterator[BaseMessage]:
     """Everything the assistant did since the student's last message, oldest first"""
     tail = []

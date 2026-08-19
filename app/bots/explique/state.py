@@ -1,5 +1,5 @@
 from app.bots.base import BotState
-from app.bots.explique.models import ChallengePlan, SessionSummary, StudentState
+from app.bots.explique.models import ChallengePlan, RejectedResponse, SessionSummary, StudentState
 from app.bots.explique.tutor_action import TutorAction
 
 
@@ -15,3 +15,8 @@ class ExpliqueBotState(BotState):
     # Dynamic routing: `tools` reads this to know where to send control back to
     active_node: str | None
     retrieval_round: int
+
+    # The candidate reply `respond` generated this turn, held out of `messages` until
+    # the response evaluator clears it — a rejected one must never reach the stream.
+    candidate_response: str | None
+    rejected_responses: tuple[RejectedResponse, ...]

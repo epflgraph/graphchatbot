@@ -2,8 +2,10 @@ import logging
 from enum import StrEnum
 from typing import ClassVar
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import Self
+
+from app.bots.explique.response_evaluator import EvaluationTag
 
 logger = logging.getLogger(__name__)
 
@@ -297,3 +299,12 @@ class SessionSummary(BaseModel):
         "to revisit / a next step, not a verdict on the student. Only real gaps shown in "
         "the session; do not manufacture them.",
     )
+
+
+class RejectedResponse(BaseModel):
+    """A response the evaluator turned down, and what it found."""
+
+    model_config = ConfigDict(frozen=True)
+
+    response: str
+    tag: EvaluationTag

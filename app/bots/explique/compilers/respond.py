@@ -1,7 +1,7 @@
 from enum import StrEnum
 from typing import Any, Mapping
 
-from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel, ConfigDict
 
 from app.bots.base import Bot
@@ -9,6 +9,7 @@ from app.bots.explique.compilers.base import ExpliqueCompiler, ExpliqueTask
 from app.bots.explique.models import (
     MessageEvent,
     Persistence,
+    RejectedResponse,
     SessionSummary,
     StudentIntent,
     StudentState,
@@ -36,6 +37,7 @@ class ConversationView(StrEnum):
 
 class ResponseContext(PromptContext):
     messages: tuple[BaseMessage, ...]
+    rejected_responses: tuple[RejectedResponse, ...]
 
 
 class SummaryResponseContext(ResponseContext):
@@ -75,24 +77,39 @@ class ResponseCompiler(ExpliqueCompiler):
 
     @classmethod
     def build_context(cls, bot: Bot, state: Mapping[str, Any]) -> ResponseContext:
-        return ResponseContext(messages=cls.history(bot, state))
+        return ResponseContext(messages=cls.history(bot, state), rejected_responses=cls.rejected_responses(state))
 
     @classmethod
     def compile_messages(cls, bot: Bot, context: ResponseContext) -> list[BaseMessage]:
         """System prompt, then the dialog, then `user_template` if this responder
-        closes on one.
+        closes on one, then any retry this turn has accumulated.
 
         That closing template carries what only this turn knows. Placing it after
         the dialog puts the move right before generation, and keeps
         `system prompt + dialog` a stable prefix the server can cache across turns.
         """
-        messages: list[BaseMessage] = [
+        messages = [
             SystemMessage(content=cls.render(bot, cls.config.system_template, context)),
             *context.messages,
         ]
         if cls.config.user_template is not None:
             messages.append(HumanMessage(content=cls.render(bot, cls.config.user_template, context)))
+        messages.extend(cls.retry_turns(bot, context))
         return messages
+
+    @staticmethod
+    def rejected_responses(state: Mapping[str, Any]) -> tuple[RejectedResponse, ...]:
+        """The bot replies the response evaluator turned down this turn"""
+        return state.get("rejected_responses") or ()
+
+    @classmethod
+    def retry_turns(cls, bot: Bot, context: ResponseContext) -> list[BaseMessage]:
+        """Each rejected turn, followed by its correction."""
+        turns = []
+        for rejection in context.rejected_responses:
+            turns.append(AIMessage(content=rejection.response))
+            turns.append(HumanMessage(content=cls.render(bot, f"retry-{rejection.tag}.md", context)))
+        return turns
 
     @classmethod
     def history(cls, bot: Bot, state: Mapping[str, Any]) -> tuple[BaseMessage, ...]:
@@ -148,6 +165,7 @@ class EndSessionResponseCompiler(ResponseCompiler):
     def build_context(cls, bot: Bot, state: Mapping[str, Any]) -> SummaryResponseContext:
         return SummaryResponseContext(
             messages=cls.history(bot, state),
+            rejected_responses=cls.rejected_responses(state),
             session_summary=state.get("session_summary") or SessionSummary(),
         )
 
@@ -198,6 +216,7 @@ class TutoringResponseCompiler(ResponseCompiler):
 
         return TutoringResponseContext(
             messages=cls.history(bot, state),
+            rejected_responses=cls.rejected_responses(state),
             student_state=student_state,
             tutor_action=tutor_action,
             action_template=f"action-{tutor_action}.md",
