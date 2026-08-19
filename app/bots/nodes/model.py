@@ -6,6 +6,7 @@ from langgraph.runtime import Runtime
 from langgraph.types import Command
 
 from app.bots.base import Bot, BotState
+from app.llms.utils import drop_system_messages
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ def make_model_node(
         else:
             model = bot.model
 
-        messages = [SystemMessage(content=bot.prompt(prompt_name))] + state["messages"]
+        messages = [SystemMessage(content=bot.prompt(prompt_name))] + drop_system_messages(state["messages"])
 
         logger.info(f"Calling LLM with {len(tools)} tool(s), tool_choice={tool_choice}")
         ai_message = await model.ainvoke(messages)
