@@ -78,7 +78,7 @@ class ExpliqueBot(Bot):
         StudentIntent.OFF_TOPIC: {"tool_choice": None, "max_rounds": 1},
         StudentIntent.NEW_TOPIC: {"tool_choice": "any", "max_rounds": 1},
         StudentIntent.SKIP_TOPIC: {"tool_choice": None, "max_rounds": 1},
-        StudentIntent.IN_TOPIC_RESPONSE: {"tool_choice": "auto", "max_rounds": 2},
+        StudentIntent.IN_TOPIC_RESPONSE: {"tool_choice": "auto", "max_rounds": 1},
         StudentIntent.REQUEST_PRACTICE: {"tool_choice": "any", "max_rounds": 1},
         StudentIntent.END_SESSION: {"tool_choice": "any", "max_rounds": 1},
     }
