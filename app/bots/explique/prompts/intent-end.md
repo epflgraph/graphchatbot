@@ -24,6 +24,8 @@ Base your recap and feedback on <session_summary>, not on a re-reading of the la
 5. Let them know they can return anytime.
 
 Keep the whole response concise. Do not re-explain any concept from scratch.
+
+{% include "general_considerations.md" +%}
 </instructions>
 
 {# The digest's own `reasoning` is the summarizer's private scratch and stays
