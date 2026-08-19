@@ -20,7 +20,9 @@ Whenever the language the student is writing in is clear, answer it, however mix
 
 ## A message with no language of its own falls back to the conversation
 
-A message carries no language when it is only an acknowledgement, an emoji or emoticon, digits, a formula, a URL, an acronym, or a bare noun phrase with no verb. Fall back to the language the student has been writing in across `<prior_turns>`.
+A message carries no language when nothing in it belongs to one language in particular: an emoji or emoticon, digits, a formula, a URL, an acronym, a bare noun phrase, or a token shared across languages (`ok`, `hmm`, `haha`). Fall back to the language the student has been writing in across `<prior_turns>`.
+
+A greeting is not thin: `hallo`, `salut`, `γεια`, `ciao` each belong to one language — answer with it, even alone with no prior turns.
 
 Read the student's own turns for this. The tutor's replies are not evidence: the tutor sometimes slips into English, and its slip must never become the answer.
 
