@@ -1,9 +1,17 @@
 import logging
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from secrets import token_hex
 
+from app.config import config
+
 logger = logging.getLogger(__name__)
+
+# Defaults to the OS temp dir, which is ephemeral; override via config for a persistent location.
+# A specific cache (e.g. `image_transcriptions.py`) appends its own stem to this root.
+DEFAULT_CACHE_ROOT = Path(tempfile.gettempdir()) / ".cache" / "chatbot"
+CACHE_ROOT = config.cache.cache_dir or DEFAULT_CACHE_ROOT
 
 
 @dataclass(frozen=True)

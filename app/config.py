@@ -37,7 +37,7 @@ class GraphaiConfig(BaseConfig):
     password: str
 
 
-class ExpliqueConfig(BaseConfig):
+class CacheConfig(BaseConfig):
     cache_dir: Path | None = None
 
     @field_validator("cache_dir", mode="before")
@@ -60,7 +60,7 @@ class AppConfig(BaseConfig):
     elasticsearch: ElasticsearchConfig
     graphsearch: GraphsearchConfig
     graphai: GraphaiConfig
-    explique: ExpliqueConfig = Field(default_factory=ExpliqueConfig)
+    cache: CacheConfig = Field(default_factory=CacheConfig)
     langfuse: LangfuseConfig = Field(default_factory=LangfuseConfig)
 
 

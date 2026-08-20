@@ -5,8 +5,9 @@ from langchain_core.messages import BaseMessage
 from langgraph.runtime import Runtime
 
 from app.bots.base import Bot, StateUpdate
-from app.bots.explique.cache import image_transcriptions
-from app.bots.explique.cache.file_cache import CacheKey
+from app.bots.cache import image_transcriptions
+from app.bots.cache.file_cache import CacheKey
+from app.bots.cache.llm_call_cache_key import make_cache_key
 from app.bots.explique.compilers import COMPILERS
 from app.bots.explique.compilers.base import ExpliqueTask
 from app.bots.explique.models import ImageTranscription, MessageEvent
@@ -35,7 +36,7 @@ class ImageTranscriber:
     def _cache_key(self, compiled: list[BaseMessage]) -> CacheKey:
         """The cache key for a call: `compiled`, the bot, and the model settings that affect its output."""
         model = self.bot.model_for(COMPILER.config.model_choice)
-        return image_transcriptions.make_cache_key(
+        return make_cache_key(
             messages=compiled,
             bot_name=self.bot.name,
             model_settings={
