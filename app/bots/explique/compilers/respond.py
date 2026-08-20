@@ -141,7 +141,7 @@ class SkipResponseCompiler(ResponseCompiler):
 
 class ContentUnreadableResponseCompiler(ResponseCompiler):
     """The latest turn's content (e.g. a photo) couldn't be read — see
-    `nodes/transcribe_image.py`.
+    `app/bots/nodes/transcribe_image.py`.
 
     `category` here is a `MessageEvent`, not a `StudentIntent`: the graph sets
     it directly, the classifier never does — hence `event-`, not `intent-`,

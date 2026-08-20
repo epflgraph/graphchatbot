@@ -1,11 +1,10 @@
 import logging
 from enum import StrEnum
-from typing import ClassVar, Literal
+from typing import ClassVar
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import Self
 
-from app.bots.explique.languages import LANGUAGES, UNDETERMINED
 from app.bots.explique.response_evaluator import EvaluationTag
 
 logger = logging.getLogger(__name__)
@@ -125,31 +124,6 @@ class StudentState(BaseModel):
             self.gap_type = self.gap_type or GapType.TRANSIENT
 
         return self
-
-
-class ImageTranscription(BaseModel):
-    """What an image a student sent says, rendered as if they had typed it."""
-
-    transcription: str = Field(
-        default="<student uploaded image>",
-        description="The image's content, transcribed as the student's own turn and written in their voice.",
-    )
-
-
-class LanguageDetection(BaseModel):
-    """The language a student is writing in."""
-
-    reasoning: str = Field(
-        default="",
-        description=(
-            "One short sentence: which language the latest student's turn is written in, and — "
-            "when the message is too thin to carry one — what can be inferred from the conversation history."
-        ),
-    )
-    lang_code: Literal[*LANGUAGES, UNDETERMINED] = Field(
-        default=UNDETERMINED,
-        description=f"The turn's ISO 639-1 code, or `{UNDETERMINED}` when no supported language can be inferred.",
-    )
 
 
 class ChallengePlan(BaseModel):

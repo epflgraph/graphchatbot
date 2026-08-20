@@ -2,7 +2,7 @@
 # when a turn carries no supported language.
 UNDETERMINED = "und"
 
-# The languages the tutor can be instructed to use, ISO 639-1 code to English name.
+# The languages a bot can be instructed to reply in, ISO 639-1 code to English name.
 LANGUAGES = {
     "en": "English",
     "fr": "French",

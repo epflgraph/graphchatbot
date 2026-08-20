@@ -2,8 +2,8 @@ from typing import Any, Mapping
 
 from app.bots.base import Bot
 from app.bots.explique.compilers.base import ExpliqueCompiler, ExpliqueTask
-from app.bots.explique.models import LanguageDetection
 from app.bots.explique.transcript import last_student_turn, prior_turns
+from app.bots.nodes.detect_language import LanguageDetection
 from app.compilation.base import MessageCompilerConfig, ModelChoice, PromptContext
 
 

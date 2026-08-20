@@ -9,9 +9,7 @@ from langgraph.graph.state import CompiledStateGraph
 from app.bots.base import Bot
 from app.bots.explique.compilers import COMPILERS
 from app.bots.explique.compilers.base import ExpliqueTask
-from app.bots.explique.languages import LANGUAGES
 from app.bots.explique.models import MessageEvent, StudentIntent
-from app.bots.explique.nodes.detect_language import detect_language_node
 from app.bots.explique.nodes.evaluate import evaluate_node
 from app.bots.explique.nodes.evaluate_response import make_evaluate_response_node
 from app.bots.explique.nodes.plan_challenge import plan_challenge_node
@@ -20,12 +18,14 @@ from app.bots.explique.nodes.respond import make_respond_node
 from app.bots.explique.nodes.retrieve import make_retrieve_node
 from app.bots.explique.nodes.select_action import select_action_node
 from app.bots.explique.nodes.summarize import summarize_node
-from app.bots.explique.nodes.transcribe_image import image_transcriber_node
 from app.bots.explique.retrieval import ToolInput, make_search_tool
 from app.bots.explique.state import ExpliqueBotState
 from app.bots.explique.transcript import EXPLIQUE_DIALOG
+from app.bots.languages import LANGUAGES
 from app.bots.nodes.classify import make_classify_node
+from app.bots.nodes.detect_language import make_detect_language_node
 from app.bots.nodes.tools import make_tools_node
+from app.bots.nodes.transcribe_image import make_image_transcriber_node
 from app.compilation.templates import render_prompt
 from app.config import config
 
@@ -162,7 +162,7 @@ class ExpliqueBot(Bot):
     @staticmethod
     def _route_after_transcribe_image(state: ExpliqueBotState) -> Node | tuple[Node, ...]:
         """A turn whose content couldn't be transcribed (see
-        `nodes/transcribe_image.py`) is answered directly, without running
+        `app/bots/nodes/transcribe_image.py`) is answered directly, without running
         classify/evaluate against a placeholder standing in for it — and without
         detecting the student's language, since there is no readable turn to read it from.
 
@@ -246,8 +246,17 @@ class ExpliqueBot(Bot):
         tools = self.build_tools()
 
         workflow = StateGraph(ExpliqueBotState, context_schema=Bot)
-        workflow.add_node(Node.TRANSCRIBE_IMAGE, image_transcriber_node)
-        workflow.add_node(Node.DETECT_LANGUAGE, detect_language_node)
+        workflow.add_node(
+            Node.TRANSCRIBE_IMAGE,
+            make_image_transcriber_node(
+                COMPILERS.get(ExpliqueTask.TRANSCRIBE_IMAGE),
+                on_unreadable=MessageEvent.CONTENT_UNREADABLE,
+            ),
+        )
+        workflow.add_node(
+            Node.DETECT_LANGUAGE,
+            make_detect_language_node(COMPILERS.get(ExpliqueTask.DETECT_LANGUAGE)),
+        )
         workflow.add_node(
             Node.CLASSIFY,
             make_classify_node(

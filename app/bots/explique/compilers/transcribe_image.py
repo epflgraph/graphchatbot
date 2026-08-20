@@ -4,7 +4,7 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
 from app.bots.base import Bot
 from app.bots.explique.compilers.base import DialogCompiler, ExpliqueTask
-from app.bots.explique.models import ImageTranscription
+from app.bots.nodes.transcribe_image import ImageTranscription
 from app.compilation.base import MessageCompilerConfig, ModelChoice
 from app.llms.utils import wrap_content
 
