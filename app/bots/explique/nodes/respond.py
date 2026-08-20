@@ -11,7 +11,7 @@ from app.bots.explique.compilers import COMPILERS
 from app.bots.explique.compilers.base import ExpliqueTask
 from app.bots.explique.models import StudentIntent
 from app.bots.explique.state import ExpliqueBotState
-from app.llms.utils import flatten_content
+from app.compilation.invoke import text_call
 
 logger = logging.getLogger(__name__)
 
@@ -34,13 +34,11 @@ def make_respond_node(on_candidate_response: str):
 
         logger.info("Responding to a %s turn", category)
 
-        compiler = COMPILERS.get(ExpliqueTask.RESPOND, category)
         # TAG_NOSTREAM stops tokens streaming as they're produced; writing to
         # `candidate_response` instead of `messages` stops the finished message from
         # leaking too; both matter, since a rejected reply is regenerated here.
-        model = bot.model_for(compiler.config.model_choice).with_config(tags=[TAG_NOSTREAM])
-        response = await model.ainvoke(compiler.compile(bot, state))
+        response = await text_call(bot, COMPILERS.get(ExpliqueTask.RESPOND, category), state, tags=(TAG_NOSTREAM,))
 
-        return Command(goto=on_candidate_response, update={"candidate_response": flatten_content(response.content)})
+        return Command(goto=on_candidate_response, update={"candidate_response": response})
 
     return respond_node

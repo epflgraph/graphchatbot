@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Mapping, TypeVar
 from pydantic import BaseModel
 
 from app.compilation.base import MessageCompiler
-from app.llms.utils import generate_structured_response
+from app.llms.utils import flatten_content, generate_structured_response
 
 if TYPE_CHECKING:
     from app.bots.base import Bot
@@ -35,3 +35,19 @@ async def structured_call(
         return fallback
 
     return result
+
+
+async def text_call(
+    bot: "Bot",
+    compiler: type[MessageCompiler],
+    state: Mapping[str, Any],
+    tags: tuple[str, ...] = (),
+) -> str:
+    """Compile the call, run it, and return the model's plain text.
+    `tags` reach the client as LangChain run tags.
+    """
+    messages = compiler.compile(bot, state)
+    model = bot.model_for(compiler.config.model_choice).with_config(tags=list(tags))
+
+    response = await model.ainvoke(messages)
+    return flatten_content(response.content)
