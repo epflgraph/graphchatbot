@@ -30,9 +30,6 @@ graphes-config.yaml
 # Data files
 data
 
-# Explique image transcription cache (its default location)
-app/bots/explique/.transcription_cache
-
 # Python package egg folder
 *egg-info
 

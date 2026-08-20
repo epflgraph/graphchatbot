@@ -1,5 +1,6 @@
 import hashlib
 import json
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -8,9 +9,9 @@ from langchain_core.messages import BaseMessage
 from app.bots.explique.cache.file_cache import CacheKey, FileCache
 from app.config import config
 
-# Defaults to a hidden dir under the package; override via config for read-only/ephemeral filesystems.
-DEFAULT_CACHE_DIRNAME = ".transcription_cache"
-CACHE_DIR = config.explique.cache_dir or Path(__file__).resolve().parent.parent / DEFAULT_CACHE_DIRNAME
+# Defaults to the OS temp dir, which is ephemeral; override via config for a persistent location.
+DEFAULT_CACHE_DIR = Path(tempfile.gettempdir()) / ".cache" / "chatbot" / "image-transcriptions"
+CACHE_DIR = config.explique.cache_dir or DEFAULT_CACHE_DIR
 
 CACHE = FileCache(CACHE_DIR)
 

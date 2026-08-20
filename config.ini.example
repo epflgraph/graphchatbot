@@ -20,7 +20,7 @@ username: xxxx
 password: xxxx
 
 [explique]
-; Photo transcription cache dir. Empty keeps it at app/bots/explique/.transcription_cache.
+; Photo transcription cache dir. Empty keeps it at <tempdir>/.cache/chatbot/image-transcriptions.
 cache_dir:
 
 [langfuse]
