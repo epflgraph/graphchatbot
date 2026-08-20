@@ -4,6 +4,7 @@ import logging
 import time
 from typing import AsyncGenerator
 
+from langchain_core.messages import convert_to_messages
 from langchain_core.runnables import RunnableConfig
 from langfuse import Langfuse
 from langfuse.langchain import CallbackHandler
@@ -11,6 +12,7 @@ from openai.types.chat.completion_create_params import CompletionCreateParams
 
 from app.bots.base import Bot
 from app.config import config
+from app.llms.utils import drop_system_messages
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +39,7 @@ def agent_config(bot: Bot) -> RunnableConfig:
 
 
 async def generate_completion(chat_request: CompletionCreateParams, bot: Bot) -> dict:
-    messages = list(chat_request["messages"])
+    messages = drop_system_messages(convert_to_messages(chat_request["messages"]))
     logger.info(f"Received non-streaming request for bot `{bot.name}` with {len(messages)} message(s)")
 
     agent_input = {"messages": messages}
@@ -54,7 +56,7 @@ async def generate_completion(chat_request: CompletionCreateParams, bot: Bot) ->
 
 
 async def agenerate_completion(chat_request: CompletionCreateParams, bot: Bot) -> AsyncGenerator:
-    messages = list(chat_request["messages"])
+    messages = drop_system_messages(convert_to_messages(chat_request["messages"]))
     logger.info(f"Received streaming request for bot `{bot.name}` with {len(messages)} message(s)")
 
     agent_input = {"messages": messages}
