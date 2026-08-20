@@ -23,6 +23,12 @@ class BotState(MessagesState):
     category: str | None
     tool_choice: str | None
 
+    # The tool loop, shared by every family: `active_node` is where `tools`
+    # sends control back to, written by whichever model node issued the calls;
+    # `tool_round` counts the rounds that node has taken this turn.
+    active_node: str | None
+    tool_round: int
+
 
 # A node's return value: a partial update merged into the graph state by
 # LangGraph (fields omitted are left untouched; `messages` is appended to

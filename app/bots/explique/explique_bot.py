@@ -15,7 +15,6 @@ from app.bots.explique.nodes.evaluate_response import make_evaluate_response_nod
 from app.bots.explique.nodes.plan_challenge import plan_challenge_node
 from app.bots.explique.nodes.practice import practice_node
 from app.bots.explique.nodes.respond import make_respond_node
-from app.bots.explique.nodes.retrieve import make_retrieve_node
 from app.bots.explique.nodes.select_action import select_action_node
 from app.bots.explique.nodes.summarize import summarize_node
 from app.bots.explique.retrieval import ToolInput, make_search_tool
@@ -24,6 +23,7 @@ from app.bots.explique.transcript import EXPLIQUE_DIALOG
 from app.bots.languages import LANGUAGES
 from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.detect_language import make_detect_language_node
+from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
 from app.bots.nodes.transcribe_image import make_image_transcriber_node
 from app.compilation.templates import render_prompt
@@ -74,16 +74,20 @@ class ExpliqueBot(Bot):
     # The conversation view prompts read: human/ai turns only, quiz markup summarized.
     dialog = EXPLIQUE_DIALOG
 
-    # Student intent to retrieval policy — how the retrieve node binds its
-    # search tool for that intent, and how many rounds it may take.
+    # A ceiling, not a quota: one round may do several searches, and a turn
+    # needing no course material searches none.
+    MAX_RETRIEVAL_ROUNDS = 1
+
+    # How `retrieve` binds its search tool per intent. `classify` writes the
+    # choice into state; `retrieve` spends it on its first round only.
     INTENT_TOOL_CHOICES = {
-        StudentIntent.CHIT_CHAT: {"tool_choice": None, "max_rounds": 1},
-        StudentIntent.OFF_TOPIC: {"tool_choice": None, "max_rounds": 1},
-        StudentIntent.NEW_TOPIC: {"tool_choice": "any", "max_rounds": 1},
-        StudentIntent.SKIP_TOPIC: {"tool_choice": None, "max_rounds": 1},
-        StudentIntent.IN_TOPIC_RESPONSE: {"tool_choice": "auto", "max_rounds": 1},
-        StudentIntent.REQUEST_PRACTICE: {"tool_choice": "any", "max_rounds": 1},
-        StudentIntent.END_SESSION: {"tool_choice": "any", "max_rounds": 1},
+        StudentIntent.CHIT_CHAT: {"tool_choice": None},
+        StudentIntent.OFF_TOPIC: {"tool_choice": None},
+        StudentIntent.NEW_TOPIC: {"tool_choice": "any"},
+        StudentIntent.SKIP_TOPIC: {"tool_choice": None},
+        StudentIntent.IN_TOPIC_RESPONSE: {"tool_choice": "auto"},
+        StudentIntent.REQUEST_PRACTICE: {"tool_choice": "any"},
+        StudentIntent.END_SESSION: {"tool_choice": "any"},
     }
 
     _TEXT_MODEL_ID = "Qwen/Qwen3.6-35B-A3B-fp8"
@@ -238,10 +242,10 @@ class ExpliqueBot(Bot):
         The one exception is a filled practice request: its reply was already computed
         upstream, so `respond` returns it straight to END.
 
-        `tools` normally returns to `post_retrieve` as drawn above, but can loop back to
-        `retrieve` instead for another round, up to the cap `INTENT_TOOL_CHOICES` declares
-        per intent — so a later round can see the earlier one's result before deciding
-        whether to search again.
+        `tools` goes wherever `retrieve` sent it, recorded in `active_node`: back to
+        `retrieve` while rounds remain, so a later round can see the earlier one's
+        result before deciding whether to search again, and on to `post_retrieve`
+        once they don't. `tools` only obeys; the choice is `retrieve`'s.
         """
         tools = self.build_tools()
 
@@ -267,10 +271,17 @@ class ExpliqueBot(Bot):
         )
         workflow.add_node(
             Node.RETRIEVE,
-            make_retrieve_node(tools, on_text=Node.POST_RETRIEVE, on_tools=Node.TOOLS, self_node=Node.RETRIEVE),
+            make_model_node(
+                tools,
+                compiler=COMPILERS.get(ExpliqueTask.RETRIEVE),
+                on_text=Node.POST_RETRIEVE,
+                on_tools=Node.TOOLS,
+                max_tool_rounds=self.MAX_RETRIEVAL_ROUNDS,
+                text_is_reply=False,
+            ),
         )
 
-        workflow.add_node(Node.TOOLS, make_tools_node(tools, back_to=None))
+        workflow.add_node(Node.TOOLS, make_tools_node(tools))
         workflow.add_node(Node.POST_RETRIEVE, self._post_retrieve)
         workflow.add_node(Node.EVALUATE, evaluate_node)
         workflow.add_node(Node.PLAN_CHALLENGE, plan_challenge_node)

@@ -113,7 +113,7 @@ class CourseBot(Bot):
         workflow = StateGraph(BotState, context_schema=Bot)
         workflow.add_node("classify", make_classify_node(self.CATEGORIES, fallback="greeting"))
         workflow.add_node("model", make_model_node(tools))
-        workflow.add_node("tools", make_tools_node(tools, back_to="model"))
+        workflow.add_node("tools", make_tools_node(tools))
         workflow.set_entry_point("classify")
         workflow.add_edge("classify", "model")
 

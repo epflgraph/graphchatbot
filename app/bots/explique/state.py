@@ -15,9 +15,6 @@ class ExpliqueBotState(BotState):
     # The language to reply in, read from the student's latest turn; None when none
     # could be read, which leaves the responder to infer it.
     lang_code: str | None
-    # Dynamic routing: `tools` reads this to know where to send control back to
-    active_node: str | None
-    retrieval_round: int
 
     # The candidate reply `respond` generated this turn, held out of `messages` until
     # the response evaluator clears it — a rejected one must never reach the stream.

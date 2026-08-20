@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -40,10 +39,6 @@ CATEGORIES = {
 }
 
 
-class DebateCourseBotState(BotState):
-    active_node: Optional[str]
-
-
 class DebateCourseBot(CourseBot):
     """CourseBot variant that uses a peer-debate pedagogical style."""
 
@@ -57,23 +52,15 @@ class DebateCourseBot(CourseBot):
     def build_graph(self) -> CompiledStateGraph:
         tools = self.build_tools()
 
-        workflow = StateGraph(DebateCourseBotState, context_schema=Bot)
+        workflow = StateGraph(BotState, context_schema=Bot)
 
         workflow.add_node("classify", make_classify_node(self.CATEGORIES, fallback="no-case-study"))
         workflow.add_conditional_edges("classify", lambda s: f"model-{s['category']}")
 
         for category in self.CATEGORIES:
-            node_name = f"model-{category}"
-            workflow.add_node(
-                node_name,
-                make_model_node(
-                    tools,
-                    prompt_name=f"prompt-{category}",
-                    state_update={"active_node": node_name},
-                ),
-            )
+            workflow.add_node(f"model-{category}", make_model_node(tools, prompt_name=f"prompt-{category}"))
 
-        workflow.add_node("tools", make_tools_node(tools, back_to=None))
+        workflow.add_node("tools", make_tools_node(tools))
 
         workflow.set_entry_point("classify")
 

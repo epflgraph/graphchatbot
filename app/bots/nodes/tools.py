@@ -8,14 +8,12 @@ from langgraph.types import Command
 logger = logging.getLogger(__name__)
 
 
-def make_tools_node(tools: list, back_to: str | None = "model"):
+def make_tools_node(tools: list):
     """
-    Returns a tools node that executes all tool calls in the last message.
+    Returns a node that executes all tool calls in the last message.
 
-    Args:
-        tools:   list of tool functions available to the model.
-        back_to: name of the node to route to after tool execution.
-                 If None, reads the destination from state['active_node'].
+    Where the result goes is not this node's decision: it returns control to
+    `state['active_node']`, which the model node that issued the calls wrote.
     """
 
     tool_names = {t.name for t in tools}
@@ -41,9 +39,6 @@ def make_tools_node(tools: list, back_to: str | None = "model"):
         logger.info(f"Executing {len(tool_calls)} tool call(s) in parallel")
         result = await _tool_node.ainvoke(state)
 
-        update = {"messages": result["messages"], "tool_choice": None}
-
-        destination = back_to if back_to else state.get("active_node") or "model"
-        return Command(goto=destination, update=update)
+        return Command(goto=state["active_node"], update={"messages": result["messages"]})
 
     return tools_node
