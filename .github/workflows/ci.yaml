@@ -55,9 +55,6 @@ jobs:
     name: Test
     timeout-minutes: 15
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -86,10 +83,3 @@ jobs:
             coverage.xml
             coverage/
           if-no-files-found: error
-
-      - name: Coverage
-        if: github.event_name == 'pull_request'
-        uses: orgoro/coverage@v3.3.1
-        with:
-          coverageFile: coverage.xml
-          token: ${{ secrets.GITHUB_TOKEN }}
