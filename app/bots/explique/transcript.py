@@ -71,12 +71,3 @@ def last_tool_results(messages: list[BaseMessage]) -> str:
     """The consecutive tool results since the student's last message, as one string."""
     chunks = [str(message.content) for message in _last_assistant_turns(messages) if message.type == "tool"]
     return "\n\n".join(chunks) if chunks else "(no retrieved material)"
-
-
-def last_tool_messages(messages: list[BaseMessage]) -> tuple[BaseMessage, ...]:
-    """The consecutive tool calls and their results since the student's last message, as real messages."""
-    return tuple(
-        message
-        for message in _last_assistant_turns(messages)
-        if message.type == "tool" or (message.type == "ai" and message.tool_calls)
-    )
