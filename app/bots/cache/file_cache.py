@@ -16,16 +16,21 @@ CACHE_ROOT = config.cache.cache_dir or DEFAULT_CACHE_ROOT
 
 @dataclass(frozen=True)
 class CacheKey:
-    """A cache key, used verbatim as a filename."""
+    """A cache key, used verbatim as a directory name."""
 
     value: str
 
 
 @dataclass(frozen=True)
 class FileCache:
-    """Text entries under one directory, one file per key; a miss or a failed write just logs and moves on, never raises."""
+    """Text entries at `root`/<key>/`name`; a miss or a failed write just logs and moves on, never raises.
+
+    A directory per key rather than a file, so several caches sharing a root keep
+    everything known about one key together, under one name each.
+    """
 
     root: Path
+    name: str
 
     def get(self, key: CacheKey) -> str | None:
         """The entry stored under `key`, or None on a miss; including a corrupted or unreadable one."""
@@ -46,7 +51,7 @@ class FileCache:
         """Store `entry` under `key`, creating the directory if it isn't there yet."""
         target = self._path_for(key)
         try:
-            self.root.mkdir(parents=True, exist_ok=True)
+            target.parent.mkdir(parents=True, exist_ok=True)
             # Write elsewhere and rename into place: `replace` is atomic, so a
             # reader sees the whole entry or none of it — across processes, no lock needed.
             scratch = target.with_name(f"{target.name}.{token_hex(64)}")
@@ -56,4 +61,4 @@ class FileCache:
             logger.warning("Could not write cache entry: %s", target, exc_info=True)
 
     def _path_for(self, key: CacheKey) -> Path:
-        return self.root / key.value
+        return self.root / key.value / self.name
