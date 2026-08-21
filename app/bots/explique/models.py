@@ -156,10 +156,11 @@ class ChallengePlan(BaseModel):
 class QuizQuestion(BaseModel):
     """One practice question, matching the client-side schema in `artifacts/practice-quiz.html`."""
 
+    MIN_OPTIONS: ClassVar[int] = 2
+
     question: str = Field(min_length=1, description="The question text, plain text.")
     options: list[str] = Field(
-        min_length=2,
-        description="Plausible answer choices, plain text; exactly one is correct.",
+        description=f"At least {MIN_OPTIONS} plausible answer choices, plain text; exactly one is correct.",
     )
     explanation: str = Field(
         default="",
@@ -169,6 +170,10 @@ class QuizQuestion(BaseModel):
         ),
     )
     correct_idx: int = Field(description="Zero-based index into `options` of the option named in `explanation`.")
+
+    @property
+    def is_answerable(self) -> bool:
+        return len(self.options) >= self.MIN_OPTIONS and 0 <= self.correct_idx < len(self.options)
 
 
 class QuizQuestions(BaseModel):
@@ -235,14 +240,14 @@ class PracticeMaterial(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def _drop_questions_with_invalid_index(self) -> Self:
-        valid_questions = [question for question in self.questions if 0 <= question.correct_idx < len(question.options)]
-        if len(valid_questions) < len(self.questions):
+    def _drop_unanswerable_questions(self) -> Self:
+        answerable = [question for question in self.questions if question.is_answerable]
+        if len(answerable) < len(self.questions):
             logger.warning(
-                "Dropping %d practice question(s) with an out-of-range index",
-                len(self.questions) - len(valid_questions),
+                "Dropping %d unanswerable practice question(s)",
+                len(self.questions) - len(answerable),
             )
-            self.questions = valid_questions
+            self.questions = answerable
         return self
 
     @model_validator(mode="after")

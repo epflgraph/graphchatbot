@@ -49,7 +49,8 @@ class Quiz(Artifact):
         start += len(Quiz.QUESTIONS_START)
         end = content.find(Quiz.QUESTIONS_END, start)
         if end == -1:
-            return None
+            logger.debug("Embedded practice-quiz questions are cut off: no closing %r", Quiz.QUESTIONS_END)
+            return QuizQuestions()
 
         try:
             return QuizQuestions(questions=json.loads(content[start:end]))
