@@ -112,17 +112,18 @@ def stringify_messages(messages: list[BaseMessage]) -> str:
     return "\n\n".join(turns)
 
 
+def flatten_message(message: BaseMessage) -> BaseMessage:
+    """A copy of `message` with any multi-part content flattened to plain text —
+    e.g. the OpenAI-style `[{"type": "text", "text": "..."}]` blocks an incoming
+    request can carry — so the turn can be forwarded directly into a model call.
+    """
+    if isinstance(message.content, str):
+        return message
+    return message.model_copy(update={"content": flatten_content(message.content)})
+
+
 def flatten_messages(messages: list[BaseMessage]) -> list[BaseMessage]:
-    """Return copies of `messages` with any multi-part content flattened to plain
-    text — e.g. the OpenAI-style `[{"type": "text", "text": "..."}]` blocks an
-    incoming request can carry — so history can be forwarded directly into a
-    model call."""
-    return [
-        message
-        if isinstance(message.content, str)
-        else message.model_copy(update={"content": flatten_content(message.content)})
-        for message in messages
-    ]
+    return [flatten_message(message) for message in messages]
 
 
 def drop_system_messages(messages: list[BaseMessage]) -> list[BaseMessage]:

@@ -22,4 +22,4 @@ Query rules:
 - Never set a filter field to None. Omit the field entirely if not needed.
 - You have exactly one opportunity to make tool calls: REQUEST ALL IN PARALLEL IN ONE SINGLE MESSAGE.
 
-{tool_notes}
+{% include "tool-notes.md" +%}

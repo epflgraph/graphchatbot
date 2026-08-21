@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar, Mapping
 
@@ -24,7 +23,7 @@ class Task(StrEnum):
 
 
 class PromptContext(BaseModel):
-    """A compiler's typed input: everything one call's templates read."""
+    """A compiler's typed input: what its templates read, and what its turns are built from."""
 
     # Frozen down to the contents, since a list field is coerced to its declared
     # tuple. No `arbitrary_types_allowed` — it would opt future fields out of
@@ -49,16 +48,14 @@ class MessageCompilerConfig(BaseModel):
     output_schema: type[BaseModel] | None = None
 
 
-class MessageCompiler(ABC):
+class MessageCompiler:
     """Compiles the messages of one LLM call."""
 
     # A class that shares behaviour without being a call of its own declares none.
     config: ClassVar[MessageCompilerConfig]
 
-    @classmethod
-    @abstractmethod
-    def build_context(cls, bot: "Bot", state: Mapping[str, Any]) -> PromptContext:
-        """The typed context for this call, from graph state."""
+    # The context this call compiles from; whatever `context_fields` adds must be declared on it.
+    context_class: ClassVar[type[PromptContext]] = PromptContext
 
     @classmethod
     def compile(cls, bot: "Bot", state: Mapping[str, Any]) -> list[BaseMessage]:
@@ -66,12 +63,36 @@ class MessageCompiler(ABC):
         return cls.compile_messages(bot, cls.build_context(bot, state))
 
     @classmethod
+    def build_context(cls, bot: "Bot", state: Mapping[str, Any]) -> PromptContext:
+        """The typed context for this call, from graph state."""
+        return cls.context_class(**cls.context_fields(bot, state))
+
+    @classmethod
+    def context_fields(cls, bot: "Bot", state: Mapping[str, Any]) -> dict[str, Any]:
+        """This compiler's own context fields. An override adds to its parent's rather
+        than restating them, so a compiler declares only what it introduces."""
+        return {}
+
+    @classmethod
     def compile_messages(cls, bot: "Bot", context: PromptContext) -> list[BaseMessage]:
-        """The messages from an already-built context; override to shape a call differently."""
-        messages = [SystemMessage(content=cls.render(bot, cls.config.system_template, context))]
-        if cls.config.user_template is not None:
-            messages.append(HumanMessage(content=cls.render(bot, cls.config.user_template, context)))
-        return messages
+        """System instructions, intermediate and closing turns."""
+        return [
+            SystemMessage(content=cls.render(bot, cls.config.system_template, context)),
+            *cls.embedded_turns(bot, context),
+            *cls.closing_turns(bot, context),
+        ]
+
+    @classmethod
+    def embedded_turns(cls, bot: "Bot", context: PromptContext) -> tuple[BaseMessage, ...]:
+        """The turns this call embeds between its system prompt and the closing turns."""
+        return ()
+
+    @classmethod
+    def closing_turns(cls, bot: "Bot", context: PromptContext) -> tuple[BaseMessage, ...]:
+        """The turns that close the call."""
+        if cls.config.user_template is None:
+            return ()
+        return (HumanMessage(content=cls.render(bot, cls.config.user_template, context)),)
 
     @classmethod
     def render(cls, bot: "Bot", template: str, context: PromptContext) -> str:

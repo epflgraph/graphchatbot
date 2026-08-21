@@ -21,7 +21,7 @@ In all cases:
 
 {{ render_examples("intent-social") }}
 
-{% include "general_considerations.md" +%}
+{% include "general-considerations.md" +%}
 
 {% include "response-language.md" +%}
 

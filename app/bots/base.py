@@ -8,7 +8,6 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import MessagesState
 from langgraph.graph.state import CompiledStateGraph
 
-from app.bots.prompt_resolution import resolve
 from app.compilation.base import ModelChoice
 from app.config import config
 from app.llms.utils import DialogView
@@ -48,7 +47,6 @@ class Bot(ABC):
         model / light_model / vision_model — the streaming, deterministic, and vision clients
         model_nodes         — which nodes' tokens reach the user
         dialog              — how a transcript is compiled before it reaches a prompt
-        DEFAULT_PROMPT_NAME — the template `prompt()` resolves when given no name
         prompt_context()    — values every one of its prompts can use
 
     Intermediate classes that exist to share behaviour rather than to be served
@@ -86,10 +84,6 @@ class Bot(ABC):
     # default view has no callbacks, so a transcript compiles verbatim.
     dialog: DialogView = DialogView()
 
-    # A family that leads with a different template sets this, rather than
-    # overriding `prompt()` just to change a string.
-    DEFAULT_PROMPT_NAME: str = "prompt"
-
     @cached_property
     def prompt_directories(self) -> tuple[Path, ...]:
         """The levels a prompt can be defined at: this bot's own directory, then
@@ -108,15 +102,9 @@ class Bot(ABC):
     @cached_property
     def prompt_search_path(self) -> tuple[Path, ...]:
         """Where this bot's prompt templates are looked up: each level's
-        `prompts/` before the level itself, innermost first. A course's own copy
-        of a template therefore shadows the family's, which shadows the shared
-        one.
-
-        The bare level stays in the path because the fragments `prompt()`
-        expands still live there: `resolve` walks directories and cannot see
-        into a `prompts/` subdirectory, so those cannot move while it exists.
-        """
-        return tuple(path for level in self.prompt_directories for path in (level / PROMPTS_DIRNAME, level))
+        `prompts/`, innermost first. A course's own copy of a template
+        shadows the family's, which shadows the shared one."""
+        return tuple(level / PROMPTS_DIRNAME for level in self.prompt_directories)
 
     def model_for(self, choice: ModelChoice) -> ChatOpenAI:
         """The client a call of this choice runs on.
@@ -139,12 +127,6 @@ class Bot(ABC):
 
     def prompt_context(self) -> dict:
         return {"today": datetime.now().strftime("%Y-%m-%d")}
-
-    def prompt(self, name: str | None = None) -> str:
-        """The named prompt template, filled in. `name` is optional so a caller
-        holding a "not specified" value can pass it straight through."""
-        template = resolve(name or self.DEFAULT_PROMPT_NAME, self.prompt_directories[0], BOTS_ROOT)
-        return template.format(**self.prompt_context())
 
     @abstractmethod
     def build_graph(self) -> CompiledStateGraph: ...

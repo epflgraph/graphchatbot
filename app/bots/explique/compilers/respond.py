@@ -1,11 +1,11 @@
 from enum import StrEnum
 from typing import Any, Mapping
 
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from pydantic import BaseModel, ConfigDict
 
 from app.bots.base import Bot
-from app.bots.explique.compilers.base import ExpliqueCompiler, ExpliqueTask
+from app.bots.explique.compilers.base import ExpliqueTask
 from app.bots.explique.models import (
     MessageEvent,
     Persistence,
@@ -14,10 +14,10 @@ from app.bots.explique.models import (
     StudentIntent,
     StudentState,
 )
-from app.bots.explique.transcript import EXPLIQUE_SOURCED_DIALOG
+from app.bots.explique.transcript import EXPLIQUE_DIALOG, EXPLIQUE_SOURCED_DIALOG
 from app.bots.explique.tutor_action import TutorAction
-from app.compilation.base import MessageCompilerConfig, ModelChoice, PromptContext
-from app.llms.utils import flatten_messages
+from app.compilation.base import MessageCompilerConfig, ModelChoice
+from app.compilation.dialog import DialogTurnsCompiler, DialogTurnsContext
 
 # Tutor actions that get the plan's `direction` field.
 _DIRECTION_ACTIONS = (TutorAction.CHALLENGE_MASTERY,)
@@ -27,16 +27,7 @@ _SWITCH_ACTIONS = (TutorAction.PROBE, TutorAction.HINT, TutorAction.CHALLENGE_MI
 _SWITCH_PERSISTENCE = (Persistence.STUCK, Persistence.STALLED)
 
 
-class ConversationView(StrEnum):
-    """Which view of the conversation trails the system prompt. `SOURCED`
-    includes retrieved chunks, while `DIALOG` excludes them."""
-
-    SOURCED = "sourced"
-    DIALOG = "dialog"
-
-
-class ResponseContext(PromptContext):
-    messages: tuple[BaseMessage, ...]
+class ResponseContext(DialogTurnsContext):
     rejected_responses: tuple[RejectedResponse, ...]
     lang_code: str | None
 
@@ -70,37 +61,27 @@ def response_config(**declared) -> MessageCompilerConfig:
     return MessageCompilerConfig(task=ExpliqueTask.RESPOND, model_choice=ModelChoice.MAIN, **declared)
 
 
-class ResponseCompiler(ExpliqueCompiler):
+class ResponseCompiler(DialogTurnsCompiler):
     """Base for the responders: a system prompt, then the conversation, then
     whatever applies only to this turn."""
 
-    conversation_view = ConversationView.SOURCED
+    # The reply is the one call that cites what was retrieved, so the default
+    # view keeps the tool results; a responder that must not see them says so.
+    dialog_view = EXPLIQUE_SOURCED_DIALOG
+
+    context_class = ResponseContext
 
     @classmethod
-    def build_context(cls, bot: Bot, state: Mapping[str, Any]) -> ResponseContext:
-        return ResponseContext(
-            messages=cls.history(bot, state),
-            rejected_responses=cls.rejected_responses(state),
-            lang_code=state.get("lang_code"),
-        )
+    def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
+        return super().context_fields(bot, state) | {
+            "rejected_responses": cls.rejected_responses(state),
+            "lang_code": state.get("lang_code"),
+        }
 
     @classmethod
-    def compile_messages(cls, bot: Bot, context: ResponseContext) -> list[BaseMessage]:
-        """System prompt, then the dialog, then `user_template` if this responder
-        closes on one, then any retry this turn has accumulated.
-
-        That closing template carries what only this turn knows. Placing it after
-        the dialog puts the move right before generation, and keeps
-        `system prompt + dialog` a stable prefix the server can cache across turns.
-        """
-        messages = [
-            SystemMessage(content=cls.render(bot, cls.config.system_template, context)),
-            *context.messages,
-        ]
-        if cls.config.user_template is not None:
-            messages.append(HumanMessage(content=cls.render(bot, cls.config.user_template, context)))
-        messages.extend(cls.retry_turns(bot, context))
-        return messages
+    def closing_turns(cls, bot: Bot, context: ResponseContext) -> tuple[BaseMessage, ...]:
+        """The task as compiled upstream, then any retry this turn has accumulated."""
+        return (*super().closing_turns(bot, context), *cls.retry_turns(bot, context))
 
     @staticmethod
     def rejected_responses(state: Mapping[str, Any]) -> tuple[RejectedResponse, ...]:
@@ -115,13 +96,6 @@ class ResponseCompiler(ExpliqueCompiler):
             turns.append(AIMessage(content=rejection.response))
             turns.append(HumanMessage(content=cls.render(bot, f"retry-{rejection.tag}.md", context)))
         return turns
-
-    @classmethod
-    def history(cls, bot: Bot, state: Mapping[str, Any]) -> tuple[BaseMessage, ...]:
-        """This compiler's view of the conversation, with multi-part content
-        flattened so it can be forwarded straight into a call."""
-        view = bot.dialog if cls.conversation_view is ConversationView.DIALOG else EXPLIQUE_SOURCED_DIALOG
-        return tuple(flatten_messages(view.messages(state["messages"])))
 
 
 class SocialResponseCompiler(ResponseCompiler):
@@ -165,15 +139,13 @@ class EndSessionResponseCompiler(ResponseCompiler):
     from a re-reading of the last few turns."""
 
     config = response_config(overrides=(StudentIntent.END_SESSION,), system_template="intent-end.md")
+    context_class = SummaryResponseContext
 
     @classmethod
-    def build_context(cls, bot: Bot, state: Mapping[str, Any]) -> SummaryResponseContext:
-        return SummaryResponseContext(
-            messages=cls.history(bot, state),
-            rejected_responses=cls.rejected_responses(state),
-            lang_code=state.get("lang_code"),
-            session_summary=state.get("session_summary") or SessionSummary(),
-        )
+    def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
+        return super().context_fields(bot, state) | {
+            "session_summary": state.get("session_summary") or SessionSummary()
+        }
 
 
 class PracticeUnavailableResponseCompiler(ResponseCompiler):
@@ -187,7 +159,7 @@ class PracticeUnavailableResponseCompiler(ResponseCompiler):
         overrides=(StudentIntent.REQUEST_PRACTICE,),
         system_template="intent-practice-unavailable.md",
     )
-    conversation_view = ConversationView.DIALOG
+    dialog_view = EXPLIQUE_DIALOG
 
 
 class TutoringResponseCompiler(ResponseCompiler):
@@ -203,10 +175,11 @@ class TutoringResponseCompiler(ResponseCompiler):
         system_template="intent-in-topic.md",
         user_template="intent-in-topic-turn.md",
     )
-    conversation_view = ConversationView.DIALOG
+    dialog_view = EXPLIQUE_DIALOG
+    context_class = TutoringResponseContext
 
     @classmethod
-    def build_context(cls, bot: Bot, state: Mapping[str, Any]) -> TutoringResponseContext:
+    def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
         student_state = state["student_state"]
         tutor_action = state["tutor_action"]
         plan = state["challenge_plan"]
@@ -220,17 +193,14 @@ class TutoringResponseCompiler(ResponseCompiler):
         points_tested = tuple(plan.points_tested) if has_plan else ()
         switch_representation = student_state.persistence in _SWITCH_PERSISTENCE and tutor_action in _SWITCH_ACTIONS
 
-        return TutoringResponseContext(
-            messages=cls.history(bot, state),
-            rejected_responses=cls.rejected_responses(state),
-            lang_code=state.get("lang_code"),
-            student_state=student_state,
-            tutor_action=tutor_action,
-            action_template=f"action-{tutor_action}.md",
-            plan_directive=plan_directive,
-            points_tested=points_tested,
-            switch_representation=switch_representation,
-        )
+        return super().context_fields(bot, state) | {
+            "student_state": student_state,
+            "tutor_action": tutor_action,
+            "action_template": f"action-{tutor_action}.md",
+            "plan_directive": plan_directive,
+            "points_tested": points_tested,
+            "switch_representation": switch_representation,
+        }
 
 
 # Which compiler answers each category, from the `overrides` each one declares.

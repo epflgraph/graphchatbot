@@ -1,18 +1,25 @@
 from typing import Any, Mapping
 
-from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import BaseMessage, HumanMessage
 
 from app.bots.base import Bot
-from app.bots.explique.compilers.base import DialogCompiler, ExpliqueTask
+from app.bots.explique.compilers.base import ExpliqueTask
 from app.bots.nodes.transcribe_image import ImageTranscription
 from app.compilation.base import MessageCompilerConfig, ModelChoice
+from app.compilation.dialog import DialogTextCompiler, DialogTextContext
 from app.llms.utils import wrap_content
 
 
-class ImageTranscriptionCompiler(DialogCompiler):
-    """Overrides `compile`, not `compile_messages`: the human turn appends the
-    target message's raw content (text + image) to the rendered template,
-    instead of using the template alone."""
+class ImageTranscriptionContext(DialogTextContext):
+    """Context for a call that also needs the target turn's content as raw parts."""
+
+    original_parts: tuple[dict, ...]
+
+
+class ImageTranscriptionCompiler(DialogTextCompiler):
+    """Transcribes the image in the latest turn to text."""
+
+    context_class = ImageTranscriptionContext
 
     config = MessageCompilerConfig(
         task=ExpliqueTask.TRANSCRIBE_IMAGE,
@@ -23,11 +30,11 @@ class ImageTranscriptionCompiler(DialogCompiler):
     )
 
     @classmethod
-    def compile(cls, bot: Bot, state: Mapping[str, Any]) -> list[BaseMessage]:
-        context = cls.build_context(bot, state)
+    def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
+        return super().context_fields(bot, state) | {"original_parts": wrap_content(state["messages"][-1].content)}
+
+    @classmethod
+    def closing_turns(cls, bot: Bot, context: ImageTranscriptionContext) -> tuple[BaseMessage, ...]:
+        # The turn's own parts trail the rendered task: the model has to see the image itself.
         user_prompt = cls.render(bot, cls.config.user_template, context)
-        original_parts = wrap_content(state["messages"][-1].content)
-        return [
-            SystemMessage(content=cls.render(bot, cls.config.system_template, context)),
-            HumanMessage(content=[*wrap_content(user_prompt), *original_parts]),
-        ]
+        return (HumanMessage(content=[*wrap_content(user_prompt), *context.original_parts]),)

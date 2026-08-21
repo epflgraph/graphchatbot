@@ -147,7 +147,7 @@ class ExpliqueBot(Bot):
         """The course this tutor teaches, from the course directory's own
         `course_name.md`. A context value rather than a template include,
         because the quiz page needs it in Python too."""
-        return render_prompt(self.prompt_search_path, "course_name.md")
+        return render_prompt(self.prompt_search_path, "course-name.md")
 
     def prompt_context(self) -> dict:
         return super().prompt_context() | {"course_name": self.course_name, "languages": LANGUAGES}
@@ -159,7 +159,7 @@ class ExpliqueBot(Bot):
             make_search_tool(
                 index=self.index,
                 args_schema=self.tool_input_schema,
-                description=render_prompt(self.prompt_search_path, "tool_description.md", **self.prompt_context()),
+                description=render_prompt(self.prompt_search_path, "tool-description.md", **self.prompt_context()),
             )
         ]
 

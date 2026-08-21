@@ -23,7 +23,7 @@ Base your recap and feedback on <session_summary>, not on a re-reading of the la
 
 Keep the whole response concise. Do not re-explain any concept from scratch.
 
-{% include "general_considerations.md" +%}
+{% include "general-considerations.md" +%}
 
 {% include "response-language.md" +%}
 

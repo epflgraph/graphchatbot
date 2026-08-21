@@ -2,7 +2,8 @@ from typing import Any, Mapping
 
 from app.bots.base import Bot
 from app.bots.explique.transcript import last_tool_results
-from app.compilation.base import MessageCompiler, PromptContext, Task
+from app.compilation.base import Task
+from app.compilation.dialog import DialogTextCompiler, DialogTextContext
 
 
 class ExpliqueTask(Task):
@@ -19,15 +20,20 @@ class ExpliqueTask(Task):
     RESPOND = "respond"
 
 
-class ExpliqueCompiler(MessageCompiler):
-    """Base for every explique compiler."""
+class GroundedDialogContext(DialogTextContext):
+    """Context for a call that also needs this turn's retrieved material."""
 
-    @staticmethod
-    def dialog_history(bot: Bot, state: Mapping[str, Any]) -> str:
-        """The conversation so far as text, with this bot's transcript callbacks
-        applied; tool plumbing dropped, a rendered quiz reduced to the questions
-        it asked. Ready to embed straight into a prompt."""
-        return bot.dialog.messages_str(state["messages"])
+    sources: str
+
+
+class GroundedDialogCompiler(DialogTextCompiler):
+    """Compiler whose prompt quotes the conversation and the sources retrieved for it."""
+
+    context_class = GroundedDialogContext
+
+    @classmethod
+    def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
+        return super().context_fields(bot, state) | {"sources": cls.sources(state)}
 
     @staticmethod
     def sources(state: Mapping[str, Any]) -> str:
@@ -35,34 +41,3 @@ class ExpliqueCompiler(MessageCompiler):
         was none. Collected separately since tool messages skip the compiled
         dialog."""
         return last_tool_results(state["messages"])
-
-
-class DialogContext(PromptContext):
-    """Context for a call that only needs the conversation."""
-
-    dialog_history: str
-
-
-class GroundedDialogContext(DialogContext):
-    """Context for a call that also needs this turn's retrieved material."""
-
-    sources: str
-
-
-class DialogCompiler(ExpliqueCompiler):
-    """Compiler whose prompt embeds the stringified conversation."""
-
-    @classmethod
-    def build_context(cls, bot: Bot, state: Mapping[str, Any]) -> DialogContext:
-        return DialogContext(dialog_history=cls.dialog_history(bot, state))
-
-
-class GroundedDialogCompiler(ExpliqueCompiler):
-    """Compiler whose prompt embeds the conversation and the sources retrieved for it"""
-
-    @classmethod
-    def build_context(cls, bot: Bot, state: Mapping[str, Any]) -> GroundedDialogContext:
-        return GroundedDialogContext(
-            dialog_history=cls.dialog_history(bot, state),
-            sources=cls.sources(state),
-        )

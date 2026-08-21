@@ -1,14 +1,17 @@
-from app.bots.explique.compilers.base import ExpliqueTask
+from app.bots.compilers.base import BotTask
 from app.compilation.base import MessageCompilerConfig, ModelChoice
 from app.compilation.dialog import DialogTextCompiler
 
 
 class ClassifyCompiler(DialogTextCompiler):
-    """No `output_schema`: the classifier answers with one of the category
-    names it was given, so its schema is built per call from those names."""
+    """Classifies the conversation from the descriptions in the bot's own categories.
+
+    No `output_schema`: the answer is one of the category names, so its schema is
+    built per call from those names — see `app/bots/nodes/classify.py`.
+    """
 
     config = MessageCompilerConfig(
-        task=ExpliqueTask.CLASSIFY,
+        task=BotTask.CLASSIFY,
         model_choice=ModelChoice.LIGHT,
         system_template="classify-sys.md",
         user_template="classify-usr.md",

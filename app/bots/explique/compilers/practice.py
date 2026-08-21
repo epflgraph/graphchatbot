@@ -13,6 +13,8 @@ class PracticeContext(GroundedDialogContext):
 
 
 class PracticeCompiler(GroundedDialogCompiler):
+    context_class = PracticeContext
+
     config = MessageCompilerConfig(
         task=ExpliqueTask.PRACTICE,
         model_choice=ModelChoice.LIGHT,
@@ -22,9 +24,5 @@ class PracticeCompiler(GroundedDialogCompiler):
     )
 
     @classmethod
-    def build_context(cls, bot: Bot, state: Mapping[str, Any]) -> PracticeContext:
-        return PracticeContext(
-            dialog_history=cls.dialog_history(bot, state),
-            sources=cls.sources(state),
-            lang_code=state.get("lang_code"),
-        )
+    def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
+        return super().context_fields(bot, state) | {"lang_code": state.get("lang_code")}

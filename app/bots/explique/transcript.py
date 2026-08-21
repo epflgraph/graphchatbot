@@ -3,7 +3,7 @@ from typing import Iterator
 from langchain_core.messages import BaseMessage
 
 from app.bots.explique.quiz_page import Quiz
-from app.llms.utils import DialogView, flatten_content, stringify_messages
+from app.llms.utils import DialogView, flatten_content, flatten_message, stringify_messages
 
 
 def keep_dialog_roles(message: BaseMessage) -> BaseMessage | None:
@@ -12,8 +12,8 @@ def keep_dialog_roles(message: BaseMessage) -> BaseMessage | None:
     That includes ToolMessages, and one ai turn too: the message where the
     model decides to call a tool (`tool_calls` set) carries no real content,
     just the decision to retrieve. What gets retrieved still reaches the
-    prompt — just as the `<sources>` block `ExpliqueCompiler.sources()` builds,
-    never as a raw message in this history.
+    prompt — just as the `<sources>` block `GroundedDialogCompiler.sources()`
+    builds, never as a raw message in this history.
     """
     if message.type not in ("human", "ai") or getattr(message, "tool_calls", None):
         return None
@@ -39,13 +39,13 @@ def summarize_quiz(message: BaseMessage) -> BaseMessage:
 
 # The two views an explique prompt reads the conversation through, named beside
 # the callbacks they are built from so a caller declares one rather than
-# assembling it. Both summarize a rendered quiz the same way; they differ only
-# in whether ToolMessages survive. EXPLIQUE_DIALOG drops them via
-# `keep_dialog_roles`; EXPLIQUE_SOURCED_DIALOG keeps them, for the reply that
-# has to cite what was retrieved (see `ConversationView` in
-# `compilers/respond.py`).
-EXPLIQUE_DIALOG = DialogView((keep_dialog_roles, summarize_quiz))
-EXPLIQUE_SOURCED_DIALOG = DialogView((summarize_quiz,))
+# assembling it. Both summarize a rendered quiz and flatten multi-part content
+# the same way; they differ only in whether ToolMessages survive.
+# EXPLIQUE_DIALOG drops them via `keep_dialog_roles`; EXPLIQUE_SOURCED_DIALOG
+# keeps them, for the reply that has to cite what was retrieved (see
+# `dialog_view` in `compilers/respond.py`).
+EXPLIQUE_DIALOG = DialogView((keep_dialog_roles, summarize_quiz, flatten_message))
+EXPLIQUE_SOURCED_DIALOG = DialogView((summarize_quiz, flatten_message))
 
 
 def all_assistant_turns(dialog: DialogView, messages: list[BaseMessage]) -> tuple[str, ...]:
