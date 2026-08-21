@@ -5,8 +5,9 @@ Your task is to give the student a warm send-off based on <session_summary>.
 You will be provided with:
 - <instructions>: Rules for the response.
 - <session_summary>: An internal digest of this session — your source of truth for the recap and feedback. Never shown to the student; do not quote it or reveal that an assessment happened.
+- <sources>: The reference material retrieved this turn — where your citations must come from.
 - <formatting_guidelines>: How to format your reply and cite sources.
-- The conversation history, including any reference material retrieved this turn.
+- The conversation history.
 
 <instructions>
 Base your recap and feedback on <session_summary>, not on a re-reading of the last few turns.
@@ -55,6 +56,10 @@ To revisit:
 - (none)
 {% endfor %}
 </session_summary>
+
+<sources>
+{{ sources }}
+</sources>
 
 <formatting_guidelines>
 {% include "format.md" +%}

@@ -9,6 +9,7 @@ from langgraph.graph.state import CompiledStateGraph
 from app.bots.base import Bot
 from app.bots.explique.compilers.classify import ClassifyCompiler
 from app.bots.explique.compilers.detect_language import LanguageDetectorCompiler
+from app.bots.explique.compilers.respond import ResponseCompiler
 from app.bots.explique.compilers.retrieve import RetrieveCompiler
 from app.bots.explique.compilers.transcribe_image import ImageTranscriptionCompiler
 from app.bots.explique.models import MessageEvent, StudentIntent
@@ -21,7 +22,6 @@ from app.bots.explique.nodes.select_action import select_action_node
 from app.bots.explique.nodes.summarize import summarize_node
 from app.bots.explique.retrieval import ToolInput, make_search_tool
 from app.bots.explique.state import ExpliqueBotState
-from app.bots.explique.transcript import EXPLIQUE_DIALOG
 from app.bots.languages import LANGUAGES
 from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.detect_language import make_detect_language_node
@@ -73,9 +73,6 @@ class ExpliqueBot(Bot):
     # `evaluate_response` for a checked reply. Neither streams.
     model_nodes = (Node.RESPOND, Node.EVALUATE_RESPONSE)
 
-    # The conversation view prompts read: human/ai turns only, quiz markup summarized.
-    dialog = EXPLIQUE_DIALOG
-
     # A ceiling, not a quota: one round may do several searches, and a turn
     # needing no course material searches none.
     MAX_RETRIEVAL_ROUNDS = 1
@@ -85,7 +82,7 @@ class ExpliqueBot(Bot):
     INTENT_TOOL_CHOICES = {
         StudentIntent.CHIT_CHAT: {"tool_choice": None},
         StudentIntent.OFF_TOPIC: {"tool_choice": None},
-        StudentIntent.NEW_TOPIC: {"tool_choice": "any"},
+        StudentIntent.NEW_TOPIC: {"tool_choice": None},
         StudentIntent.SKIP_TOPIC: {"tool_choice": None},
         StudentIntent.IN_TOPIC_RESPONSE: {"tool_choice": "auto"},
         StudentIntent.REQUEST_PRACTICE: {"tool_choice": "any"},
@@ -181,12 +178,12 @@ class ExpliqueBot(Bot):
 
     @staticmethod
     def _route_after_classify(state: ExpliqueBotState) -> Node:
-        """Social and skip turns answer directly; substantive turns and the
-        end-of-session recap retrieve first (the recap needs sources to cite)."""
+        """A turn retrieves only if something downstream reads it."""
         direct_categories = (
             StudentIntent.CHIT_CHAT,
             StudentIntent.OFF_TOPIC,
             StudentIntent.SKIP_TOPIC,
+            StudentIntent.NEW_TOPIC,
         )
         if state["category"] in direct_categories:
             return Node.RESPOND
@@ -197,7 +194,6 @@ class ExpliqueBot(Bot):
         """Where a turn goes once its material is in hand:
 
         - end-session → summarize
-        - new-topic → respond, straight to the intro
         - request-practice → practice (see `nodes/practice.py` for how
           `practice_response` then reaches `respond`)
         - everything else → evaluate and plan_challenge, fanned out in
@@ -207,8 +203,6 @@ class ExpliqueBot(Bot):
         category = state["category"]
         if category == StudentIntent.END_SESSION:
             return Node.SUMMARIZE
-        if category == StudentIntent.NEW_TOPIC:
-            return Node.RESPOND
         if category == StudentIntent.REQUEST_PRACTICE:
             return Node.PRACTICE
         return (Node.EVALUATE, Node.PLAN_CHALLENGE)
@@ -225,10 +219,9 @@ class ExpliqueBot(Bot):
 
         transcribe_image ─┬─ (content unreadable) ────────────────────────────────────────► respond
                           ├─ detect_language (leaf; writes `lang_code`)
-                          └─ classify ─┬─ (chit-chat / off-topic / skip-topic) ─► respond
+                          └─ classify ─┬─ (chit-chat / off-topic / skip-topic / new-topic) ─► respond
                                        └─ retrieve ─┬─ (tool call) ────► tools ──────┐
-                                                    └─ (no tool call) ───────────────┴─► post_retrieve ─┬─ (new-topic) ──────────────► respond
-                                                                                                        ├─ (request-practice) ─► practice ─► respond
+                                                    └─ (no tool call) ───────────────┴─► post_retrieve ─┬─ (request-practice) ─► practice ─► respond
                                                                                                         ├─ (end-session) ─► summarize ─► respond
                                                                                                         └─ (in-topic-response) ─┬─ evaluate ────────┬─► select_action ─► respond
                                                                                                                                 └─ plan_challenge ──┘
@@ -291,7 +284,9 @@ class ExpliqueBot(Bot):
         workflow.add_node(Node.SELECT_ACTION, select_action_node)
         workflow.add_node(Node.SUMMARIZE, summarize_node)
         workflow.add_node(Node.RESPOND, make_respond_node(on_candidate_response=Node.EVALUATE_RESPONSE))
-        workflow.add_node(Node.EVALUATE_RESPONSE, make_evaluate_response_node(on_retry=Node.RESPOND))
+        workflow.add_node(
+            Node.EVALUATE_RESPONSE, make_evaluate_response_node(on_retry=Node.RESPOND, compiler=ResponseCompiler)
+        )
 
         workflow.set_entry_point(Node.TRANSCRIBE_IMAGE)
         workflow.add_conditional_edges(Node.TRANSCRIBE_IMAGE, self._route_after_transcribe_image)

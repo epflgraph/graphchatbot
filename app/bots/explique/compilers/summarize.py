@@ -1,10 +1,9 @@
-from app.bots.explique.compilers.base import ExpliqueTask
+from app.bots.explique.compilers.base import ExpliqueTask, ExpliqueTextCompiler
 from app.bots.explique.models import SessionSummary
 from app.compilation.base import MessageCompilerConfig, ModelChoice
-from app.compilation.dialog import DialogTextCompiler
 
 
-class SummarizeCompiler(DialogTextCompiler):
+class SummarizeCompiler(ExpliqueTextCompiler):
     """Reads the conversation only: the digest is a faithful account of what was
     said, so this call is deliberately not grounded in retrieved sources."""
 

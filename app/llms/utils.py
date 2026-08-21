@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from dataclasses import dataclass
 from typing import Callable
 
 from langchain_core.exceptions import OutputParserException
@@ -28,7 +27,7 @@ MessageContent = str | list[MessagePart]
 MessageCallback = Callable[[BaseMessage], BaseMessage | None]
 
 
-def compile_dialog(messages: list[BaseMessage], callbacks: tuple[MessageCallback, ...]) -> list[BaseMessage]:
+def apply_callbacks(messages: list[BaseMessage], callbacks: tuple[MessageCallback, ...]) -> list[BaseMessage]:
     """Run every turn through `callbacks`, in order, feeding each one's output
     to the next. A turn any callback drops is skipped by the rest of them.
     """
@@ -79,22 +78,6 @@ def has_image_part(content: MessageContent) -> bool:
     return isinstance(content, list) and any(
         isinstance(part, dict) and part.get("type") == "image_url" for part in content
     )
-
-
-@dataclass(frozen=True)
-class DialogView:
-    """How a bot sees a conversation: the callbacks it wrangles a transcript
-    with, and the two shapes a prompt needs that transcript in."""
-
-    callbacks: tuple[MessageCallback, ...] = ()
-
-    def messages(self, messages: list[BaseMessage]) -> list[BaseMessage]:
-        """The conversation with every callback applied, as messages."""
-        return compile_dialog(messages, self.callbacks)
-
-    def messages_str(self, messages: list[BaseMessage]) -> str:
-        """`messages`, stringified for embedding inside a prompt."""
-        return stringify_messages(self.messages(messages))
 
 
 # FUTURE: once message roles are standardized into a StrEnum, make this a

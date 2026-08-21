@@ -1,9 +1,10 @@
 from typing import Any, Mapping
 
 from app.bots.base import Bot
-from app.bots.explique.transcript import last_tool_results
-from app.compilation.base import Task
-from app.compilation.dialog import DialogTextCompiler, DialogTextContext
+from app.bots.explique.transcript import keep_dialog_roles, last_tool_results, summarize_quiz
+from app.compilation.base import MessageCompiler, Task
+from app.compilation.dialog import DialogTextCompiler, DialogTextContext, DialogTurnsCompiler
+from app.llms.utils import flatten_message
 
 
 class ExpliqueTask(Task):
@@ -38,6 +39,22 @@ class GroundedDialogCompiler(DialogTextCompiler):
     @staticmethod
     def sources(state: Mapping[str, Any]) -> str:
         """The reference material retrieved this turn, or a stand-in saying there
-        was none. Collected separately since tool messages skip the compiled
-        dialog."""
-        return last_tool_results(state["messages"])
+        was none. Read off the original messages, since a callback that drops
+        tool turns would take these with them."""
+        return last_tool_results(state["original_messages"])
+
+
+class ExpliqueCompiler(MessageCompiler):
+    message_callbacks = (keep_dialog_roles, summarize_quiz, flatten_message)
+
+
+class ExpliqueTextCompiler(ExpliqueCompiler, DialogTextCompiler):
+    """The conversation quoted into the prompt."""
+
+
+class ExpliqueTurnsCompiler(ExpliqueCompiler, DialogTurnsCompiler):
+    """The conversation trailing the prompt as real turns."""
+
+
+class ExpliqueGroundedCompiler(ExpliqueCompiler, GroundedDialogCompiler):
+    """The conversation that also includes retrieval results."""

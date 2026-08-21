@@ -3,7 +3,7 @@ from typing import Iterator
 from langchain_core.messages import BaseMessage
 
 from app.bots.explique.quiz_page import Quiz
-from app.llms.utils import DialogView, flatten_content, flatten_message, stringify_messages
+from app.llms.utils import flatten_content, stringify_messages
 
 
 def keep_dialog_roles(message: BaseMessage) -> BaseMessage | None:
@@ -37,25 +37,9 @@ def summarize_quiz(message: BaseMessage) -> BaseMessage:
     return message.model_copy(update={"content": questions.to_summary()})
 
 
-# The two views an explique prompt reads the conversation through, named beside
-# the callbacks they are built from so a caller declares one rather than
-# assembling it. Both summarize a rendered quiz and flatten multi-part content
-# the same way; they differ only in whether ToolMessages survive.
-# EXPLIQUE_DIALOG drops them via `keep_dialog_roles`; EXPLIQUE_SOURCED_DIALOG
-# keeps them, for the reply that has to cite what was retrieved (see
-# `dialog_view` in `compilers/respond.py`).
-EXPLIQUE_DIALOG = DialogView((keep_dialog_roles, summarize_quiz, flatten_message))
-EXPLIQUE_SOURCED_DIALOG = DialogView((summarize_quiz, flatten_message))
-
-
-def all_assistant_turns(dialog: DialogView, messages: list[BaseMessage]) -> tuple[str, ...]:
-    """Every assistant turn in the transcript, as plain text.
-
-    Read through `dialog` rather than off `messages`, so a rendered quiz counts as
-    the questions it asked instead of as ~25 KB of markup, and the empty ai turn
-    that only carries a tool call never counts as a reply at all.
-    """
-    return tuple(flatten_content(message.content) for message in dialog.messages(messages) if message.type == "ai")
+def all_assistant_turns(messages: list[BaseMessage]) -> tuple[str, ...]:
+    """Every assistant turn, as plain text."""
+    return tuple(flatten_content(message.content) for message in messages if message.type == "ai")
 
 
 def last_student_turn(messages: list[BaseMessage]) -> str:
@@ -67,10 +51,10 @@ def last_student_turn(messages: list[BaseMessage]) -> str:
     return ""
 
 
-def prior_turns(dialog: DialogView, messages: list[BaseMessage], count: int) -> str:
+def prior_turns(messages: list[BaseMessage], count: int) -> str:
     """The `count` turns before the latest one, stringified; empty at the start of
-    a session. Read through `dialog`, so a rendered quiz counts as the questions it asked."""
-    return stringify_messages(dialog.messages(messages)[-(count + 1) : -1])
+    a session."""
+    return stringify_messages(messages[-(count + 1) : -1])
 
 
 def _last_assistant_turns(messages: list[BaseMessage]) -> Iterator[BaseMessage]:

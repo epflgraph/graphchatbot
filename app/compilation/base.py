@@ -5,6 +5,7 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel, ConfigDict
 
 from app.compilation.templates import render_prompt
+from app.llms.utils import MessageCallback, apply_callbacks
 
 if TYPE_CHECKING:
     from app.bots.base import Bot
@@ -57,6 +58,10 @@ class MessageCompiler:
     # The context this call compiles from; whatever `context_fields` adds must be declared on it.
     context_class: ClassVar[type[PromptContext]] = PromptContext
 
+    # How this compiler transforms the conversation before reading it.
+    # Declared once per bot family, never per call.
+    message_callbacks: ClassVar[tuple[MessageCallback, ...]] = ()
+
     @classmethod
     def compile(cls, bot: "Bot", state: Mapping[str, Any]) -> list[BaseMessage]:
         """The messages for this call, from graph state."""
@@ -65,7 +70,15 @@ class MessageCompiler:
     @classmethod
     def build_context(cls, bot: "Bot", state: Mapping[str, Any]) -> PromptContext:
         """The typed context for this call, from graph state."""
-        return cls.context_class(**cls.context_fields(bot, state))
+        return cls.context_class(**cls.context_fields(bot, cls.apply_callbacks(state)))
+
+    @classmethod
+    def apply_callbacks(cls, state: Mapping[str, Any]) -> Mapping[str, Any]:
+        """Graph state as this call reads it: `messages` transformed, `original_messages` untouched."""
+        # A field like `sources` needs exactly what the callbacks may strip, so the
+        # original conversation stays reachable beside the transformed one.
+        messages = state["messages"]
+        return {**state, "messages": apply_callbacks(messages, cls.message_callbacks), "original_messages": messages}
 
     @classmethod
     def context_fields(cls, bot: "Bot", state: Mapping[str, Any]) -> dict[str, Any]:

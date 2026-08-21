@@ -2,14 +2,13 @@ import logging
 
 from langchain_core.messages import AIMessage
 from langgraph.graph import END
-from langgraph.runtime import Runtime
 from langgraph.types import Command
 
-from app.bots.base import Bot
 from app.bots.explique.models import RejectedResponse
 from app.bots.explique.response_evaluator import EvaluatorContext, ResolutionAction, ResponseEvaluator
 from app.bots.explique.state import ExpliqueBotState
 from app.bots.explique.transcript import all_assistant_turns
+from app.compilation.base import MessageCompiler
 from app.logging_config import truncate
 
 logger = logging.getLogger(__name__)
@@ -20,15 +19,19 @@ def _deliver(candidate_response: str) -> Command:
     return Command(goto=END, update={"messages": [AIMessage(content=candidate_response)]})
 
 
-def make_evaluate_response_node(on_retry: str):
-    """Checks this turn's candidate response and either delivers it or sends it back to `on_retry`."""
+def make_evaluate_response_node(on_retry: str, compiler: type[MessageCompiler]):
+    """Checks this turn's candidate response and either delivers it or sends it back to `on_retry`.
 
-    async def evaluate_response_node(state: ExpliqueBotState, runtime: Runtime[Bot]) -> Command:
-        bot = runtime.context
+    Reads the conversation through `compiler`, so the evaluator judges repetition
+    against the same turns the responder was given.
+    """
+
+    async def evaluate_response_node(state: ExpliqueBotState) -> Command:
         candidate_response = state["candidate_response"]
-        rejected_responses = state.get("rejected_responses") or ()
+        rejected_responses = state.get("rejected_responses", ())
 
-        context = EvaluatorContext(prior_turns=all_assistant_turns(bot.dialog, state["messages"]))
+        dialog = compiler.apply_callbacks(state)["messages"]
+        context = EvaluatorContext(prior_turns=all_assistant_turns(dialog))
         evaluation = ResponseEvaluator.evaluate(candidate_response, context)
 
         if evaluation.is_clean:

@@ -10,7 +10,6 @@ from langgraph.graph.state import CompiledStateGraph
 
 from app.compilation.base import ModelChoice
 from app.config import config
-from app.llms.utils import DialogView
 
 BOTS_ROOT = Path(__file__).parent
 
@@ -46,7 +45,6 @@ class Bot(ABC):
     and may override:
         model / light_model / vision_model — the streaming, deterministic, and vision clients
         model_nodes         — which nodes' tokens reach the user
-        dialog              — how a transcript is compiled before it reaches a prompt
         prompt_context()    — values every one of its prompts can use
 
     Intermediate classes that exist to share behaviour rather than to be served
@@ -79,10 +77,6 @@ class Bot(ABC):
     vision_model: ChatOpenAI | None = None
 
     model_nodes: tuple[str, ...] = ("model",)
-
-    # How this bot wrangles a conversation before it reaches a prompt. The
-    # default view has no callbacks, so a transcript compiles verbatim.
-    dialog: DialogView = DialogView()
 
     @cached_property
     def prompt_directories(self) -> tuple[Path, ...]:

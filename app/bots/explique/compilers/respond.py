@@ -5,7 +5,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from pydantic import BaseModel, ConfigDict
 
 from app.bots.base import Bot
-from app.bots.explique.compilers.base import ExpliqueTask
+from app.bots.explique.compilers.base import ExpliqueTask, ExpliqueTurnsCompiler
 from app.bots.explique.models import (
     MessageEvent,
     Persistence,
@@ -14,10 +14,10 @@ from app.bots.explique.models import (
     StudentIntent,
     StudentState,
 )
-from app.bots.explique.transcript import EXPLIQUE_DIALOG, EXPLIQUE_SOURCED_DIALOG
+from app.bots.explique.transcript import last_tool_results
 from app.bots.explique.tutor_action import TutorAction
 from app.compilation.base import MessageCompilerConfig, ModelChoice
-from app.compilation.dialog import DialogTurnsCompiler, DialogTurnsContext
+from app.compilation.dialog import DialogTurnsContext
 
 # Tutor actions that get the plan's `direction` field.
 _DIRECTION_ACTIONS = (TutorAction.CHALLENGE_MASTERY,)
@@ -34,6 +34,7 @@ class ResponseContext(DialogTurnsContext):
 
 class SummaryResponseContext(ResponseContext):
     session_summary: SessionSummary
+    sources: str
 
 
 class PlanDirective(BaseModel):
@@ -61,13 +62,9 @@ def response_config(**declared) -> MessageCompilerConfig:
     return MessageCompilerConfig(task=ExpliqueTask.RESPOND, model_choice=ModelChoice.MAIN, **declared)
 
 
-class ResponseCompiler(DialogTurnsCompiler):
+class ResponseCompiler(ExpliqueTurnsCompiler):
     """Base for the responders: a system prompt, then the conversation, then
     whatever applies only to this turn."""
-
-    # The reply is the one call that cites what was retrieved, so the default
-    # view keeps the tool results; a responder that must not see them says so.
-    dialog_view = EXPLIQUE_SOURCED_DIALOG
 
     context_class = ResponseContext
 
@@ -134,9 +131,7 @@ class NewTopicResponseCompiler(ResponseCompiler):
 
 
 class EndSessionResponseCompiler(ResponseCompiler):
-    """The closing recap. Keeps the retrieved material because this is the one
-    reply that cites sources, and it is built from the session digest rather than
-    from a re-reading of the last few turns."""
+    """The closing recap. The reply that both carries and cites sources."""
 
     config = response_config(overrides=(StudentIntent.END_SESSION,), system_template="intent-end.md")
     context_class = SummaryResponseContext
@@ -144,7 +139,8 @@ class EndSessionResponseCompiler(ResponseCompiler):
     @classmethod
     def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
         return super().context_fields(bot, state) | {
-            "session_summary": state.get("session_summary") or SessionSummary()
+            "session_summary": state["session_summary"],
+            "sources": last_tool_results(state["original_messages"]),
         }
 
 
@@ -159,7 +155,6 @@ class PracticeUnavailableResponseCompiler(ResponseCompiler):
         overrides=(StudentIntent.REQUEST_PRACTICE,),
         system_template="intent-practice-unavailable.md",
     )
-    dialog_view = EXPLIQUE_DIALOG
 
 
 class TutoringResponseCompiler(ResponseCompiler):
@@ -175,7 +170,6 @@ class TutoringResponseCompiler(ResponseCompiler):
         system_template="intent-in-topic.md",
         user_template="intent-in-topic-turn.md",
     )
-    dialog_view = EXPLIQUE_DIALOG
     context_class = TutoringResponseContext
 
     @classmethod

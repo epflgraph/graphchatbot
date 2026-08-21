@@ -1,7 +1,7 @@
 from typing import Any, Mapping
 
 from app.bots.base import Bot
-from app.bots.explique.compilers.base import ExpliqueTask, GroundedDialogCompiler, GroundedDialogContext
+from app.bots.explique.compilers.base import ExpliqueGroundedCompiler, ExpliqueTask, GroundedDialogContext
 from app.bots.explique.models import PracticeMaterial
 from app.compilation.base import MessageCompilerConfig, ModelChoice
 
@@ -12,7 +12,7 @@ class PracticeContext(GroundedDialogContext):
     lang_code: str | None
 
 
-class PracticeCompiler(GroundedDialogCompiler):
+class PracticeCompiler(ExpliqueGroundedCompiler):
     context_class = PracticeContext
 
     config = MessageCompilerConfig(

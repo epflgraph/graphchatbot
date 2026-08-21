@@ -3,17 +3,17 @@ from typing import Any, Mapping
 from langchain_core.messages import BaseMessage
 
 from app.bots.base import Bot
-from app.bots.explique.compilers.base import ExpliqueTask
+from app.bots.explique.compilers.base import ExpliqueTask, ExpliqueTextCompiler
 from app.bots.explique.transcript import last_tool_messages
 from app.compilation.base import MessageCompilerConfig, ModelChoice
-from app.compilation.dialog import DialogTextCompiler, DialogTextContext
+from app.compilation.dialog import DialogTextContext
 
 
 class RetrieveContext(DialogTextContext):
     prior_retrieval: tuple[BaseMessage, ...]
 
 
-class RetrieveCompiler(DialogTextCompiler):
+class RetrieveCompiler(ExpliqueTextCompiler):
     """No `output_schema`: this call answers with a `search_course_material`
     tool call, or with nothing at all when the dialog already holds what the
     tutor needs. The tools it may call are bound by the node, which owns them.
@@ -32,7 +32,7 @@ class RetrieveCompiler(DialogTextCompiler):
 
     @classmethod
     def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
-        return super().context_fields(bot, state) | {"prior_retrieval": last_tool_messages(state["messages"])}
+        return super().context_fields(bot, state) | {"prior_retrieval": last_tool_messages(state["original_messages"])}
 
     @classmethod
     def embedded_turns(cls, bot: Bot, context: RetrieveContext) -> tuple[BaseMessage, ...]:

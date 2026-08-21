@@ -3,10 +3,10 @@ from typing import Any, Mapping
 from langchain_core.messages import BaseMessage, HumanMessage
 
 from app.bots.base import Bot
-from app.bots.explique.compilers.base import ExpliqueTask
+from app.bots.explique.compilers.base import ExpliqueTask, ExpliqueTextCompiler
 from app.bots.nodes.transcribe_image import ImageTranscription
 from app.compilation.base import MessageCompilerConfig, ModelChoice
-from app.compilation.dialog import DialogTextCompiler, DialogTextContext
+from app.compilation.dialog import DialogTextContext
 from app.llms.utils import wrap_content
 
 
@@ -16,7 +16,7 @@ class ImageTranscriptionContext(DialogTextContext):
     original_parts: tuple[dict, ...]
 
 
-class ImageTranscriptionCompiler(DialogTextCompiler):
+class ImageTranscriptionCompiler(ExpliqueTextCompiler):
     """Transcribes the image in the latest turn to text."""
 
     context_class = ImageTranscriptionContext
@@ -31,7 +31,9 @@ class ImageTranscriptionCompiler(DialogTextCompiler):
 
     @classmethod
     def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
-        return super().context_fields(bot, state) | {"original_parts": wrap_content(state["messages"][-1].content)}
+        return super().context_fields(bot, state) | {
+            "original_parts": wrap_content(state["original_messages"][-1].content)
+        }
 
     @classmethod
     def closing_turns(cls, bot: Bot, context: ImageTranscriptionContext) -> tuple[BaseMessage, ...]:
