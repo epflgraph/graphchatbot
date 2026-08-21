@@ -3,8 +3,7 @@ import logging
 from langgraph.runtime import Runtime
 
 from app.bots.base import Bot, StateUpdate
-from app.bots.explique.compilers import COMPILERS
-from app.bots.explique.compilers.base import ExpliqueTask
+from app.bots.explique.compilers.evaluate import EvaluateCompiler
 from app.bots.explique.models import StudentState
 from app.bots.explique.state import ExpliqueBotState
 from app.compilation.invoke import structured_call
@@ -19,7 +18,7 @@ async def evaluate_node(state: ExpliqueBotState, runtime: Runtime[Bot]) -> State
     """
     student_state = await structured_call(
         bot=runtime.context,
-        compiler=COMPILERS.get(ExpliqueTask.EVALUATE),
+        compiler=EvaluateCompiler,
         state=state,
         fallback=StudentState(),
     )

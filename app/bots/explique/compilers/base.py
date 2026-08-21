@@ -6,7 +6,7 @@ from app.compilation.base import MessageCompiler, PromptContext, Task
 
 
 class ExpliqueTask(Task):
-    """The tutor's tasks — the compiler registry's primary key."""
+    """The tutor's tasks, each one with its own compiler."""
 
     TRANSCRIBE_IMAGE = "transcribe-image"
     DETECT_LANGUAGE = "detect-language"

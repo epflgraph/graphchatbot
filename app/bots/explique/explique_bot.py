@@ -7,8 +7,10 @@ from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from app.bots.base import Bot
-from app.bots.explique.compilers import COMPILERS
-from app.bots.explique.compilers.base import ExpliqueTask
+from app.bots.explique.compilers.classify import ClassifyCompiler
+from app.bots.explique.compilers.detect_language import LanguageDetectorCompiler
+from app.bots.explique.compilers.retrieve import RetrieveCompiler
+from app.bots.explique.compilers.transcribe_image import ImageTranscriptionCompiler
 from app.bots.explique.models import MessageEvent, StudentIntent
 from app.bots.explique.nodes.evaluate import evaluate_node
 from app.bots.explique.nodes.evaluate_response import make_evaluate_response_node
@@ -253,27 +255,27 @@ class ExpliqueBot(Bot):
         workflow.add_node(
             Node.TRANSCRIBE_IMAGE,
             make_image_transcriber_node(
-                COMPILERS.get(ExpliqueTask.TRANSCRIBE_IMAGE),
+                ImageTranscriptionCompiler,
                 on_unreadable=MessageEvent.CONTENT_UNREADABLE,
             ),
         )
         workflow.add_node(
             Node.DETECT_LANGUAGE,
-            make_detect_language_node(COMPILERS.get(ExpliqueTask.DETECT_LANGUAGE)),
+            make_detect_language_node(LanguageDetectorCompiler),
         )
         workflow.add_node(
             Node.CLASSIFY,
             make_classify_node(
                 self.INTENT_TOOL_CHOICES,
                 fallback=StudentIntent.CHIT_CHAT,
-                compiler=COMPILERS.get(ExpliqueTask.CLASSIFY),
+                compiler=ClassifyCompiler,
             ),
         )
         workflow.add_node(
             Node.RETRIEVE,
             make_model_node(
                 tools,
-                compiler=COMPILERS.get(ExpliqueTask.RETRIEVE),
+                compiler=RetrieveCompiler,
                 on_text=Node.POST_RETRIEVE,
                 on_tools=Node.TOOLS,
                 max_tool_rounds=self.MAX_RETRIEVAL_ROUNDS,

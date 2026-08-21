@@ -3,8 +3,7 @@ import logging
 from langgraph.runtime import Runtime
 
 from app.bots.base import Bot, StateUpdate
-from app.bots.explique.compilers import COMPILERS
-from app.bots.explique.compilers.base import ExpliqueTask
+from app.bots.explique.compilers.summarize import SummarizeCompiler
 from app.bots.explique.models import SessionSummary
 from app.bots.explique.state import ExpliqueBotState
 from app.compilation.invoke import structured_call
@@ -18,7 +17,7 @@ async def summarize_node(state: ExpliqueBotState, runtime: Runtime[Bot]) -> Stat
 
     summary = await structured_call(
         bot=runtime.context,
-        compiler=COMPILERS.get(ExpliqueTask.SUMMARIZE),
+        compiler=SummarizeCompiler,
         state=state,
         fallback=SessionSummary(),
     )

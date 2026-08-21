@@ -3,8 +3,7 @@ import logging
 from langgraph.runtime import Runtime
 
 from app.bots.base import Bot, StateUpdate
-from app.bots.explique.compilers import COMPILERS
-from app.bots.explique.compilers.base import ExpliqueTask
+from app.bots.explique.compilers.practice import PracticeCompiler
 from app.bots.explique.models import PracticeMaterial, QuizConfig, QuizQuestions
 from app.bots.explique.quiz_page import Quiz
 from app.bots.explique.state import ExpliqueBotState
@@ -19,7 +18,7 @@ async def practice_node(state: ExpliqueBotState, runtime: Runtime[Bot]) -> State
     bot = runtime.context
     material = await structured_call(
         bot=bot,
-        compiler=COMPILERS.get(ExpliqueTask.PRACTICE),
+        compiler=PracticeCompiler,
         state=state,
         fallback=PracticeMaterial(),
     )

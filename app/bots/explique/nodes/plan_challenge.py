@@ -3,8 +3,7 @@ import logging
 from langgraph.runtime import Runtime
 
 from app.bots.base import Bot, StateUpdate
-from app.bots.explique.compilers import COMPILERS
-from app.bots.explique.compilers.base import ExpliqueTask
+from app.bots.explique.compilers.plan_challenge import PlanChallengeCompiler
 from app.bots.explique.models import ChallengePlan
 from app.bots.explique.state import ExpliqueBotState
 from app.compilation.invoke import structured_call
@@ -16,7 +15,7 @@ async def plan_challenge_node(state: ExpliqueBotState, runtime: Runtime[Bot]) ->
     """Plan the next teaching move from the transcript so far."""
     plan = await structured_call(
         bot=runtime.context,
-        compiler=COMPILERS.get(ExpliqueTask.PLAN_CHALLENGE),
+        compiler=PlanChallengeCompiler,
         state=state,
         fallback=ChallengePlan(),
     )

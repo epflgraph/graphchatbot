@@ -231,3 +231,36 @@ class TutoringResponseCompiler(ResponseCompiler):
             points_tested=points_tested,
             switch_representation=switch_representation,
         )
+
+
+# Which compiler answers each category, from the `overrides` each one declares.
+_COMPILER_BY_CATEGORY = {
+    category: compiler
+    for compiler in (
+        SocialResponseCompiler,
+        SkipResponseCompiler,
+        ContentUnreadableResponseCompiler,
+        NewTopicResponseCompiler,
+        EndSessionResponseCompiler,
+        PracticeUnavailableResponseCompiler,
+        TutoringResponseCompiler,
+    )
+    for category in compiler.config.overrides
+}
+
+
+class UnassignedCategoryError(KeyError):
+    """No compiler is assigned to this category."""
+
+    def __init__(self, category: StrEnum):
+        known = [str(cat) for cat in _COMPILER_BY_CATEGORY]
+        super().__init__(f"No compiler for category {category!s}. Assigned categories: {known!r}")
+
+
+def compiler_for(category: StrEnum) -> type[ResponseCompiler]:
+    """Get the compiler for a given category."""
+
+    compiler = _COMPILER_BY_CATEGORY.get(category)
+    if compiler is None:
+        raise UnassignedCategoryError(category)
+    return compiler
