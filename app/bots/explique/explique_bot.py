@@ -92,7 +92,6 @@ class ExpliqueBot(Bot):
     _TEXT_MODEL_ID = "Qwen/Qwen3.6-35B-A3B-fp8"
     _VISION_MODEL_ID = "Qwen/Qwen3.5-397B-A17B-int4"
 
-    _RCP_CLIENT = {"base_url": config.rcp.base_url, "api_key": config.rcp.api_key}
     _DETERMINISTIC_KWARGS = {
         "temperature": 0.0,
         "top_p": 1.0,
@@ -106,7 +105,8 @@ class ExpliqueBot(Bot):
     }
 
     model = ChatOpenAI(
-        **_RCP_CLIENT,
+        base_url=config.rcp.base_url,
+        api_key=config.rcp.api_key,
         model=_TEXT_MODEL_ID,
         timeout=30,
         stream_usage=True,
@@ -122,7 +122,8 @@ class ExpliqueBot(Bot):
     )
 
     light_model = ChatOpenAI(
-        **_RCP_CLIENT,
+        base_url=config.rcp.base_url,
+        api_key=config.rcp.api_key,
         model=_TEXT_MODEL_ID,
         timeout=30,
         stream_usage=False,
@@ -130,7 +131,8 @@ class ExpliqueBot(Bot):
     )
 
     vision_model = ChatOpenAI(
-        **_RCP_CLIENT,
+        base_url=config.rcp.base_url,
+        api_key=config.rcp.api_key,
         model=_VISION_MODEL_ID,
         timeout=60,
         stream_usage=False,
