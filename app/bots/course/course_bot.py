@@ -79,7 +79,7 @@ class CourseBot(Bot):
     @cached_property
     def course_name(self) -> str:
         """The course this bot tutors, from the course directory's own
-        `course_name.md`. A context value rather than a template include,
+        `course-name.md`. A context value rather than a template include,
         because the prompts name the course mid-sentence."""
         return render_prompt(self.prompt_search_path, "course-name.md")
 

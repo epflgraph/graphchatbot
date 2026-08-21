@@ -145,7 +145,7 @@ class ExpliqueBot(Bot):
     @cached_property
     def course_name(self) -> str:
         """The course this tutor teaches, from the course directory's own
-        `course_name.md`. A context value rather than a template include,
+        `course-name.md`. A context value rather than a template include,
         because the quiz page needs it in Python too."""
         return render_prompt(self.prompt_search_path, "course-name.md")
 
