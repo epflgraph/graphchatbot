@@ -55,7 +55,7 @@ def make_evaluate_response_node(on_retry: str, compiler: type[MessageCompiler]):
                 },
             )
 
-        resolution = ResponseEvaluator.RESOLUTIONS_MAP[tag]
+        resolution = ResponseEvaluator.get_resolution_action(tag)
         if resolution is not ResolutionAction.DELIVER:
             # TODO: handle non-DELIVER resolutions (e.g. SUPPRESS) once one exists.
             raise NotImplementedError(f"No handling for resolution {resolution!s} of tag {tag!s}.")

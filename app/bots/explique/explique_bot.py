@@ -62,9 +62,13 @@ class ExpliqueBot(Bot):
 
     Subclasses must define:
         - name: str
-        - index: str
+        - index: str | None
         - groups: list[str]
     """
+
+    # The course material to search, or None for a course with none. Declared
+    # without a default, so omitting it is still an error rather than an opt-out.
+    index: str | None
 
     # The search tool's argument schema; override to narrow or extend `ToolInput`'s filters.
     tool_input_schema = ToolInput
@@ -154,6 +158,10 @@ class ExpliqueBot(Bot):
     # --- RAG ----------------------------------------
 
     def build_tools(self) -> list[BaseTool]:
+        """The search tool, or none at all for a course with no index."""
+        if self.index is None:
+            return []
+
         return [
             make_search_tool(
                 index=self.index,

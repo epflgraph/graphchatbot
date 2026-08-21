@@ -51,6 +51,14 @@ class ResponseEvaluator:
         return tags[0]
 
     @staticmethod
+    def get_resolution_action(tag: EvaluationTag) -> ResolutionAction:
+        resolution = ResponseEvaluator.RESOLUTIONS_MAP.get(tag)
+        if resolution is None:
+            logger.warning("No resolution set for %s; falling back to delivering it", tag)
+            return ResolutionAction.DELIVER
+        return resolution
+
+    @staticmethod
     def _normalize(text: str) -> str:
         """Casefolded, with runs of whitespace collapsed, so a repeat differing
         only in spacing or capitalization still counts as one."""
