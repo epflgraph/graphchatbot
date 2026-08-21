@@ -82,7 +82,7 @@ async def agenerate_completion(chat_request: CompletionCreateParams, bot: Bot) -
 
     except asyncio.CancelledError:
         logger.warning("Client disconnected, stream cancelled")
-    except Exception as e:
-        logger.error(f"Streaming failed for bot `{bot.name}`, model `{chat_request['model']}`: {type(e).__name__}: {e}")
+    except Exception:
+        logger.exception("Streaming failed for bot %r, model %r", bot.name, chat_request["model"])
     finally:
         yield "data: [DONE]\n\n"

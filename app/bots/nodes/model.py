@@ -8,7 +8,9 @@ from langgraph.types import Command
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.bots.base import Bot, BotState
+from app.bots.languages import no_answer
 from app.compilation.base import MessageCompiler
+from app.llms.utils import flatten_content, generate_response
 
 logger = logging.getLogger(__name__)
 
@@ -59,11 +61,21 @@ class ModelNode:
             tool_choice,
         )
         messages = self._config.compiler.compile(bot, state)
-        response = await self._resolve_model(bot, tool_choice).ainvoke(messages)
+        response = await generate_response(self._resolve_model(bot, tool_choice), messages)
+        call_failed = response is None
 
-        if not response.tool_calls:
-            return self._answered(response)
-        return self._searched(response, tool_rounds_made, config)
+        if not call_failed and response.tool_calls:
+            return self._searched(response, tool_rounds_made, config)
+
+        # Past the tool branch, so whatever came back was meant to be text.
+        answered_with_nothing = not call_failed and not flatten_content(response.content).strip()
+
+        # A failed call and a blank reply leave the student in the same place.
+        if call_failed or (answered_with_nothing and self._config.text_is_reply):
+            logger.warning("Model call produced nothing; falling back to NO_ANSWER")
+            response = AIMessage(content=no_answer(state.get("lang_code")))
+
+        return self._answered(response)
 
     def _resolve_model(self, bot: Bot, tool_choice: str | None) -> Runnable:
         """The model the compiler chose, with the tools bound to it."""

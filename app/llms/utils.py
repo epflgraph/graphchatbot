@@ -4,14 +4,16 @@ from typing import Callable
 
 from langchain_core.exceptions import OutputParserException
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.runnables import Runnable
 from openai import AuthenticationError, PermissionDeniedError
 from pydantic import BaseModel, ValidationError
 
 logger = logging.getLogger(__name__)
 
-# Bound for a call whose model declares no usable `request_timeout`.
-DEFAULT_TIMEOUT = 60.0
+# Our own bound on a call, for where the model's `request_timeout` won't do:
+# when it is missing, and when the answer is prose, which takes longer.
+REQUEST_TIMEOUT = 120.0
 
 # One element of multipart message content: a bare string, or an OpenAI-style
 # `{"type": ..., ...}` part dict (text, image_url, ...).
@@ -124,16 +126,36 @@ def wall_clock_timeout(model: BaseChatModel) -> float:
     """The seconds a call on `model` is bounded to, from its own `request_timeout`.
 
     That attribute is `float | tuple | httpx.Timeout | None`, and anything but a
-    plain number falls back to the default: the point of this bound is that it
-    always exists. A slow trickle of bytes resets httpx's read timeout without
+    plain number falls back to `REQUEST_TIMEOUT`: the point of this bound is that
+    it always exists. A slow trickle of bytes resets httpx's read timeout without
     ever completing the call, so only a wall-clock cutoff bounds a stuck one.
     """
     timeout = getattr(model, "request_timeout", None)
     if isinstance(timeout, (int, float)):
         return float(timeout)
 
-    logger.warning("Model has a non-numeric request_timeout (%r); bounding the call at %ss", timeout, DEFAULT_TIMEOUT)
-    return DEFAULT_TIMEOUT
+    logger.warning("Model has a non-numeric request_timeout (%r); bounding the call at %ss", timeout, REQUEST_TIMEOUT)
+    return REQUEST_TIMEOUT
+
+
+async def generate_response(runnable: Runnable, messages: list[BaseMessage]) -> AIMessage | None:
+    """Run a call with no output schema on already-compiled messages, returning
+    `None` if it fails for any reason — `generate_structured_response`'s sibling
+    for the calls whose answer is prose rather than a schema.
+
+    Takes an already-bound runnable, since what a caller binds differs per call,
+    and gives back the whole message rather than its text: this is the call that
+    may answer with tool calls instead of a reply.
+    """
+    try:
+        return await asyncio.wait_for(runnable.ainvoke(input=messages), timeout=REQUEST_TIMEOUT)
+    except asyncio.TimeoutError:
+        logger.warning("Response timed out")
+    except (AuthenticationError, PermissionDeniedError):
+        logger.critical("Response call failed with invalid credentials or access")
+    except Exception:
+        logger.exception("Response call raised an exception")
+    return None
 
 
 async def generate_structured_response(
