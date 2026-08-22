@@ -28,10 +28,11 @@ class ModelNodeConfig(BaseModel):
     on_text: str = END
     text_is_reply: bool = True
 
-    # The tool branch: where a search goes, and how far the loop may run. None
-    # leaves it unbounded; the model may keep searching for as long as it asks to.
+    # The tool branch: where a search goes, and how many rounds it may take.
+    # The cap always exists — unbounded, the loop runs until LangGraph aborts
+    # the turn, which reaches the user as an empty reply.
     on_tools: str = "tools"
-    max_tool_rounds: int | None = Field(default=None, ge=1)
+    max_tool_rounds: int = Field(default=3, ge=1)
 
 
 class ModelNode:
@@ -61,7 +62,7 @@ class ModelNode:
             tool_choice,
         )
         messages = self._config.compiler.compile(bot, state)
-        response = await generate_response(self._resolve_model(bot, tool_choice), messages)
+        response = await generate_response(self._resolve_model(bot, tool_choice, tool_rounds_made), messages)
         call_failed = response is None
 
         if not call_failed and response.tool_calls:
@@ -77,11 +78,16 @@ class ModelNode:
 
         return self._answered(response)
 
-    def _resolve_model(self, bot: Bot, tool_choice: str | None) -> Runnable:
+    def _resolve_model(self, bot: Bot, tool_choice: str | None, tool_rounds_made: int) -> Runnable:
         """The model the compiler chose, with the tools bound to it."""
         model = bot.model_for(self._config.compiler.config.model_choice)
         if not self._tools:
             return model
+        # Past the budget the tools stay bound but forbidden. Omitting them would
+        # instead leave a model that has searched multiple times still emitting
+        # tool-call syntax, which parses to an empty reply.
+        if tool_rounds_made >= self._config.max_tool_rounds:
+            tool_choice = "none"
         return model.bind_tools(self._tools, tool_choice=tool_choice, parallel_tool_calls=True)
 
     def _answered(self, response: AIMessage) -> Command:
@@ -93,10 +99,10 @@ class ModelNode:
         """The model asked for one or more tool calls, so `tools` runs them and comes back here."""
         tool_round = tool_rounds_made + 1
 
-        # On the last round this node is allowed, `tools` carries on to `on_text`
-        # instead of coming back for another search it can no longer make.
-        max_tool_rounds = self._config.max_tool_rounds
-        tool_rounds_exhausted = max_tool_rounds is not None and tool_round >= max_tool_rounds
+        # Out of rounds, a decision node is done and hands over to `on_text`.
+        # A reply node comes back here instead — with its tools forbidden, so it answers.
+        tool_rounds_exhausted = tool_round >= self._config.max_tool_rounds
+        handover = tool_rounds_exhausted and not self._config.text_is_reply
 
         # Read rather than configured, so this can't drift from the name the
         # graph registered the node under.
@@ -107,7 +113,7 @@ class ModelNode:
             update={
                 "messages": [response],
                 "tool_round": tool_round,
-                "active_node": self._config.on_text if tool_rounds_exhausted else this_node,
+                "active_node": self._config.on_text if handover else this_node,
             },
         )
 
