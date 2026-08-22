@@ -1,0 +1,16 @@
+from app.bots.explique.train.compilers.base import ExpliqueTask, ExpliqueTextCompiler
+from app.bots.explique.train.models import SessionSummary
+from app.compilation.base import MessageCompilerConfig, ModelChoice
+
+
+class SummarizeCompiler(ExpliqueTextCompiler):
+    """Reads the conversation only: the digest is a faithful account of what was
+    said, so this call is deliberately not grounded in retrieved sources."""
+
+    config = MessageCompilerConfig(
+        task=ExpliqueTask.SUMMARIZE,
+        model_choice=ModelChoice.LIGHT,
+        system_template="summarize-sys.md",
+        user_template="summarize-usr.md",
+        output_schema=SessionSummary,
+    )
