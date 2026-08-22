@@ -8,16 +8,19 @@ from langgraph.types import Command
 logger = logging.getLogger(__name__)
 
 
-# Logged and reported to the model as the result of a tool call that raised.
-# A statement of fact and not an instruction: how to answer with missing material
-# is a pedagogical decision, handled by each bot family's prompt suite.
+# What a tool call that raised gets logged as, and what it reports to the model.
+# The instruction is mechanical: left to itself the model retries a dead tool
+# until the round budget runs out, and then answers nothing.
+# FUTURE: the presentational half — telling the user the answer is not based on
+# retrieved material — belongs with the prompt instructions rather than here.
 TOOL_FAILURE = "The tool call failed and returned no result."
+TOOL_FAILURE_INSTRUCTION = f"{TOOL_FAILURE} Do not retry it; answer with what you already have."
 
 
 def tool_failed(error: Exception) -> str:
     """What the model is handed instead of a tool result that raised."""
     logger.error(TOOL_FAILURE, exc_info=error)
-    return TOOL_FAILURE
+    return TOOL_FAILURE_INSTRUCTION
 
 
 def make_tools_node(tools: list):
