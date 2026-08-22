@@ -8,6 +8,18 @@ from langgraph.types import Command
 logger = logging.getLogger(__name__)
 
 
+# Logged and reported to the model as the result of a tool call that raised.
+# A statement of fact and not an instruction: how to answer with missing material
+# is a pedagogical decision, handled by each bot family's prompt suite.
+TOOL_FAILURE = "The tool call failed and returned no result."
+
+
+def tool_failed(error: Exception) -> str:
+    """What the model is handed instead of a tool result that raised."""
+    logger.error(TOOL_FAILURE, exc_info=error)
+    return TOOL_FAILURE
+
+
 def make_tools_node(tools: list):
     """
     Returns a node that executes all tool calls in the last message.
@@ -17,7 +29,7 @@ def make_tools_node(tools: list):
     """
 
     tool_names = {t.name for t in tools}
-    _tool_node = ToolNode(tools)
+    _tool_node = ToolNode(tools, handle_tool_errors=tool_failed)
 
     async def tools_node(state, runtime: Runtime) -> Command:
         tool_calls = state["messages"][-1].tool_calls
