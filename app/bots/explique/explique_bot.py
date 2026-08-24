@@ -113,6 +113,7 @@ class ExpliqueBot(Bot):
         api_key=config.rcp.api_key,
         model=_TEXT_MODEL_ID,
         timeout=30,
+        max_retries=1,
         stream_usage=True,
         temperature=0.8,
         top_p=0.9,
@@ -130,6 +131,7 @@ class ExpliqueBot(Bot):
         api_key=config.rcp.api_key,
         model=_TEXT_MODEL_ID,
         timeout=30,
+        max_retries=1,
         stream_usage=False,
         **_DETERMINISTIC_KWARGS,
     )
@@ -139,6 +141,7 @@ class ExpliqueBot(Bot):
         api_key=config.rcp.api_key,
         model=_VISION_MODEL_ID,
         timeout=60,
+        max_retries=1,
         stream_usage=False,
         **_DETERMINISTIC_KWARGS,
     )

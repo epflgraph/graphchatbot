@@ -11,8 +11,7 @@ from pydantic import BaseModel, ValidationError
 
 logger = logging.getLogger(__name__)
 
-# Our own bound on a call, for where the model's `request_timeout` won't do:
-# when it is missing, and when the answer is prose, which takes longer.
+# What a call is bounded by when the client declares no usable `request_timeout`.
 REQUEST_TIMEOUT = 120.0
 
 # One element of multipart message content: a bare string, or an OpenAI-style
@@ -122,7 +121,7 @@ def drop_system_messages(messages: list[BaseMessage]) -> list[BaseMessage]:
     return [message for message in messages if message.type != "system"]
 
 
-def wall_clock_timeout(model: BaseChatModel) -> float:
+def wall_clock_timeout(model: Runnable) -> float:
     """The seconds a call on `model` is bounded to, from its own `request_timeout`.
 
     That attribute is `float | tuple | httpx.Timeout | None`, and anything but a
@@ -148,7 +147,7 @@ async def generate_response(runnable: Runnable, messages: list[BaseMessage]) -> 
     may answer with tool calls instead of a reply.
     """
     try:
-        return await asyncio.wait_for(runnable.ainvoke(input=messages), timeout=REQUEST_TIMEOUT)
+        return await asyncio.wait_for(runnable.ainvoke(input=messages), timeout=wall_clock_timeout(runnable))
     except asyncio.TimeoutError:
         logger.warning("Response timed out")
     except (AuthenticationError, PermissionDeniedError):

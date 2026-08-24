@@ -60,6 +60,7 @@ class Bot(ABC):
         model="Qwen/Qwen3.6-35B-A3B",
         api_key=config.rcp.api_key,
         timeout=60,
+        max_retries=1,
         stream_usage=True,
         temperature=0.7,
         top_p=0.8,
