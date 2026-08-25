@@ -10,7 +10,7 @@ packages = ["app"]
 
 [project]
 name = "graphchatbot"
-version = "2.0.0"
+version = "2.1.0"
 authors = [
   { name="Aitor Pérez", email="aitor.perez@epfl.ch" },
   { name="Spiros Chalkias", email="spyridon.chalkias@epfl.ch" }
