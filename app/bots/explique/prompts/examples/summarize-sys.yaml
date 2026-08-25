@@ -1,0 +1,61 @@
+examples:
+- slug: classical-conditioning
+  tags:
+    example_dialog_history: |-
+      ----AI----
+      Classical conditioning it is. How would you explain it to someone who has never heard of Pavlov?
+
+      ----HUMAN----
+      It's when an animal learns to link two things together, like a sound and food.
+
+      ----AI----
+      yes, exactly — so which of those two does the animal react to before any learning happens?
+
+      ----HUMAN----
+      umm the food? that's what makes it salivate on its own.
+
+      ----AI----
+      Nice, that's the one. What has to happen before the sound alone produces the same reaction?
+
+      ----HUMAN----
+      They have to be paired enough times, so the sound starts predicting the food?
+
+      ----AI----
+      Exactly. Want to stop here?
+
+      ----HUMAN----
+      yeah
+    output: |-
+      {
+        "reasoning": "The student moved from a loose 'linking two things' analogy to a correct account of which stimulus works without learning and what repeated pairing does. They needed one nudge to separate the two stimuli.",
+        "topics": ["Classical conditioning as an association between a neutral stimulus and one that already produces a reaction on its own", "The role of repeated pairing in making the neutral stimulus produce that reaction by itself"],
+        "strengths": ["Sharpened a vague analogy into a precise account when pushed", "Correctly identified which stimulus works without any learning"],
+        "weaknesses": ["Needs to name the two stimuli and their roles without being prompted"]
+      }
+- slug: no-engagement
+  tags:
+    example_dialog_history: |-
+      ----AI----
+      What topic would you like to explain?
+
+      ----HUMAN----
+      idk
+
+      ----AI----
+      No worries — pick anything from the syllabus. How about the first topic on it?
+
+      ----HUMAN----
+      maybe later
+
+      ----AI----
+      Sure. Want to stop?
+
+      ----HUMAN----
+      yeah
+    output: |-
+      {
+        "reasoning": "The student did not engage with any topic; the session ended before any real work was done.",
+        "topics": [],
+        "strengths": [],
+        "weaknesses": []
+      }

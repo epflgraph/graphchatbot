@@ -1,6 +1,9 @@
 import datetime
+import logging
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 
 async def search_news(query: str) -> list:
@@ -8,7 +11,7 @@ async def search_news(query: str) -> list:
     Search exercises from EPFL news website.
     """
 
-    print("[NEWS TOOL]", f"Called the `search_news` tool with input `{query}`")
+    logger.info("[NEWS TOOL] Called the `search_news` tool with input `%s`", query)
 
     async with httpx.AsyncClient() as client:
         response = await client.get(
@@ -21,7 +24,7 @@ async def search_news(query: str) -> list:
             },
         )
     items = response.json().get("items", [])
-    print("[NEWS TOOL]", f"Got {len(items)} news articles")
+    logger.info("[NEWS TOOL] Got %d news articles", len(items))
 
     cutoff_date = (datetime.datetime.now() - datetime.timedelta(days=3 * 365)).strftime("%Y-%m-%d")
     news = []

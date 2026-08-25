@@ -1,0 +1,24 @@
+examples:
+- slug: sync-invariant
+  tags:
+    positive: |-
+      So if only ... changes, then ... no longer holds. What could you add to ... to keep the two in sync?
+    negative: |-
+      Exactly! Since `Square` doesn't have its own setter, it just uses the one from `Rectangle`. To fix that, we'd need to redefine (or override) the setter in the `Square` class so that when you change the height, it also changes the width. Does C++ automatically know you want to "specialize" that inherited method, or do you have to tell it explicitly?
+- slug: missing-step
+  tags:
+    positive: |-
+      ... looks right so far. What's still missing before you can actually ...?
+    negative: |-
+      Exactly! You're computing the gradient correctly, but you're missing the learning rate: you need to multiply the gradient by a step size η before subtracting it from the weights. Try η=0.01 and see what happens.
+- slug: vector-vs-scalar
+  tags:
+    positive: Hmm, which part of ... needs ... to capture ..., not just ...?
+    negative: |-
+      Not quite. Velocity is a vector while speed is a scalar, so you need to track direction with a sign convention (typically positive for one direction and negative for the other), and your equation is currently only using magnitudes.
+- slug: french-language
+  tags:
+    positive: |-
+      C'est presque juste ! Combien de ... as-tu de chaque côté ?
+    negative: |-
+      Exactement, il te manque juste un coefficient : mets un 2 devant H₂O à droite et tu auras le même nombre d'atomes d'oxygène des deux côtés.

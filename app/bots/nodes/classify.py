@@ -1,56 +1,80 @@
 import logging
-from typing import Callable, Literal
+from typing import Literal
 
+from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import BaseMessage
 from langgraph.runtime import Runtime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, create_model, model_validator
+from typing_extensions import Self
 
-from app.bots.base import Bot
-from app.llms import build_prompt_from_message_list, generate_structured_response
+from app.bots.base import Bot, BotState, StateUpdate
+from app.compilation.base import MessageCompiler
+from app.llms.utils import generate_structured_response
 
 logger = logging.getLogger(__name__)
 
 
-def make_classify_node(categories: dict[str, dict] | Callable):
+class ClassifyNodeConfig(BaseModel):
+    """What a classify node needs: its categories, the compiler owning its prompt,
+    and the fallback for a failed classification."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    categories: dict[str, dict]
+    compiler: type[MessageCompiler]
+    fallback: str
+
+    @model_validator(mode="after")
+    def _fallback_is_a_known_category(self) -> Self:
+        if self.fallback not in self.categories:
+            raise ValueError(f"fallback {self.fallback!r} is not one of the category names {list(self.categories)!r}")
+        return self
+
+
+class ClassifyNode:
+    """Classifies a conversation into one of a bot's categories.
+
+    Callable as a LangGraph node: `await node(state, runtime)`.
     """
-    Returns a classify node that classifies the conversation into one of the given categories.
 
-    Args:
-        categories: dict mapping category name to a dict with keys:
-                    - 'description': str describing the category
-                    - 'tool_choice': Optional[str], passed to bind_tools (None, 'any', or a tool name)
-                    e.g. {'greeting': {'description': 'The user is greeting...', 'tool_choice': None}}
+    def __init__(self, config: ClassifyNodeConfig):
+        self._config = config
 
-                    May also be a callable that receives the current state and returns such a dict,
-                    for cases where eligible categories depend on runtime state (e.g. message count).
-    """
-
-    async def classify_node(state, runtime: Runtime[Bot]) -> dict:
+    async def __call__(self, state: BotState, runtime: Runtime[Bot]) -> StateUpdate:
         bot = runtime.context
-
-        categories_dict = categories(state) if callable(categories) else categories
-
-        categories_prompt = "\n".join([f"* {name}: {cat['description']}" for name, cat in categories_dict.items()])
-        system_prompt = f"""You will be given a conversation between a Human and an AI system.
-Your task is to classify the conversation based on the last request.
-The possible categories are the following:
-{categories_prompt}"""
-
-        human_prompt = build_prompt_from_message_list(state["messages"])
-
-        class Category(BaseModel):
-            category: Literal[*list(categories_dict.keys())]
-
-        result = await generate_structured_response(bot.light_model, system_prompt, human_prompt, Category)
-        if result is None:
-            category = list(categories_dict.keys())[0]
-            logger.warning(f"Classify LLM call failed, defaulting to '{category}'")
-        else:
-            category = result.category
-        logger.info(f"Classified as `{category}`")
-
+        compiler = self._config.compiler
+        category = await self._run(bot.model_for(compiler.config.model_choice), compiler.compile(bot, state))
         return {
             "category": category,
-            "tool_choice": categories_dict[category].get("tool_choice"),
+            "tool_choice": self._config.categories[category].get("tool_choice"),
         }
 
-    return classify_node
+    async def _run(self, model: BaseChatModel, messages: list[BaseMessage]) -> str:
+        """The validated category name, falling back to `fallback` on a failed call."""
+        result = await generate_structured_response(model, messages, self._category_schema())
+
+        if result is not None:
+            logger.info("Classified as `%s`", result.category)
+            return result.category
+
+        logger.warning("Classify LLM call failed, defaulting to '%s'", self._config.fallback)
+        return self._config.fallback
+
+    def _category_schema(self) -> type[BaseModel]:
+        """A one-off schema restricting the answer to this node's category names."""
+        return create_model("Category", category=(Literal[*self._config.categories.keys()], ...))
+
+
+def make_classify_node(categories: dict[str, dict], fallback: str, compiler: type[MessageCompiler]) -> ClassifyNode:
+    """Returns a node that classifies the conversation into one of `categories`.
+
+    Args:
+        categories: name -> {"description": str, "tool_choice": str | None}. "tool_choice" is
+            passed to bind_tools (None, "any", or a tool's name); "description" is only read by
+            the shared `ClassifyCompiler`, whose prompt lists the categories it may choose from.
+            Names always come from here, since they're what the answer is validated against.
+        fallback: the category a failed or invalid classification becomes. Must name a low-risk,
+            "safe to guess" category — validated against `categories` at construction.
+        compiler: the compiler owning the classification prompt.
+    """
+    return ClassifyNode(ClassifyNodeConfig(categories=categories, fallback=fallback, compiler=compiler))

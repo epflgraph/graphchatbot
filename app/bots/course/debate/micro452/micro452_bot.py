@@ -1,13 +1,29 @@
 import asyncio
 import logging
-from typing import Optional
+from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 from app.bots.course.debate.debate_bot import DebateCourseBot
 from app.interfaces.graphai import graphai
 
 logger = logging.getLogger(__name__)
+
+
+class TheoryFilters(BaseModel):
+    type: Literal["theory"] = "theory"
+    subtype: Optional[Literal["lecture_slides"]] = None
+
+
+class CaseStudyFilters(BaseModel):
+    type: Literal["case_study"] = "case_study"
+    week: int = 1
+    number: Optional[int] = None
+    subtype: Optional[Literal["question"]] = None
+
+    @field_serializer("number")
+    def serialize_number(self, number: int) -> str:
+        return str(number)
 
 
 class ToolInput(BaseModel):
@@ -40,29 +56,29 @@ class MICRO452DebateBot(DebateCourseBot):
         logger.info(f"case_study_number={case_study_number!r}")
 
         if case_study_number:
-            case_study_results, theory_results = await asyncio.gather(
+            case_study_result, theory_result = await asyncio.gather(
                 graphai.rag_retrieve(
                     index=self.index,
                     texts=keywords,
                     limit=9999,
-                    filters={"type": "case_study", "week": 1, "number": str(case_study_number)},
+                    filters=CaseStudyFilters(number=case_study_number),
                 ),
                 graphai.rag_retrieve(
                     index=self.index,
                     texts=keywords,
                     limit=5,
-                    filters={"type": "theory", "subtype": "lecture_slides"},
+                    filters=TheoryFilters(subtype="lecture_slides"),
                 ),
             )
-            results = case_study_results + theory_results
+            result = case_study_result + theory_result
         else:
-            results = await graphai.rag_retrieve(
+            result = await graphai.rag_retrieve(
                 index=self.index,
                 texts=keywords,
                 limit=9999,
-                filters={"type": "case_study", "week": 1, "subtype": "question"},
+                filters=CaseStudyFilters(subtype="question"),
             )
 
-        logger.info(f"Retrieved {len(results)} chunks.")
+        logger.info(f"Retrieved {len(result.chunks)} chunks.")
 
-        return self._format_results(results)
+        return self._format_results(result)

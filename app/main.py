@@ -43,12 +43,18 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="EPFL Graph and CEDE Chatbots",
     description="FastAPI backend for the EPFL Graph and CEDE chatbots: a modular framework to build and serve educational tutors, the EPFL Graph chatbot and other administrative RAG assistants.",
-    version="2.0.0",
+    version="2.1.0",
     lifespan=lifespan,
 )
 
 app.include_router(
     public.router,
+)
+
+# The same routes aliased: a stock OpenAI client appends `/v1` to its base URL.
+app.include_router(
+    public.router,
+    prefix="/v1",
 )
 
 if __name__ == "__main__":

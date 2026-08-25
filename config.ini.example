@@ -19,6 +19,12 @@ port: 443
 username: xxxx
 password: xxxx
 
+[cache]
+; Root dir for on-disk caches; each one appends its own subdirectory (e.g. image
+; transcriptions land under <cache_dir>/image-transcriptions). Empty keeps it at
+; <tempdir>/.cache/chatbot.
+cache_dir:
+
 [langfuse]
 host: https://langfuse.cede-apps.ch
 secret_key: xxxx

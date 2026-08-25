@@ -3,6 +3,10 @@ This module contains the organisational links coming from elasticsearch that are
 TODO Should not be maintained here, to be moved to graphes-client
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Dictionary that maps node and link types to the field name and the allowed limit of such links
 organisational_fields_mapping = {
     "Unit": {
@@ -41,7 +45,7 @@ def get_organisational_field_details(source_node_type, target_node_type):
     try:
         return organisational_fields_mapping[source_node_type][target_node_type]
     except Exception:
-        print("[WARNING]", f"No organisational fields defined for node types {source_node_type} and {target_node_type}")
+        logger.warning("No organisational fields defined for node types %s and %s", source_node_type, target_node_type)
         return {}
 
 

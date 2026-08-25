@@ -8,18 +8,31 @@ from langgraph.types import Command
 logger = logging.getLogger(__name__)
 
 
-def make_tools_node(tools: list, back_to: str | None = "model"):
-    """
-    Returns a tools node that executes all tool calls in the last message.
+# What a tool call that raised gets logged as, and what it reports to the model.
+# The instruction is mechanical: left to itself the model retries a dead tool
+# until the round budget runs out, and then answers nothing.
+# FUTURE: the presentational half — telling the user the answer is not based on
+# retrieved material — belongs with the prompt instructions rather than here.
+TOOL_FAILURE = "The tool call failed and returned no result."
+TOOL_FAILURE_INSTRUCTION = f"{TOOL_FAILURE} Do not retry it; answer with what you already have."
 
-    Args:
-        tools:   list of tool functions available to the model.
-        back_to: name of the node to route to after tool execution.
-                 If None, reads the destination from state['active_node'].
+
+def tool_failed(error: Exception) -> str:
+    """What the model is handed instead of a tool result that raised."""
+    logger.error(TOOL_FAILURE, exc_info=error)
+    return TOOL_FAILURE_INSTRUCTION
+
+
+def make_tools_node(tools: list):
+    """
+    Returns a node that executes all tool calls in the last message.
+
+    Where the result goes is not this node's decision: it returns control to
+    `state['active_node']`, which the model node that issued the calls wrote.
     """
 
     tool_names = {t.name for t in tools}
-    _tool_node = ToolNode(tools)
+    _tool_node = ToolNode(tools, handle_tool_errors=tool_failed)
 
     async def tools_node(state, runtime: Runtime) -> Command:
         tool_calls = state["messages"][-1].tool_calls
@@ -41,9 +54,6 @@ def make_tools_node(tools: list, back_to: str | None = "model"):
         logger.info(f"Executing {len(tool_calls)} tool call(s) in parallel")
         result = await _tool_node.ainvoke(state)
 
-        update = {"messages": result["messages"], "tool_choice": None}
-
-        destination = back_to if back_to else state.get("active_node") or "model"
-        return Command(goto=destination, update=update)
+        return Command(goto=state["active_node"], update={"messages": result["messages"]})
 
     return tools_node

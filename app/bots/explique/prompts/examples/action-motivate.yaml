@@ -1,0 +1,29 @@
+examples:
+- slug: stuck-inclined-plane
+  tags:
+    context: Earnestly stuck
+    positive: |-
+      Totally fair, this one clicks for almost nobody on the first pass. Picture ... . In plain words, what do you think ...?
+    negative: |-
+      Don't worry, forces on inclines are tricky. Let me explain: you decompose gravity into components parallel and perpendicular to the ramp, then the normal force cancels the perpendicular part...
+- slug: stuck-natural-selection
+  tags:
+    context: Earnestly stuck
+    positive: |-
+      I hear you, let's get you a foothold. Imagine ... . Over ..., what do you expect to happen to ...?
+    negative: |-
+      Okay, so natural selection is when heritable traits that improve survival become more common in a population because those individuals reproduce more. Make sense?
+- slug: dismissive-quadratic
+  tags:
+    context: Dismissive / checked-out
+    positive: |-
+      No stress. Quick one, no trick: does ... have one answer or more than one?
+    negative: |-
+      Come on, you've got this! Quadratic equations have the form $ax^2 + bx + c = 0$, and you solve them using the quadratic formula...
+- slug: stuck-french-language
+  tags:
+    context: Earnestly stuck; the student is writing in French
+    positive: |-
+      Je comprends, c'est normal de bloquer là-dessus. Imagine ... : à ton avis, qu'est-ce qui arrive à ... ?
+    negative: |-
+      Ne t'inquiète pas, les changements d'état sont difficiles. En fait, pendant l'ébullition la température reste constante parce que toute l'énergie sert à séparer les molécules, et elle ne remonte qu'une fois toute l'eau évaporée...

@@ -1,40 +1,53 @@
-import inspect
 import logging
-from pathlib import Path
+from enum import StrEnum
+from functools import cached_property
 
 from langchain.tools import tool
 from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from pydantic import BaseModel
 
-from app.bots.base import BOTS_ROOT, Bot, BotState
+from app.bots.base import Bot, BotState
+from app.bots.compilers.classify import ClassifyCompiler
+from app.bots.compilers.respond import ResponseCompiler
 from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
-from app.bots.prompts import resolve
-from app.interfaces.graphai import graphai
+from app.compilation.templates import render_prompt
+from app.interfaces.graphai import RAGResult, graphai
 
 logger = logging.getLogger(__name__)
 
 
+class RequestType(StrEnum):
+    """What the student is asking for. `classify` picks one per turn, and each
+    one decides whether the course material is searched."""
+
+    GREETING = "greeting"
+    THEORY = "theory"
+    PRACTICE = "practice"
+    ADMIN = "admin"
+    UNRELATED = "unrelated"
+
+
 CATEGORIES = {
-    "greeting": {
+    RequestType.GREETING: {
         "description": "The user is just greeting the assistant or similar.",
         "tool_choice": None,
     },
-    "theory": {
+    RequestType.THEORY: {
         "description": "The user's request is about a theoretical aspect of the course.",
         "tool_choice": "any",
     },
-    "practice": {
+    RequestType.PRACTICE: {
         "description": "The user's request is about an exercise, lab session, practice exam or similar.",
         "tool_choice": "any",
     },
-    "admin": {
+    RequestType.ADMIN: {
         "description": "The user's request is about an administrative aspect of the course, like schedule, rooms, grading, or logistics.",
         "tool_choice": None,
     },
-    "unrelated": {
+    RequestType.UNRELATED: {
         "description": "The user's request is completely unrelated to the course.",
         "tool_choice": None,
     },
@@ -61,52 +74,57 @@ class CourseBot(Bot):
 
     CATEGORIES: dict = CATEGORIES
 
+    # --- Prompts ---
+
+    @cached_property
+    def course_name(self) -> str:
+        """The course this bot tutors, from the course directory's own
+        `course-name.md`. A context value rather than a template include,
+        because the prompts name the course mid-sentence."""
+        return render_prompt(self.prompt_search_path, "course-name.md")
+
+    def prompt_context(self) -> dict:
+        return super().prompt_context() | {"course_name": self.course_name, "categories": self.CATEGORIES}
+
     # --- Tools ---
 
     @staticmethod
-    def _format_results(results: list) -> list:
+    def _format_results(result: RAGResult) -> list[dict]:
         formatted = []
-        for r in results:
+        for chunk in result.chunks:
             item = {
-                "type": f"{r.get('type')}: {r.get('subtype')}",
-                "title": r.get("title"),
-                "week": r.get("week"),
-                "number": r.get("number"),
-                "url": r.get("original_link"),
-                "page": r.get("page"),
-                "position": r.get("position"),
-                "content.fr": r.get("content.fr"),
-                "content.en": r.get("content.en"),
+                "type": chunk.chunk_type,
+                "title": chunk.title,
+                "week": chunk.week,
+                "number": chunk.number,
+                "url": chunk.original_link,
+                "page": chunk.page,
+                "position": chunk.position,
+                "content.fr": chunk.content_fr,
+                "content.en": chunk.content_en,
             }
 
-            video_lectures = r.get("associated_video_lectures") or []
+            video_lectures = chunk.associated_video_lectures or []
             if video_lectures:
                 item["associated_video_lectures"] = [
-                    {"title": v.get("title"), "url": v.get("original_link")} for v in video_lectures
+                    {"title": video_lecture.title, "url": video_lecture.original_link}
+                    for video_lecture in video_lectures
                 ]
 
-            formatted.append({k: v for k, v in item.items() if v is not None})
+            formatted.append({key: value for key, value in item.items() if value is not None})
         return formatted
 
-    async def search_course_material(self, query: str, filters) -> list:
-        if isinstance(filters, BaseModel):
-            filters_dict = filters.model_dump(exclude_none=True)
-        elif isinstance(filters, dict):
-            filters_dict = {k: v for k, v in filters.items() if v is not None}
-        else:
-            filters_dict = {}
+    async def search_course_material(self, query: str, filters: BaseModel | None = None) -> list:
+        logger.info(f"filters=`{filters}`")
 
-        logger.info(f"filters=`{filters_dict}`")
+        result = await graphai.rag_retrieve(index=self.index, texts=[query], filters=filters)
 
-        results = await graphai.rag_retrieve(index=self.index, texts=[query], filters=filters_dict)
+        logger.info(f"Retrieved {len(result.chunks)} chunks.")
 
-        logger.info(f"Retrieved {len(results)} chunks.")
-
-        return self._format_results(results)
+        return self._format_results(result)
 
     def build_tools(self) -> list:
-        subclass_dir = Path(inspect.getfile(type(self))).parent
-        description = resolve("tool_description", subclass_dir, BOTS_ROOT)
+        description = render_prompt(self.prompt_search_path, "tool-description.md", **self.prompt_context())
         return [
             tool("search_course_material", args_schema=self.tool_input_schema, description=description)(
                 self.search_course_material
@@ -117,9 +135,11 @@ class CourseBot(Bot):
         tools = self.build_tools()
 
         workflow = StateGraph(BotState, context_schema=Bot)
-        workflow.add_node("classify", make_classify_node(self.CATEGORIES))
-        workflow.add_node("model", make_model_node(tools))
-        workflow.add_node("tools", make_tools_node(tools, back_to="model"))
+        workflow.add_node(
+            "classify", make_classify_node(self.CATEGORIES, fallback=RequestType.GREETING, compiler=ClassifyCompiler)
+        )
+        workflow.add_node("model", make_model_node(tools, compiler=ResponseCompiler))
+        workflow.add_node("tools", make_tools_node(tools))
         workflow.set_entry_point("classify")
         workflow.add_edge("classify", "model")
 

@@ -1,0 +1,63 @@
+examples:
+- slug: source-with-url
+  tags:
+    context: A source provides a URL to a practice quiz.
+    source_example: |-
+      Title: [Topic X] Practice Quiz
+      URL: https://example.edu/quiz/topic-x
+      Description: Self-check questions on [topic X].
+    response: |-
+      {
+        "reasoning": "The retrieved source links directly to a practice quiz for this topic.",
+        "link_response": "I found a quiz on your course page with self-check questions on [topic X]. Give it a shot and let me know how it goes: https://example.edu/quiz/topic-x",
+        "title": "",
+        "subtitle": "",
+        "questions": []
+      }
+- slug: source-without-url
+  tags:
+    context: A source contains practice content but no URL.
+    source_example: |-
+      Title: [Topic X] Exercise
+
+      1. What is the main difference between [concept A] and [concept B]?
+      2. Give an example of [concept A] in practice.
+    response: |-
+      {
+        "reasoning": "The retrieved source has exercise questions but no link, so I adapted them directly.",
+        "link_response": null,
+        "title": "[Topic X]",
+        "subtitle": "Quick check on [concept A] and [concept B]",
+        "questions": [
+          {
+            "question": "What is the main difference between [concept A] and [concept B]?",
+            "options": ["...", "...", "...", "..."],
+            "explanation": "...",
+            "correct_idx": 0
+          },
+          {
+            "question": "Give an example of [concept A] in practice.",
+            "options": ["...", "...", "...", "..."],
+            "explanation": "...",
+            "correct_idx": 1
+          }
+        ]
+      }
+- slug: no-practice-material
+  tags:
+    context: No relevant practice material appears in <sources>.
+    response: |-
+      {
+        "reasoning": "No practice material was retrieved, so I generated questions from the dialog history.",
+        "link_response": null,
+        "title": "[Topic X]",
+        "subtitle": "A short review of the ideas we just discussed",
+        "questions": [
+          {
+            "question": "...",
+            "options": ["...", "...", "...", "..."],
+            "explanation": "...",
+            "correct_idx": 2
+          }
+        ]
+      }

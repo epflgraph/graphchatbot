@@ -1,16 +1,16 @@
-import inspect
 import logging
-from pathlib import Path
 
 from langchain.tools import tool
 from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from app.bots.base import BOTS_ROOT, Bot, BotState
+from app.bots.base import Bot, BotState
+from app.bots.compilers.classify import ClassifyCompiler
+from app.bots.compilers.respond import ResponseCompiler
 from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
-from app.bots.prompts import resolve
+from app.compilation.templates import render_prompt
 from app.interfaces.graphai import graphai
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ class AdminBot(Bot):
         index: str
         groups: list[str]
         tool_name: str          — name of the search tool exposed to the LLM
-        prompt.md               — full system prompt template (auto-resolved at class creation)
+        prompts/prompt.md       — the system prompt `ResponseCompiler` leads with
 
     Subclasses may override:
         CATEGORIES              — to customise classification categories
@@ -53,24 +53,28 @@ class AdminBot(Bot):
 
     CATEGORIES: dict = CATEGORIES
 
-    async def _search(self, query: str) -> list:
+    def prompt_context(self) -> dict:
+        return super().prompt_context() | {"categories": self.CATEGORIES}
+
+    async def _search(self, query: str) -> list[dict]:
         logger.info(f"Called `{self.tool_name}`")
-        results = await graphai.rag_retrieve(index=self.index, texts=[query])
-        logger.info(f"Retrieved {len(results)} chunks.")
-        return results
+        result = await graphai.rag_retrieve(index=self.index, texts=[query])
+        logger.info(f"Retrieved {len(result.chunks)} chunks.")
+        return [chunk.to_dict() for chunk in result.chunks]
 
     def build_tools(self) -> list:
-        subclass_dir = Path(inspect.getfile(type(self))).parent
-        description = resolve("tool_description", subclass_dir, BOTS_ROOT)
+        description = render_prompt(self.prompt_search_path, "tool-description.md", **self.prompt_context())
         return [tool(self.tool_name, description=description)(self._search)]
 
     def build_graph(self) -> CompiledStateGraph:
         tools = self.build_tools()
 
         workflow = StateGraph(BotState, context_schema=Bot)
-        workflow.add_node("classify", make_classify_node(self.CATEGORIES))
-        workflow.add_node("model", make_model_node(tools))
-        workflow.add_node("tools", make_tools_node(tools, back_to="model"))
+        workflow.add_node(
+            "classify", make_classify_node(self.CATEGORIES, fallback="greeting", compiler=ClassifyCompiler)
+        )
+        workflow.add_node("model", make_model_node(tools, compiler=ResponseCompiler))
+        workflow.add_node("tools", make_tools_node(tools))
         workflow.set_entry_point("classify")
         workflow.add_edge("classify", "model")
 

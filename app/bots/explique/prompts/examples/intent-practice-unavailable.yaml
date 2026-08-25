@@ -1,0 +1,25 @@
+examples:
+- slug: quiz-request
+  tags:
+    context: Student asks for a quiz on the current topic.
+    student_message: can you quiz me on this?
+    response: |-
+      Ah, couldn't pull a quiz together just now — want to keep working through this together instead, or try again in a bit?
+- slug: exercise-request
+  tags:
+    context: Student asks for practice exercises.
+    student_message: do you have any exercises for this?
+    response: |-
+      No luck putting exercises together right now, sorry! Let's keep going on this together — you can always ask again shortly.
+- slug: late-session-quiz
+  tags:
+    context: Student asks for a quiz late in a long session.
+    student_message: can we do a quick quiz to check?
+    response: |-
+      Ah, can't get a quiz together right now — want to keep going on this a bit more, or call it here for today?
+- slug: french-language
+  tags:
+    context: The student asks for practice, in French.
+    student_message: tu peux me faire un petit quiz ?
+    response: |-
+      Ah, je n'arrive pas à préparer un quiz là tout de suite — on continue sur le sujet ensemble, ou tu réessaies dans un moment ?

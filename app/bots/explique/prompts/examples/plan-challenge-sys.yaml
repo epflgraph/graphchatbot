@@ -1,0 +1,81 @@
+examples:
+- slug: projectile-motion
+  tags:
+    example_dialog_history: |-
+      ----AI----
+      How would you explain projectile motion to someone who's never studied it?
+
+      ----HUMAN----
+      You throw something and it curves down, because gravity pulls it back to the ground.
+
+      ----AI----
+      Right — and what happens to how fast it's moving sideways while it falls?
+
+      ----HUMAN----
+      It stays the same, I think. Nothing is pushing it sideways.
+
+      ----AI----
+      Exactly. So what shape does the path end up being?
+
+      ----HUMAN----
+      A parabola — it drops faster and faster while the sideways part keeps going at a steady rate.
+    output: |-
+      {
+        "points_tested": [
+          "A projectile curves downward because gravity keeps acting on it after release",
+          "Horizontal velocity is unchanged during the flight, since no horizontal force acts on it",
+          "The path is a parabola: steady horizontal motion combined with accelerating vertical motion"
+        ],
+        "reasoning": "The student has *stated* three points (gravity curves the path, horizontal velocity is unchanged, and the two combine into a parabola) but has not yet *applied* the independence of components in a new configuration. The next direction is a transfer test of that independence.",
+        "direction": "Ask whether an object dropped straight down and one thrown horizontally from the same height reach the ground at the same moment."
+      }
+- slug: nothing-explained-yet
+  tags:
+    example_dialog_history: |-
+      ----AI----
+      What topic would you like to explain?
+
+      ----HUMAN----
+      Natural selection.
+
+      ----AI----
+      What do you already know about it?
+
+      ----HUMAN----
+      Not much.
+    output: |-
+      {
+        "points_tested": [],
+        "reasoning": "No concrete case has been established yet, so the next move should stay close to what the student already brought up.",
+        "direction": "Ask the student to explain in their own words what it means for a trait to become more common in a population."
+      }
+- slug: natural-selection
+  tags:
+    example_dialog_history: |-
+      ----AI----
+      How would you explain natural selection to someone who's never heard of it?
+
+      ----HUMAN----
+      It's when traits that help survival get passed on more, so they become more common over generations.
+
+      ----AI----
+      Nice. So if a trait helps survival but isn't heritable, does it spread?
+
+      ----HUMAN----
+      No, only heritable traits can, because they're the only ones passed to offspring.
+
+      ----AI----
+      Right. And if the environment changes so a previously useful trait becomes harmful?
+
+      ----HUMAN----
+      Then it would be selected against and decrease in frequency, since the pressure reversed.
+    output: |-
+      {
+        "points_tested": [
+          "Natural selection increases the frequency of survival-enhancing heritable traits",
+          "Only heritable traits can be selected for, since non-heritable ones aren't passed on",
+          "A trait's selective value depends on the environment and can reverse when conditions change"
+        ],
+        "reasoning": "The student stated each point and then applied it correctly in an unseen configuration (non-heritable trait, environmental reversal). Every core point has been applied, not merely stated, so the topic is exhausted.",
+        "direction": "topic appears exhausted"
+      }

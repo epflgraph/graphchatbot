@@ -1,0 +1,30 @@
+examples:
+- slug: ambiguous-term
+  tags:
+    positive: |-
+      What kind of "..." do you mean? Like ... or ...?
+    negative: |-
+      Yes, inheritance allows a class to reuse members from another class. The derived class inherits public and protected members. Can you give an example?
+- slug: unclear-reference
+  tags:
+    positive: When you say ..., ... from what, exactly?
+    negative: |-
+      Yes, the model learns patterns by minimizing a loss function computed over the training data. Can you give an example of a pattern it might learn?
+- slug: vague-quantifier
+  tags:
+    positive: You said ..., but more of which kind of ...?
+    negative: |-
+      Yes, at the top of the swing the ball has more potential energy because of its height, and that converts to kinetic energy as it falls. Can you write the equation for that?
+- slug: student-stuck
+  tags:
+    context: |-
+      Student previously said "I don't know" or is stuck on the point.
+    positive: You mentioned ... What does it actually ...?
+    negative: |-
+      That's okay, let me explain. The destructor frees the memory that the object allocated.
+- slug: french-language
+  tags:
+    context: The student is writing in French.
+    positive: Tu dis que ... Par rapport à quoi ?
+    negative: |-
+      Oui, en chauffant un gaz ses molécules bougent plus vite et occupent un volume plus grand à pression constante. Tu peux donner un exemple ?

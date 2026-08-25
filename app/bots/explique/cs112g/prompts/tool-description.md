@@ -1,0 +1,1 @@
+Retrieve C++ course reference material for the concept the student is currently explaining or asking about in "{{ course_name }}". Provide a concise query with a few relevant keywords, preferring C++-specific terminology. Avoid Python-specific terms like MRO, `super()`, or `__mro__` unless the student explicitly mentioned Python.

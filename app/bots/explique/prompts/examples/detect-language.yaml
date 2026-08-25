@@ -1,0 +1,66 @@
+examples:
+- slug: borrowed-jargon
+  tags:
+    prior_turns: (none)
+    last_student_turn: |-
+      Le vector garde ses éléments en mémoire contiguë, donc l'accès est en O(1).
+    lang_code: fr
+    why: French grammar carrying English technical terms. The borrowed words are not the language.
+- slug: acknowledgement-falls-back
+  tags:
+    prior_turns: |-
+      ----HUMAN----
+      Je crois qu'un arbre binaire équilibré garde une hauteur logarithmique.
+      ----AI----
+      Et qu'est-ce qui casse cette garantie si on insère des clés déjà triées ?
+    last_student_turn: ok
+    lang_code: fr
+    why: The turn carries no language of its own; the student's own prior turns are French.
+- slug: emoticon-falls-back
+  tags:
+    prior_turns: |-
+      ----HUMAN----
+      Also die Rekursion bricht ab, wenn die Liste leer ist.
+      ----AI----
+      Genau. Und was passiert bei einem einzelnen Element?
+    last_student_turn: ^^
+    lang_code: de
+    why: An emoticon is not a language. The student has been writing German.
+- slug: short-but-not-empty
+  tags:
+    prior_turns: |-
+      ----HUMAN----
+      Penso che la complessità sia quadratica.
+      ----AI----
+      Quasi. Quante volte gira il ciclo interno?
+    last_student_turn: my answer is the second one
+    lang_code: en
+    why: English function words read straight off the turn. The student switched, so the answer switches.
+- slug: tutor-slip-is-not-evidence
+  tags:
+    prior_turns: |-
+      ----HUMAN----
+      Nie rozumiem, dlaczego ten wskaźnik jest pusty.
+      ----AI----
+      Fair — what does the constructor assign to it before the first call?
+    last_student_turn: "1"
+    lang_code: pl
+    why: The tutor slipped into English. Only the student's own turns count, and those are Polish.
+- slug: transliteration
+  tags:
+    prior_turns: (none)
+    last_student_turn: nomizw oti to heap einai plires dentro
+    lang_code: el
+    why: Greek written in Latin characters is still Greek.
+- slug: unsupported-language
+  tags:
+    prior_turns: (none)
+    last_student_turn: Crec que la complexitat és lineal.
+    lang_code: und
+    why: Catalan has no code in the list. Never fall back to a near neighbour such as `es`.
+- slug: split-with-no-context
+  tags:
+    prior_turns: (none)
+    last_student_turn: Hello, I have a question — ¿por qué la lista se copia entera?
+    lang_code: und
+    why: Genuinely split, with no prior turns to settle which language the student writes in.

@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ topic }} — quiz</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" defer></script>
+<style>
+  :root {
+    --red: #FF0000;
+    --groseille: #B51F1F;
+    --taupe: #413D3A;
+    --muted: #6B6663;
+    --canard: #007480;
+    --leman: #00A79F;
+    --perle: #CAC7C7;
+    --white: #FFFFFF;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--white);
+    color: var(--taupe);
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 0 20px 60px;
+  }
+  /* Hidden until the first render fills it in, so the page never flashes its
+     empty skeleton before growing to full height. */
+  .sheet { width: 100%; max-width: 620px; visibility: hidden; }
+
+  .masthead {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 40px 0 20px;
+  }
+  .mark { width: 18px; height: 18px; flex-shrink: 0; }
+  .masthead .wordmark {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--red);
+  }
+  .masthead .sep {
+    font-size: 13px;
+    color: var(--perle);
+  }
+  .masthead .course {
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  hr.rule { border: none; border-top: 3px solid var(--red); margin: 0 0 32px; }
+
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+  }
+  .subtitle {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0 0 36px;
+  }
+
+  .meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .meta-row .score { color: var(--red); font-weight: 700; }
+
+  .track { height: 3px; background: var(--perle); margin-bottom: 32px; }
+  .track-fill { height: 100%; background: var(--red); transition: width 0.4s ease; }
+
+  .qnum {
+    font-size: 60px;
+    font-weight: 700;
+    color: var(--red);
+    line-height: 1;
+    margin: 0 0 6px;
+  }
+  .question {
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1.4;
+    margin: 0 0 28px;
+  }
+  .question:focus { outline: none; }
+
+  .options { display: flex; flex-direction: column; margin-bottom: 24px; }
+  .option {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-align: left;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--taupe);
+    padding: 16px 4px;
+    border: none;
+    border-top: 1px solid var(--perle);
+    background: none;
+    cursor: pointer;
+    width: 100%;
+  }
+  .options .option:last-child { border-bottom: 1px solid var(--perle); }
+  .option .letter {
+    font-weight: 700;
+    color: var(--red);
+    font-size: 14px;
+    min-width: 18px;
+  }
+  .option:hover:not(:disabled) { background: #faf8f8; }
+  .option:disabled { cursor: default; }
+  .option:focus-visible {
+    outline: 2px solid var(--canard);
+    outline-offset: -2px;
+  }
+  .option.correct { background: #eaf5f5; color: var(--canard); }
+  .option.correct .letter { color: var(--canard); }
+  .option.incorrect { background: #fbeeee; color: var(--groseille); }
+  .option.incorrect .letter { color: var(--groseille); }
+
+  .feedback {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--taupe);
+    padding-left: 16px;
+    border-left: 3px solid var(--perle);
+    margin-bottom: 28px;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.25s ease;
+  }
+  .feedback.show { max-height: 140px; opacity: 1; }
+  .feedback.correct-fb { border-left-color: var(--canard); }
+  .feedback.incorrect-fb { border-left-color: var(--groseille); }
+  .feedback strong { font-weight: 700; color: var(--taupe); }
+
+  .btn {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+  }
+
+  button.next {
+    background: var(--red);
+    color: var(--white);
+    border: none;
+    padding: 14px 24px;
+    display: none;
+  }
+  button.next:hover { background: var(--groseille); }
+  button.next:focus-visible { outline: 2px solid var(--taupe); outline-offset: 2px; }
+
+  button.copy {
+    background: none;
+    color: var(--taupe);
+    border: 1px solid var(--perle);
+    padding: 13px 24px;
+    display: inline-block;
+    margin-left: 12px;
+  }
+  button.copy:hover { background: #faf8f8; }
+  button.copy:focus-visible { outline: 2px solid var(--canard); outline-offset: 2px; }
+  button.copy.copied { border-color: var(--canard); color: var(--canard); }
+
+  .results { padding: 10px 0; }
+  .results .label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .results .score-big {
+    font-size: 64px;
+    font-weight: 700;
+    color: var(--red);
+    line-height: 1;
+    margin-bottom: 28px;
+  }
+  .results .score-mark {
+    font-size: 38px;
+    margin-left: 14px;
+    vertical-align: middle;
+  }
+  .results button.next { display: inline-block; }
+
+  /* The review action and its caption, kept in their own block so the caption
+     reads as belonging to that button alone and not to `Restart quiz` too. */
+  .results .review {
+    margin-top: 28px;
+    padding-top: 22px;
+    border-top: 1px solid var(--perle);
+  }
+  .results .review button.copy { margin-left: 0; }
+  .results .review-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+  .results .review .copy-hint {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-top: 12px;
+    max-width: 46ch;
+  }
+  .results .review .review-request {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 14px;
+    padding: 12px 14px;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--taupe);
+    background: #faf8f8;
+    border: 1px solid var(--perle);
+    resize: vertical;
+  }
+  .results .review .review-request:focus-visible { outline: 2px solid var(--canard); outline-offset: 2px; }
+  .error-state .question { color: var(--groseille); }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .track-fill, .feedback { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="masthead">
+    <svg class="mark" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect width="32" height="32" fill="#FF0000"/>
+      <rect x="13" y="6" width="6" height="20" fill="#FFFFFF"/>
+      <rect x="6" y="13" width="20" height="6" fill="#FFFFFF"/>
+    </svg>
+    <span class="wordmark">EPFL</span>
+    <span class="sep" aria-hidden="true">/</span>
+    <span class="course">{{ course_name }}</span>
+  </div>
+  <hr class="rule">
+
+  <h1 id="quiz-title">{{ topic }}</h1>
+  <p class="subtitle">{{ subtitle }}</p>
+
+  <div class="meta-row">
+    <span id="progress-label">Question 01 / 03</span>
+    <span class="score" id="score-label">Score 0</span>
+  </div>
+  <div class="track" role="progressbar" aria-label="Quiz progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="track">
+    <div class="track-fill" id="track-fill" style="width: 0%;"></div>
+  </div>
+
+  <div id="quiz-body"></div>
+</div>
+
+<script type="application/json" id="quiz-data">{{ questions | tojson }}</script>
+
+<script defer>
+(function () {
+  const sheet = document.querySelector('.sheet');
+  const body = document.getElementById('quiz-body');
+  const progressLabel = document.getElementById('progress-label');
+  const scoreLabel = document.getElementById('score-label');
+  const trackFill = document.getElementById('track-fill');
+  const track = document.getElementById('track');
+
+  let questions = [];
+  let current = 0;
+  let score = 0;
+  let answered = false;
+  let picks = []; // picks[i] = the option index chosen for questions[i]
+
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+  // Anything at or above this share of the questions reads as a strong round.
+  const STRONG_SCORE_RATIO = 2 / 3;
+
+  // Graded in three, not pass/fail: this quiz is explicitly not graded, so the
+  // mark celebrates a clean sweep, backs the effort behind a strong round, and
+  // is honest about a weak one without scolding it.
+  function scoreMark(score, total) {
+    if (total === 0) return '';
+    if (score === total) return '🎉';
+    if (score / total >= STRONG_SCORE_RATIO) return '💪';
+    return '😕';
+  }
+
+  function renderMath(el) {
+    if (window.renderMathInElement) {
+      renderMathInElement(el, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$', right: '$', display: false }
+        ]
+      });
+    }
+  }
+
+  // The student's request to the tutor, in their own voice, for them to paste
+  // back into the chat — the only way quiz results can reach the tutor, since
+  // this page has no channel back to it. Every question is listed with the
+  // choice the student made and whether it was right, so the tutor knows what
+  // to work on; the correct option is never included, since the tutor works
+  // that out with the student rather than reading it off a pasted transcript.
+  // Only reachable when at least one answer was wrong — see `render`.
+  function buildReviewRequest(lang) {
+    const title = document.getElementById('quiz-title').textContent;
+    const lines = lang === 'fr'
+      ? [`J'ai fait le quiz « ${title} » et j'ai eu ${score}/${questions.length}.`, '', 'Voici mes réponses :']
+      : [`I did the "${title}" quiz and got ${score}/${questions.length}.`, '', 'Here is what I picked:'];
+
+    questions.forEach((q, i) => {
+      const pickedOption = q.options[picks[i]];
+      const verdict = picks[i] === q.correct_idx;
+      if (lang === 'fr') {
+        const answer = pickedOption !== undefined ? pickedOption : '(pas de réponse)';
+        lines.push(`${i + 1}. « ${q.question} » — J'ai répondu « ${answer} », c'était ${verdict ? 'correct' : 'faux'}.`);
+      } else {
+        const answer = pickedOption !== undefined ? pickedOption : '(no answer)';
+        lines.push(`${i + 1}. "${q.question}" — I answered "${answer}", which was ${verdict ? 'right' : 'wrong'}.`);
+      }
+    });
+
+    lines.push('', lang === 'fr' ? 'Peut-on revoir les questions que j\'ai ratées ?' : 'Can we go over the ones I got wrong?');
+    return lines.join('\n');
+  }
+
+  // Put the request on screen, in a field whose text is selected and ready to
+  // copy by hand. This page runs in a sandboxed frame, where the clipboard API
+  // and modal dialogs are both routinely blocked — so showing the text is the
+  // guarantee, and copying it below is only an enhancement on top.
+  function revealReviewRequest(button, lang) {
+    let field = document.getElementById('review-request');
+    if (!field) {
+      field = document.createElement('textarea');
+      field.id = 'review-request';
+      field.className = 'review-request';
+      field.readOnly = true;
+      field.rows = 7;
+      field.setAttribute('aria-label', 'Your quiz answers, ready to copy into the chat');
+      button.parentNode.appendChild(field);
+    }
+
+    field.value = buildReviewRequest(lang);
+    field.focus();
+    field.select();
+    return field;
+  }
+
+  // Runs inside the click gesture, which is what some frames require, and works
+  // in places the async clipboard API is blocked. Copies the current selection.
+  function copySelection() {
+    try {
+      return document.execCommand('copy');
+    } catch (err) {
+      console.warn('Selection copy failed:', err);
+      return false;
+    }
+  }
+
+  async function copyReviewRequest(button, lang) {
+    const hint = document.getElementById('copy-hint');
+
+    let field;
+    try {
+      field = revealReviewRequest(button, lang);
+    } catch (err) {
+      console.error('Could not build the review request:', err);
+      hint.textContent = 'Something went wrong preparing your answers. You can tell your tutor how it went instead.';
+      return;
+    }
+
+    let copied = copySelection();
+    if (!copied && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(field.value);
+        copied = true;
+      } catch (err) {
+        console.warn('Clipboard API unavailable or blocked:', err);
+      }
+    }
+
+    if (copied) {
+      button.textContent = lang === 'fr' ? '🇫🇷 Copié' : '🇺🇸 Copied';
+      button.classList.add('copied');
+      hint.textContent = lang === 'fr'
+        ? 'Copié. Collez-le dans le chat et votre tuteur le passera en revue avec vous.'
+        : 'Copied. Paste it into the chat and your tutor will go through it with you.';
+    } else {
+      hint.textContent = lang === 'fr'
+        ? 'Appuyez sur ⌘C (ou Ctrl+C) pour copier le texte sélectionné, puis collez-le dans le chat.'
+        : 'Press ⌘C (or Ctrl+C) to copy the selected text, then paste it into the chat.';
+    }
+  }
+
+  function showLoadError(detail) {
+    progressLabel.textContent = 'Error';
+    scoreLabel.textContent = '';
+    track.setAttribute('aria-valuenow', '0');
+    trackFill.style.width = '0%';
+    body.innerHTML = '';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'results error-state';
+
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.textContent = "Couldn't load this quiz";
+
+    const message = document.createElement('p');
+    message.className = 'question';
+    message.textContent = 'The questions for this quiz could not be read. Please refresh the page, or let your instructor know if the problem continues.';
+
+    wrap.appendChild(label);
+    wrap.appendChild(message);
+
+    if (detail) {
+      const tech = document.createElement('p');
+      tech.className = 'subtitle';
+      tech.style.margin = '-8px 0 0';
+      tech.textContent = 'For whoever is editing this quiz: ' + detail;
+      wrap.appendChild(tech);
+    }
+
+    body.appendChild(wrap);
+  }
+
+  // Throws a descriptive Error rather than returning null, so the
+  // person authoring the quiz sees exactly what to fix.
+  function loadQuestions() {
+    const dataEl = document.getElementById('quiz-data');
+    const raw = dataEl.textContent.trim();
+
+    if (!raw) {
+      throw new Error('the question data was never provided.');
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (err) {
+      throw new Error('the question data is not valid JSON (' + err.message + '). Check for trailing commas, single quotes, or an unclosed bracket.');
+    }
+
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      throw new Error('the question data must be a non-empty JSON array of question objects.');
+    }
+
+    parsed.forEach((q, i) => {
+      const n = i + 1;
+      if (!q || typeof q !== 'object') {
+        throw new Error(`question ${n} is not a valid object.`);
+      }
+      if (typeof q.question !== 'string' || !q.question.trim()) {
+        throw new Error(`question ${n} is missing a "question" field (the question text, as a string).`);
+      }
+      if (!Array.isArray(q.options) || q.options.length < 2) {
+        throw new Error(`question ${n} needs an "options" field: an array of at least 2 choices.`);
+      }
+      if (typeof q.correct_idx !== 'number' || !Number.isInteger(q.correct_idx) || q.correct_idx < 0 || q.correct_idx >= q.options.length) {
+        throw new Error(`question ${n}'s "correct_idx" field must be the zero-based index of the right option — a number from 0 to ${q.options.length - 1} — but got ${JSON.stringify(q.correct_idx)}.`);
+      }
+      if (typeof q.explanation !== 'string') {
+        throw new Error(`question ${n} is missing an "explanation" field (the feedback text, as a string).`);
+      }
+    });
+
+    return parsed;
+  }
+
+  function render() {
+    if (current >= questions.length) {
+      progressLabel.textContent = 'Complete';
+      trackFill.style.width = '100%';
+      track.setAttribute('aria-valuenow', '100');
+      track.setAttribute('aria-valuetext', 'Complete');
+      body.innerHTML = '';
+
+      const results = document.createElement('div');
+      results.className = 'results';
+
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = 'Final score';
+
+      const scoreBig = document.createElement('div');
+      scoreBig.className = 'score-big';
+      scoreBig.textContent = `${score} / ${questions.length}`;
+
+      // Decorative: the score already says how it went, and a screen reader
+      // announcing "party popper" after it adds nothing.
+      const mark = document.createElement('span');
+      mark.className = 'score-mark';
+      mark.setAttribute('aria-hidden', 'true');
+      mark.textContent = scoreMark(score, questions.length);
+      scoreBig.appendChild(mark);
+
+      const restartBtn = document.createElement('button');
+      restartBtn.className = 'btn next';
+      restartBtn.id = 'restart-btn';
+      restartBtn.style.display = 'inline-block';
+      restartBtn.textContent = 'Restart quiz';
+      restartBtn.onclick = () => {
+        current = 0;
+        score = 0;
+        picks = [];
+        answered = false;
+        render();
+      };
+
+      results.appendChild(label);
+      results.appendChild(scoreBig);
+      results.appendChild(restartBtn);
+
+      // Nothing to review on a clean sweep, so the whole block is left out
+      // rather than offering to go over an empty list of mistakes.
+      if (score < questions.length) {
+        const reviewButtons = document.createElement('div');
+        reviewButtons.className = 'review-buttons';
+
+        const enBtn = document.createElement('button');
+        enBtn.className = 'btn copy';
+        enBtn.textContent = '🇺🇸 Go over my mistakes';
+        enBtn.onclick = () => copyReviewRequest(enBtn, 'en');
+
+        const frBtn = document.createElement('button');
+        frBtn.className = 'btn copy';
+        frBtn.textContent = '🇫🇷 Revoir mes erreurs';
+        frBtn.onclick = () => copyReviewRequest(frBtn, 'fr');
+
+        reviewButtons.appendChild(enBtn);
+        reviewButtons.appendChild(frBtn);
+
+        const hint = document.createElement('p');
+        hint.className = 'copy-hint';
+        hint.id = 'copy-hint';
+        hint.textContent =
+          'Shows your answers ready to copy. Paste them into the chat and your tutor will go through them with you.';
+        // The copy step reports back by rewriting this line, so announce it.
+        hint.setAttribute('aria-live', 'polite');
+        enBtn.setAttribute('aria-describedby', hint.id);
+        frBtn.setAttribute('aria-describedby', hint.id);
+
+        // The review action carries its own caption, so the caption is not read
+        // as describing `Restart quiz` as well.
+        const review = document.createElement('div');
+        review.className = 'review';
+        review.appendChild(reviewButtons);
+        review.appendChild(hint);
+        results.appendChild(review);
+      }
+
+      body.appendChild(results);
+      restartBtn.focus();
+      return;
+    }
+
+    progressLabel.textContent = `Question ${pad(current + 1)} / ${pad(questions.length)}`;
+    trackFill.style.width = `${(current / questions.length) * 100}%`;
+    track.setAttribute('aria-valuenow', String(Math.round((current / questions.length) * 100)));
+    track.setAttribute('aria-valuetext', `Question ${current + 1} of ${questions.length}`);
+    scoreLabel.textContent = `Score ${score}`;
+
+    const item = questions[current];
+    body.innerHTML = '';
+
+    const qnum = document.createElement('div');
+    qnum.className = 'qnum';
+    qnum.setAttribute('aria-hidden', 'true');
+    qnum.textContent = pad(current + 1);
+    body.appendChild(qnum);
+
+    const question = document.createElement('p');
+    question.className = 'question';
+    question.id = 'question-heading';
+    question.tabIndex = -1;
+    question.textContent = item.question;
+    body.appendChild(question);
+
+    const optionsDiv = document.createElement('div');
+    optionsDiv.className = 'options';
+    optionsDiv.id = 'options';
+    body.appendChild(optionsDiv);
+
+    const feedback = document.createElement('div');
+    feedback.className = 'feedback';
+    feedback.id = 'feedback';
+    feedback.setAttribute('role', 'status');
+    feedback.setAttribute('aria-live', 'polite');
+    body.appendChild(feedback);
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn next';
+    nextBtn.id = 'next-btn';
+    nextBtn.textContent = current === questions.length - 1 ? 'Results' : 'Next question';
+    body.appendChild(nextBtn);
+
+    item.options.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option';
+
+      const letterSpan = document.createElement('span');
+      letterSpan.className = 'letter';
+      letterSpan.textContent = String.fromCharCode(65 + i);
+      btn.appendChild(letterSpan);
+
+      const textSpan = document.createElement('span');
+      textSpan.textContent = opt;
+      btn.appendChild(textSpan);
+
+      btn.onclick = () => selectAnswer(i);
+      optionsDiv.appendChild(btn);
+    });
+
+    renderMath(body);
+    question.focus({ preventScroll: true });
+  }
+
+  function markOption(btn, type, srSuffix) {
+    btn.classList.add(type);
+
+    const sr = document.createElement('span');
+    sr.className = 'visually-hidden';
+    sr.textContent = srSuffix;
+    btn.appendChild(sr);
+  }
+
+  function selectAnswer(i) {
+    if (answered) return;
+    answered = true;
+    picks[current] = i;
+    const item = questions[current];
+    const buttons = document.querySelectorAll('#options .option');
+    buttons.forEach((b, idx) => {
+      b.disabled = true;
+      if (idx === item.correct_idx) markOption(b, 'correct', ' \u2014 correct answer');
+      else if (idx === i) markOption(b, 'incorrect', ' \u2014 your answer, incorrect');
+    });
+
+    const isCorrect = i === item.correct_idx;
+    if (isCorrect) score++;
+    scoreLabel.textContent = `Score ${score}`;
+
+    const feedback = document.getElementById('feedback');
+    feedback.classList.add(isCorrect ? 'correct-fb' : 'incorrect-fb');
+
+    const strong = document.createElement('strong');
+    strong.textContent = isCorrect ? '✅' : '❌';
+    feedback.appendChild(strong);
+    feedback.appendChild(document.createTextNode(' ' + item.explanation));
+
+    requestAnimationFrame(() => {
+      feedback.classList.add('show');
+      renderMath(feedback);
+    });
+
+    const nextBtn = document.getElementById('next-btn');
+    nextBtn.style.display = 'inline-block';
+    nextBtn.onclick = () => {
+      current++;
+      answered = false;
+      render();
+    };
+    nextBtn.focus();
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (!questions || current >= questions.length || answered) return;
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    const item = questions[current];
+    const upper = e.key.length === 1 ? e.key.toUpperCase() : '';
+    const letterIdx = upper.charCodeAt(0) - 65;
+    const digit = parseInt(e.key, 10);
+    let idx = null;
+    if (letterIdx >= 0 && letterIdx < item.options.length) idx = letterIdx;
+    else if (!isNaN(digit) && digit >= 1 && digit <= item.options.length) idx = digit - 1;
+    if (idx !== null) selectAnswer(idx);
+  });
+
+  try {
+    questions = loadQuestions();
+    render();
+  } catch (err) {
+    console.error('Quiz data error:', err);
+    showLoadError(err.message);
+  }
+  sheet.style.visibility = 'visible';
+})();
+</script>
+</body>
+</html>

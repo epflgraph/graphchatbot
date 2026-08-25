@@ -15,6 +15,8 @@ coverage.xml
 
 # Config files (might include sensitive information or depend on the deployment)
 config.ini
+# ...except the placeholder the test suite runs against
+!tests/fixtures/config.ini
 config.docker.ini
 config.local.ini
 config-prod.ini
@@ -35,7 +37,7 @@ data
 uv.lock
 
 # Python virtual environment
-venv
+.venv
 
 # Jupyter-lab files
 **/.ipynb_checkpoints
