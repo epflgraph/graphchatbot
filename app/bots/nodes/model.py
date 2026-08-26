@@ -32,7 +32,7 @@ class ModelNodeConfig(BaseModel):
     # The cap always exists — unbounded, the loop runs until LangGraph aborts
     # the turn, which reaches the user as an empty reply.
     on_tools: str = "tools"
-    max_tool_rounds: int = Field(default=3, ge=1)
+    max_tool_rounds: int = Field(default=5, ge=1)
 
 
 class ModelNode:
