@@ -32,7 +32,7 @@ class ModelNodeConfig(BaseModel):
     # The cap always exists — unbounded, the loop runs until LangGraph aborts
     # the turn, which reaches the user as an empty reply.
     on_tools: str = "tools"
-    max_tool_rounds: int = Field(default=5, ge=1)
+    max_tool_rounds: int = Field(default=8, ge=1)
 
 
 class ModelNode:
@@ -55,14 +55,21 @@ class ModelNode:
         # classifier. Without this, the forced choice would fire on every pass.
         tool_choice = state.get("tool_choice") if is_first_round else None
 
+        # Past the budget the tools stay bound but forbidden. Omitting them would
+        # instead leave a model that has searched multiple times still emitting
+        # tool-call syntax, which parses to an empty reply.
+        tool_rounds_exhausted = bool(self._tools) and tool_rounds_made >= self._config.max_tool_rounds
+        if tool_rounds_exhausted:
+            tool_choice = "none"
+
         logger.info(
             "Calling LLM client with %d tool(s), round=%d, tool_choice=%s",
             len(self._tools),
             tool_rounds_made,
             tool_choice,
         )
-        messages = self._config.compiler.compile(bot, state)
-        response = await generate_response(self._resolve_model(bot, tool_choice, tool_rounds_made), messages)
+        messages = self._config.compiler.compile(bot, {**state, "tool_rounds_exhausted": tool_rounds_exhausted})
+        response = await generate_response(self._resolve_model(bot, tool_choice), messages)
         call_failed = response is None
 
         if not call_failed and response.tool_calls:
@@ -78,16 +85,11 @@ class ModelNode:
 
         return self._answered(response)
 
-    def _resolve_model(self, bot: Bot, tool_choice: str | None, tool_rounds_made: int) -> Runnable:
+    def _resolve_model(self, bot: Bot, tool_choice: str | None) -> Runnable:
         """The model the compiler chose, with the tools bound to it."""
         model = bot.model_for(self._config.compiler.config.model_choice)
         if not self._tools:
             return model
-        # Past the budget the tools stay bound but forbidden. Omitting them would
-        # instead leave a model that has searched multiple times still emitting
-        # tool-call syntax, which parses to an empty reply.
-        if tool_rounds_made >= self._config.max_tool_rounds:
-            tool_choice = "none"
         return model.bind_tools(self._tools, tool_choice=tool_choice, parallel_tool_calls=True)
 
     def _answered(self, response: AIMessage) -> Command:
