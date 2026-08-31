@@ -43,6 +43,8 @@ class HintingCourseBot(CourseBot):
 
     MAX_RETRIEVAL_ROUNDS = 1
 
+    include_solution: bool = False
+
     model_nodes = (Node.RESPOND,)
 
     @staticmethod
@@ -81,7 +83,11 @@ class HintingCourseBot(CourseBot):
                 state,
                 fallback=self._fallback_response(),
             )
-            html = HintingResponseArtifact(course_name=bot.course_name, response=response).render()
+            html = HintingResponseArtifact(
+                course_name=bot.course_name,
+                response=response,
+                include_solution=bot.include_solution,
+            ).render()
             return Command(goto=END, update={"messages": [AIMessage(content=html)]})
 
         return respond_node

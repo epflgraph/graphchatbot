@@ -8,8 +8,10 @@
   </details>
   {% endfor %}
 
+  {% if include_solution %}
   <details style="border: 1px solid #CAC7C7; border-radius: 6px; margin-bottom: 12px; overflow: hidden;">
     <summary style="font-size: 15px; font-weight: 700; color: #B51F1F; padding: 14px 18px; cursor: pointer; background: #fbeeee; list-style: none;">{{ solution.title }}</summary>
     <div class="content" style="font-size: 15px; padding: 18px;">{{ solution.body }}</div>
   </details>
+  {% endif %}
 </div>
