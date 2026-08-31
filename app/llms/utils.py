@@ -172,7 +172,9 @@ async def generate_structured_response(
     Invalid credentials are logged at `CRITICAL`, since unlike the others they
     won't resolve on their own.
     """
-    structured_model = model.with_structured_output(output_schema)
+    # Structured output is always parsed and transformed before being shown to the
+    # user; the raw JSON should never appear in the token stream.
+    structured_model = model.with_structured_output(output_schema).with_config({"tags": ["nostream"]})
 
     try:
         return await asyncio.wait_for(structured_model.ainvoke(input=messages), timeout=wall_clock_timeout(model))
