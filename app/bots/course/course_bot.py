@@ -26,6 +26,7 @@ class RequestType(StrEnum):
     GREETING = "greeting"
     THEORY = "theory"
     PRACTICE = "practice"
+    IMMEDIATE = "immediate"
     ADMIN = "admin"
     UNRELATED = "unrelated"
 
@@ -41,6 +42,10 @@ CATEGORIES = {
     },
     RequestType.PRACTICE: {
         "description": "The user's request is about an exercise, lab session, practice exam or similar.",
+        "tool_choice": "any",
+    },
+    RequestType.IMMEDIATE: {
+        "description": "The user's request is a simple, factual course question with an immediate, concise answer; hinting does not make sense.",
         "tool_choice": "any",
     },
     RequestType.ADMIN: {
