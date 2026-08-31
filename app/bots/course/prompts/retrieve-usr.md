@@ -1,0 +1,1 @@
+Using the instructions above and the <dialog_history>, decide whether to call `search_course_material`. If the request is about course content, emit one or more parallel tool calls; otherwise emit nothing.

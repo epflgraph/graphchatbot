@@ -7,7 +7,7 @@ from langgraph.types import Command
 from app.bots.explique.models import RejectedResponse
 from app.bots.explique.response_evaluator import EvaluatorContext, ResolutionAction, ResponseEvaluator
 from app.bots.explique.state import ExpliqueBotState
-from app.bots.explique.transcript import all_assistant_turns
+from app.bots.transcript import all_assistant_turns
 from app.compilation.base import MessageCompiler
 from app.logging_config import truncate
 
