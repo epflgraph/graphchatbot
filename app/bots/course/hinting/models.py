@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -12,13 +14,29 @@ class Hint(ExpandableSection):
     """One progressive hint."""
 
 
-class Solution(ExpandableSection):
-    """The final, complete answer."""
+class ResponseSection(BaseModel):
+    """One piece of a hinting response: either a plain text paragraph or an expandable hint."""
+
+    type: Literal["text", "hint"] = Field(
+        ...,
+        description="'text' for a paragraph the student sees immediately; 'hint' for an expandable guidance block.",
+    )
+    content: str = Field(..., description="The section content; may contain Markdown and LaTeX.")
+    title: str | None = Field(
+        default=None,
+        description="Required when type is 'hint': the summary line of the expandable block.",
+    )
 
 
 class HintingResponse(BaseModel):
-    """A Socratic hinting response: an opening line, one or more hints, and a full solution."""
+    """A unified response made of ordered text/hint sections.
 
-    opening: str = Field(..., description="A short opening sentence that frames the problem without giving the answer.")
-    hints: list[Hint] = Field(..., description="One or more progressive hints, from least to most revealing.")
-    solution: Solution = Field(..., description="The final, complete answer/solution.")
+    The LLM decides how to compose the response: a greeting can be a single text section,
+    a practice problem can mix an opening text section with several hint sections, and a
+    solution request can use text sections to explain the answer directly.
+    """
+
+    sections: list[ResponseSection] = Field(
+        ...,
+        description="Ordered list of paragraphs and/or expandable hints that make up the response.",
+    )

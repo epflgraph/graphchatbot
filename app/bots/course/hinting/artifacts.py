@@ -7,19 +7,11 @@ from app.bots.course.hinting.models import HintingResponse
 
 class HintingResponseContext(TypedDict):
     course_name: str
-    opening: str
-    hints: list[dict[str, str]]
-    solution: dict[str, str]
-    include_solution: bool
+    sections: list[dict[str, str]]
 
 
 class HintingResponseArtifact(Artifact):
-    """A hinting response rendered as expandable Markdown sections.
-
-    The model always produces a `solution` field so it has a dedicated place for
-    the answer, but the rendered Markdown only shows the solution when the course
-    bot sets `include_solution=True`.
-    """
+    """A hinting response rendered as expandable Markdown sections."""
 
     TEMPLATE_DIR: ClassVar[Path] = Path(__file__).parent / "artifacts"
     TEMPLATE_NAME: ClassVar[str] = "hinting-response.md"
@@ -27,13 +19,9 @@ class HintingResponseArtifact(Artifact):
 
     course_name: str
     response: HintingResponse
-    include_solution: bool = True
 
     def _context(self) -> HintingResponseContext:
         return HintingResponseContext(
             course_name=self.course_name,
-            opening=self.response.opening,
-            hints=[hint.model_dump() for hint in self.response.hints],
-            solution=self.response.solution.model_dump(),
-            include_solution=self.include_solution,
+            sections=[section.model_dump() for section in self.response.sections],
         )

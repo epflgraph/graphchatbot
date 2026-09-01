@@ -3,24 +3,17 @@ from app.bots.course.hinting.models import HintingResponse
 
 
 class HintingResponseCompiler(GroundedResponseCompiler):
-    """Structured hinting response: opening, hints, and a solution.
+    """Unified hinting response compiler.
 
-    The model fills a `HintingResponse` schema, which is then rendered into an
-    HTML artifact by the respond node. The system prompt is shared with the
-    plain-text compiler; only this user template adds the JSON schema.
+    The model fills a single `HintingResponse` schema made of ordered text/hint
+    sections plus an optional solution. The respond node then either renders the
+    Markdown artifact (when hints or a solution are present) or returns plain
+    text directly (when only text sections are needed).
     """
 
     config = GroundedResponseCompiler.config.model_copy(
         update={
-            "system_template": "respond-hints-sys.md",
+            "system_template": "respond-sys.md",
             "output_schema": HintingResponse,
         }
     )
-
-
-class HintingPlainTextCompiler(GroundedResponseCompiler):
-    """Plain-text answer for hinting bots when structured hints are not needed
-    (greetings, admin, unrelated, or immediate factual questions).
-    """
-
-    config = GroundedResponseCompiler.config.model_copy(update={"system_template": "respond-text-sys.md"})

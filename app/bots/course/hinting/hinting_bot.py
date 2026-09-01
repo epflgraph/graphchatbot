@@ -2,7 +2,6 @@ import logging
 from enum import StrEnum
 
 from langchain_core.messages import AIMessage
-from langgraph.constants import TAG_NOSTREAM
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.runtime import Runtime
@@ -13,12 +12,12 @@ from app.bots.compilers.classify import ClassifyCompiler
 from app.bots.course.compilers.retrieve import RetrieveCompiler
 from app.bots.course.course_bot import CourseBot, RequestType
 from app.bots.course.hinting.artifacts import HintingResponseArtifact
-from app.bots.course.hinting.compilers import HintingPlainTextCompiler, HintingResponseCompiler
-from app.bots.course.hinting.models import Hint, HintingResponse, Solution
+from app.bots.course.hinting.compilers import HintingResponseCompiler
+from app.bots.course.hinting.models import HintingResponse, ResponseSection
 from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
-from app.compilation.invoke import structured_call, text_call
+from app.compilation.invoke import structured_call
 
 logger = logging.getLogger(__name__)
 
@@ -36,15 +35,13 @@ class HintingCourseBot(CourseBot):
     """CourseBot variant that gives Socratic, hint-based guidance.
 
     The graph is split into a lightweight retrieval node and a single answer
-    node. The answer node inspects the request category and either returns a
-    plain-text reply (greetings, admin, unrelated, immediate factual questions)
-    or a structured hint/solution rendered as HTML (theory/practice). No
-    language detection or enforcement is performed.
+    node. The answer node always uses the same structured response format: an
+    ordered list of text paragraphs and/or expandable hints. The LLM decides
+    which sections to produce based on the conversation. No language detection
+    or enforcement is performed.
     """
 
     MAX_RETRIEVAL_ROUNDS = 1
-
-    include_solution: bool = False
 
     model_nodes = (Node.RESPOND,)
 
@@ -60,23 +57,19 @@ class HintingCourseBot(CourseBot):
     def _fallback_response() -> HintingResponse:
         """What to render when the structured hinting call fails."""
         return HintingResponse(
-            opening="Je n'ai pas pu préparer les indices pour cette question.",
-            hints=[
-                Hint(title="Indice", body="Essaye de reformuler ta question ou de poser une question plus précise.")
-            ],
-            solution=Solution(title="Réponse complète", body="Désolé, une erreur est survenue. Réessaie plus tard."),
+            sections=[
+                ResponseSection(
+                    type="text",
+                    content="Je n'ai pas pu préparer les indices pour cette question. Essaye de reformuler ta question ou de poser une question plus précise.",
+                )
+            ]
         )
 
     def _make_respond_node(self):
-        """Returns a node that answers according to the request category."""
+        """Returns a node that produces the final response."""
 
         async def respond_node(state: BotState, runtime: Runtime[Bot]) -> Command:
             bot = runtime.context
-            category = state.get("category")
-
-            if category in (RequestType.GREETING, RequestType.ADMIN, RequestType.UNRELATED, RequestType.IMMEDIATE):
-                answer = await text_call(bot, HintingPlainTextCompiler, state, tags=(TAG_NOSTREAM,))
-                return Command(goto=END, update={"messages": [AIMessage(content=answer)]})
 
             response = await structured_call(
                 bot,
@@ -84,12 +77,11 @@ class HintingCourseBot(CourseBot):
                 state,
                 fallback=self._fallback_response(),
             )
-            html = HintingResponseArtifact(
+            rendered = HintingResponseArtifact(
                 course_name=bot.course_name,
                 response=response,
-                include_solution=bot.include_solution,
             ).render()
-            return Command(goto=END, update={"messages": [AIMessage(content=html)]})
+            return Command(goto=END, update={"messages": [AIMessage(content=rendered)]})
 
         return respond_node
 

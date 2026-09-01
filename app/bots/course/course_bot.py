@@ -24,11 +24,14 @@ class RequestType(StrEnum):
     one decides whether the course material is searched."""
 
     GREETING = "greeting"
-    THEORY = "theory"
-    PRACTICE = "practice"
-    IMMEDIATE = "immediate"
+    THEORY_REQUEST = "theory_request"
+    PRACTICE_REQUEST = "practice_request"
+    FACTUAL_REQUEST = "factual_request"
     ADMIN = "admin"
     UNRELATED = "unrelated"
+    VAGUE_REQUEST = "vague_request"
+    SOLUTION_REQUEST = "solution_request"
+    SOLUTION_ATTEMPT = "solution_attempt"
 
 
 CATEGORIES = {
@@ -36,15 +39,15 @@ CATEGORIES = {
         "description": "The user is just greeting the assistant or similar.",
         "tool_choice": None,
     },
-    RequestType.THEORY: {
-        "description": "The user's request is about a theoretical aspect of the course.",
+    RequestType.THEORY_REQUEST: {
+        "description": "The user's request is about a theoretical or conceptual aspect of the course.",
         "tool_choice": "any",
     },
-    RequestType.PRACTICE: {
-        "description": "The user's request is about an exercise, lab session, practice exam or similar.",
+    RequestType.PRACTICE_REQUEST: {
+        "description": "The user's request is about a specific exercise, lab session, practice exam or similar.",
         "tool_choice": "any",
     },
-    RequestType.IMMEDIATE: {
+    RequestType.FACTUAL_REQUEST: {
         "description": "The user's request is a simple, factual course question with an immediate, concise answer; hinting does not make sense.",
         "tool_choice": "any",
     },
@@ -55,6 +58,18 @@ CATEGORIES = {
     RequestType.UNRELATED: {
         "description": "The user's request is completely unrelated to the course.",
         "tool_choice": None,
+    },
+    RequestType.VAGUE_REQUEST: {
+        "description": "The user wants help but has not specified a concrete exercise, topic, or question (e.g. 'let's do an exercise', 'I have a question').",
+        "tool_choice": "any",
+    },
+    RequestType.SOLUTION_REQUEST: {
+        "description": "The user explicitly asks for the final answer or solution to a problem.",
+        "tool_choice": "any",
+    },
+    RequestType.SOLUTION_ATTEMPT: {
+        "description": "The user presents their own work, solution, or partial attempt to a problem; it may be correct or incorrect.",
+        "tool_choice": "any",
     },
 }
 

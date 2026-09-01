@@ -1,17 +1,12 @@
-{{ opening }}
+{% for section in sections %}
+{% if section.type == "text" %}
+{{ section.content }}
 
-{% for hint in hints %}
+{% else %}
 <details>
-<summary>{{ hint.title }}</summary>
+<summary>{{ section.title }}</summary>
 
-{{ hint.body }}
-</details>
-{% endfor %}
-{% if include_solution %}
-
-<details>
-<summary>{{ solution.title }}</summary>
-
-{{ solution.body }}
+{{ section.content }}
 </details>
 {% endif %}
+{% endfor %}

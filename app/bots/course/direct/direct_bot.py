@@ -39,7 +39,14 @@ class DirectCourseBot(CourseBot):
     def _route_after_classify(state: BotState) -> Node:
         """Course-content requests retrieve material; everything else answers directly."""
         category = state.get("category")
-        if category in (RequestType.THEORY, RequestType.PRACTICE, RequestType.IMMEDIATE):
+        if category in (
+            RequestType.THEORY_REQUEST,
+            RequestType.PRACTICE_REQUEST,
+            RequestType.FACTUAL_REQUEST,
+            RequestType.VAGUE_REQUEST,
+            RequestType.SOLUTION_REQUEST,
+            RequestType.SOLUTION_ATTEMPT,
+        ):
             return Node.RETRIEVE
         return Node.RESPOND
 
