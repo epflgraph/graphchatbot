@@ -3,16 +3,9 @@ from enum import StrEnum
 from functools import cached_property
 
 from langchain.tools import tool
-from langgraph.graph import StateGraph
-from langgraph.graph.state import CompiledStateGraph
 from pydantic import BaseModel
 
-from app.bots.base import Bot, BotState
-from app.bots.compilers.classify import ClassifyCompiler
-from app.bots.compilers.respond import ResponseCompiler
-from app.bots.nodes.classify import make_classify_node
-from app.bots.nodes.model import make_model_node
-from app.bots.nodes.tools import make_tools_node
+from app.bots.base import Bot
 from app.compilation.templates import render_prompt
 from app.interfaces.graphai import RAGResult, graphai
 
@@ -83,11 +76,11 @@ class CourseBot(Bot):
         index: str
         groups: list[str]
         tool_input_schema: type[BaseModel]  — ToolInput with course-specific filters
+        build_graph()
 
     Subclasses may override:
         CATEGORIES
         build_tools()
-        build_graph()
     """
 
     tool_input_schema: type[BaseModel]
@@ -150,17 +143,3 @@ class CourseBot(Bot):
                 self.search_course_material
             )
         ]
-
-    def build_graph(self) -> CompiledStateGraph:
-        tools = self.build_tools()
-
-        workflow = StateGraph(BotState, context_schema=Bot)
-        workflow.add_node(
-            "classify", make_classify_node(self.CATEGORIES, fallback=RequestType.GREETING, compiler=ClassifyCompiler)
-        )
-        workflow.add_node("model", make_model_node(tools, compiler=ResponseCompiler))
-        workflow.add_node("tools", make_tools_node(tools))
-        workflow.set_entry_point("classify")
-        workflow.add_edge("classify", "model")
-
-        return workflow.compile()

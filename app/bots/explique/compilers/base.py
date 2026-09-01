@@ -1,5 +1,6 @@
 from app.bots.compilers.grounded import GroundedDialogCompiler
-from app.bots.transcript import keep_dialog_roles, summarize_quiz
+from app.bots.explique.transcript import summarize_quiz
+from app.bots.transcript import keep_dialog_roles
 from app.compilation.base import MessageCompiler, Task
 from app.compilation.dialog import DialogTextCompiler, DialogTurnsCompiler
 from app.llms.utils import flatten_message
