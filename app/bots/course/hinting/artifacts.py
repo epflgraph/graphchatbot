@@ -14,15 +14,16 @@ class HintingResponseContext(TypedDict):
 
 
 class HintingResponseArtifact(Artifact):
-    """A hinting response rendered as expandable HTML sections.
+    """A hinting response rendered as expandable Markdown sections.
 
     The model always produces a `solution` field so it has a dedicated place for
-    the answer, but the rendered HTML only shows the solution when the course
+    the answer, but the rendered Markdown only shows the solution when the course
     bot sets `include_solution=True`.
     """
 
     TEMPLATE_DIR: ClassVar[Path] = Path(__file__).parent / "artifacts"
-    TEMPLATE_NAME: ClassVar[str] = "hinting-response.html"
+    TEMPLATE_NAME: ClassVar[str] = "hinting-response.md"
+    AUTOESCAPE: ClassVar[bool] = False
 
     course_name: str
     response: HintingResponse
