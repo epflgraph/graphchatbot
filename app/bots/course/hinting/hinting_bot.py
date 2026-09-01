@@ -2,6 +2,7 @@ import logging
 from enum import StrEnum
 
 from langchain_core.messages import AIMessage
+from langgraph.constants import TAG_NOSTREAM
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.runtime import Runtime
@@ -74,7 +75,7 @@ class HintingCourseBot(CourseBot):
             category = state.get("category")
 
             if category in (RequestType.GREETING, RequestType.ADMIN, RequestType.UNRELATED, RequestType.IMMEDIATE):
-                answer = await text_call(bot, HintingPlainTextCompiler, state)
+                answer = await text_call(bot, HintingPlainTextCompiler, state, tags=(TAG_NOSTREAM,))
                 return Command(goto=END, update={"messages": [AIMessage(content=answer)]})
 
             response = await structured_call(
