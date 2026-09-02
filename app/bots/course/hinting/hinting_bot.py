@@ -14,6 +14,7 @@ from app.bots.course.course_bot import CourseBot, RequestType
 from app.bots.course.hinting.artifacts import HintingResponseArtifact
 from app.bots.course.hinting.compilers import HintingResponseCompiler
 from app.bots.course.hinting.models import HintingResponse, ResponseSection
+from app.bots.languages import no_answer
 from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
@@ -59,7 +60,7 @@ class HintingCourseBot(CourseBot):
             sections=[
                 ResponseSection(
                     type="text",
-                    content="Je n'ai pas pu préparer les indices pour cette question. Essaye de reformuler ta question ou de poser une question plus précise.",
+                    content=no_answer(None),
                 )
             ]
         )
