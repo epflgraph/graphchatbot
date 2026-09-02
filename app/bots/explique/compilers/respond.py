@@ -14,8 +14,8 @@ from app.bots.explique.models import (
     StudentIntent,
     StudentState,
 )
-from app.bots.explique.transcript import last_tool_results
 from app.bots.explique.tutor_action import TutorAction
+from app.bots.transcript import last_tool_results
 from app.compilation.base import MessageCompilerConfig, ModelChoice
 from app.compilation.dialog import DialogTurnsContext
 

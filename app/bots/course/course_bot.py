@@ -3,16 +3,9 @@ from enum import StrEnum
 from functools import cached_property
 
 from langchain.tools import tool
-from langgraph.graph import StateGraph
-from langgraph.graph.state import CompiledStateGraph
 from pydantic import BaseModel
 
-from app.bots.base import Bot, BotState
-from app.bots.compilers.classify import ClassifyCompiler
-from app.bots.compilers.respond import ResponseCompiler
-from app.bots.nodes.classify import make_classify_node
-from app.bots.nodes.model import make_model_node
-from app.bots.nodes.tools import make_tools_node
+from app.bots.base import Bot
 from app.compilation.templates import render_prompt
 from app.interfaces.graphai import RAGResult, graphai
 
@@ -24,10 +17,14 @@ class RequestType(StrEnum):
     one decides whether the course material is searched."""
 
     GREETING = "greeting"
-    THEORY = "theory"
-    PRACTICE = "practice"
+    THEORY_REQUEST = "theory_request"
+    PRACTICE_REQUEST = "practice_request"
+    FACTUAL_REQUEST = "factual_request"
     ADMIN = "admin"
     UNRELATED = "unrelated"
+    VAGUE_REQUEST = "vague_request"
+    SOLUTION_REQUEST = "solution_request"
+    SOLUTION_ATTEMPT = "solution_attempt"
 
 
 CATEGORIES = {
@@ -35,12 +32,16 @@ CATEGORIES = {
         "description": "The user is just greeting the assistant or similar.",
         "tool_choice": None,
     },
-    RequestType.THEORY: {
-        "description": "The user's request is about a theoretical aspect of the course.",
+    RequestType.THEORY_REQUEST: {
+        "description": "The user's request is about a theoretical or conceptual aspect of the course.",
         "tool_choice": "any",
     },
-    RequestType.PRACTICE: {
-        "description": "The user's request is about an exercise, lab session, practice exam or similar.",
+    RequestType.PRACTICE_REQUEST: {
+        "description": "The user's request is about a specific exercise, lab session, practice exam or similar.",
+        "tool_choice": "any",
+    },
+    RequestType.FACTUAL_REQUEST: {
+        "description": "The user's request is a simple, factual course question with an immediate, concise answer; hinting does not make sense.",
         "tool_choice": "any",
     },
     RequestType.ADMIN: {
@@ -50,6 +51,18 @@ CATEGORIES = {
     RequestType.UNRELATED: {
         "description": "The user's request is completely unrelated to the course.",
         "tool_choice": None,
+    },
+    RequestType.VAGUE_REQUEST: {
+        "description": "The user wants help but has not specified a concrete exercise, topic, or question (e.g. 'let's do an exercise', 'I have a question').",
+        "tool_choice": "any",
+    },
+    RequestType.SOLUTION_REQUEST: {
+        "description": "The user explicitly asks for the final answer or solution to a problem.",
+        "tool_choice": "any",
+    },
+    RequestType.SOLUTION_ATTEMPT: {
+        "description": "The user presents their own work, solution, or partial attempt to a problem; it may be correct or incorrect.",
+        "tool_choice": "any",
     },
 }
 
@@ -63,11 +76,11 @@ class CourseBot(Bot):
         index: str
         groups: list[str]
         tool_input_schema: type[BaseModel]  — ToolInput with course-specific filters
+        build_graph()
 
     Subclasses may override:
         CATEGORIES
         build_tools()
-        build_graph()
     """
 
     tool_input_schema: type[BaseModel]
@@ -130,17 +143,3 @@ class CourseBot(Bot):
                 self.search_course_material
             )
         ]
-
-    def build_graph(self) -> CompiledStateGraph:
-        tools = self.build_tools()
-
-        workflow = StateGraph(BotState, context_schema=Bot)
-        workflow.add_node(
-            "classify", make_classify_node(self.CATEGORIES, fallback=RequestType.GREETING, compiler=ClassifyCompiler)
-        )
-        workflow.add_node("model", make_model_node(tools, compiler=ResponseCompiler))
-        workflow.add_node("tools", make_tools_node(tools))
-        workflow.set_entry_point("classify")
-        workflow.add_edge("classify", "model")
-
-        return workflow.compile()
