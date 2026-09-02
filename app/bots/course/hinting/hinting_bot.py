@@ -45,11 +45,10 @@ class HintingCourseBot(CourseBot):
 
     model_nodes = (Node.RESPOND,)
 
-    @staticmethod
-    def _route_after_classify(state: BotState) -> Node:
+    def _route_after_classify(self, state: BotState) -> Node:
         """Course-content requests retrieve material; everything else answers directly."""
         category = state.get("category")
-        if category in (RequestType.GREETING, RequestType.ADMIN, RequestType.UNRELATED):
+        if self.CATEGORIES[category]["tool_choice"] is None:
             return Node.RESPOND
         return Node.RETRIEVE
 

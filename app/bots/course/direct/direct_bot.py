@@ -35,20 +35,12 @@ class DirectCourseBot(CourseBot):
 
     model_nodes = (Node.RESPOND,)
 
-    @staticmethod
-    def _route_after_classify(state: BotState) -> Node:
+    def _route_after_classify(self, state: BotState) -> Node:
         """Course-content requests retrieve material; everything else answers directly."""
         category = state.get("category")
-        if category in (
-            RequestType.THEORY_REQUEST,
-            RequestType.PRACTICE_REQUEST,
-            RequestType.FACTUAL_REQUEST,
-            RequestType.VAGUE_REQUEST,
-            RequestType.SOLUTION_REQUEST,
-            RequestType.SOLUTION_ATTEMPT,
-        ):
-            return Node.RETRIEVE
-        return Node.RESPOND
+        if self.CATEGORIES[category]["tool_choice"] is None:
+            return Node.RESPOND
+        return Node.RETRIEVE
 
     def build_graph(self) -> CompiledStateGraph:
         tools = self.build_tools()
