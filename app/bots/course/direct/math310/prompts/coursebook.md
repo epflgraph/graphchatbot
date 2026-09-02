@@ -63,14 +63,6 @@ Linear Algebra I, Analyse I, Analyse II
 
 - Analyze structure of a ring, in particular polynomial rings 
 
-Algebra 
-
-Page 1 / 2 
-
-2026-2027 COURSE BOOKLET 
-
-
-
 ## **Teaching methods** 
 
 Lectures and exercise sessions 
@@ -92,24 +84,4 @@ Office hours No Assistant.e.s Yes Forum Yes
 2. S. Lang, Undergraduate Algebra. Undergraduate texts in Mathematics. Springer-Verlag, Inc. New York, second edition, 1990. 
 
 3. L. Childs, A Concrete Introduction to Higher Algebra. Undergraduate texts in Mathematics, Springer-Verlag, Inc. New York, 1995. 
-
-## **Ressources en bibliothèque** 
-
-- Find the references at the Library 
-
-## **Notes/Handbook** 
-
-Complete lecture notes will be available in PDF 
-
-## **Moodle Link** 
-
-- https://go.epfl.ch/MATH-310 
-
-## **Videos** 
-
-- https://mediaspace.epfl.ch/channel/MATH-310+Algebra/30044/subscribe 
-
-Algebra 
-
-Page 2 / 2 
 ```
