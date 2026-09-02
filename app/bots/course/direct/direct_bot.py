@@ -5,9 +5,9 @@ from langgraph.graph.state import CompiledStateGraph
 
 from app.bots.base import Bot, BotState
 from app.bots.compilers.classify import ClassifyCompiler
-from app.bots.course.compilers.respond import GroundedResponseCompiler
 from app.bots.course.compilers.retrieve import RetrieveCompiler
 from app.bots.course.course_bot import CourseBot, RequestType
+from app.bots.course.direct.compilers import DirectResponseCompiler
 from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
@@ -64,7 +64,7 @@ class DirectCourseBot(CourseBot):
         workflow.add_node(Node.TOOLS, make_tools_node(tools))
         workflow.add_node(
             Node.RESPOND,
-            make_model_node([], compiler=GroundedResponseCompiler),
+            make_model_node([], compiler=DirectResponseCompiler),
         )
 
         workflow.set_entry_point(Node.CLASSIFY)
