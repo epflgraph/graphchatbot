@@ -1,12 +1,11 @@
 from typing import Any, Mapping
 
 from app.bots.base import Bot
-from app.bots.compilers.respond import ResponseCompiler
+from app.bots.compilers.respond import ResponseCompiler, ResponseContext
 from app.bots.transcript import keep_dialog_roles, last_tool_results
-from app.compilation.dialog import DialogTurnsContext
 
 
-class GroundedResponseContext(DialogTurnsContext):
+class GroundedResponseContext(ResponseContext):
     """Context for a course answer that also needs this turn's retrieved material."""
 
     sources: str
