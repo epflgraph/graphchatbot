@@ -105,12 +105,15 @@ class CourseBot(Bot):
     def _format_results(result: RAGResult) -> list[dict]:
         formatted = []
         for chunk in result.chunks:
+            has_url = bool(chunk.original_link)
             item = {
                 "type": chunk.chunk_type,
-                "title": chunk.title,
+                # Drop the title for URL-less chunks so the model cannot infer
+                # their filenames/URLs from it. Their content is still usable.
+                "title": chunk.title if has_url else None,
                 "week": chunk.week,
                 "number": chunk.number,
-                "url": chunk.original_link,
+                "url": chunk.original_link or None,
                 "page": chunk.page,
                 "position": chunk.position,
                 "content.fr": chunk.content_fr,
@@ -120,7 +123,11 @@ class CourseBot(Bot):
             video_lectures = chunk.associated_video_lectures or []
             if video_lectures:
                 item["associated_video_lectures"] = [
-                    {"title": video_lecture.title, "url": video_lecture.original_link}
+                    {
+                        # Same sanitization for associated videos without URLs.
+                        "title": video_lecture.title if bool(video_lecture.original_link) else None,
+                        "url": video_lecture.original_link or None,
+                    }
                     for video_lecture in video_lectures
                 ]
 
