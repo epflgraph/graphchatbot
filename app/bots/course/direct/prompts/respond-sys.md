@@ -16,3 +16,5 @@ The course material retrieved for this turn is provided below. Use it to ground 
 <sources>
 {{ sources }}
 </sources>
+
+Before writing your answer, identify which sources above have a `url` field. Your response must include a Markdown link for each URL-bearing source that you use. Do not mention or link any source that has no `url` field, even if you use its content.

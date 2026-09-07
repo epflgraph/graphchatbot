@@ -17,6 +17,8 @@ The course material retrieved for this turn is provided below. Use it to ground 
 {{ sources }}
 </sources>
 
+Before writing your response, identify which sources above have a `url` field. Every section that relies on a URL-bearing source must contain a Markdown link to it. Do not mention or link any source that has no `url` field, even if you use its content.
+
 Structure your response as JSON matching this schema:
 - `sections`: an ordered list of sections. Each section has:
   - `type`: either `"text"` (a paragraph shown immediately) or `"hint"` (an expandable guidance block).
