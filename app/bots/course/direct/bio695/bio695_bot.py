@@ -15,17 +15,17 @@ class TheoryFilters(BaseModel):
 
 class PracticeFilters(BaseModel):
     type: Literal["practice"]
-    subtype: Optional[Literal["serie"]] = Field(
+    subtype: Optional[Literal["quiz"]] = Field(
         default=None,
-        description="Optional subtype for practice content.",
+        description="Optional subtype for practice content. 'quiz' = quiz/exercise sheets.",
     )
     number: Optional[str] = Field(
         default=None,
-        description="Serie/week number. Always an integer.",
+        description="Quiz number. Exercises are numbered with three integers (e.g. 3.1.4), but search using the first two: number=3, sub_number=1.",
     )
     sub_number: Optional[str] = Field(
         default=None,
-        description="Exercise number within the serie/week. Always an integer.",
+        description="Exercise group within the quiz. For exercise 3.1.4, use sub_number=1.",
     )
 
 
