@@ -51,7 +51,7 @@ class ToolInput(BaseModel):
 
 class MICRO452DebateBot(DebateCourseBot):
     name = "MICRO-452-case-studies"
-    index = "course_micro_452_case_studies"
+    index = "course_micro452casestudies"
     groups = []
     tool_input_schema = ToolInput
 
