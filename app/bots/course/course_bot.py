@@ -149,6 +149,12 @@ class CourseBot(Bot):
 
         result = await graphai.rag_retrieve(index=self.index, texts=[query], filters=filters)
 
+        # The answer needs grounded theory material: when this call searched
+        # non-theory content only, add a theory round over the same query.
+        if not any(chunk.type == "theory" for chunk in result.chunks):
+            logger.info("No theory material retrieved; adding a theory round.")
+            result = result + await graphai.rag_retrieve(index=self.index, texts=[query], filters={"type": "theory"})
+
         logger.info(f"Retrieved {len(result.chunks)} chunks.")
 
         return self._format_results(result)

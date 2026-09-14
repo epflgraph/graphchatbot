@@ -198,7 +198,7 @@ class GraphAIClient:
             "limit": limit,
         }
 
-        filters_dict = filters.model_dump(exclude_none=True) if filters else {}
+        filters_dict = filters.model_dump(exclude_none=True) if isinstance(filters, BaseModel) else (filters or {})
         if filters_dict:
             payload["filters"] = filters_dict
 
