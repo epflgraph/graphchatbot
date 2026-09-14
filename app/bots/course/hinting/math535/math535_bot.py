@@ -47,3 +47,4 @@ class MATH535Bot(HintingCourseBot):
     index = "course_math535"
     groups = ["graph-chatbot-admins", "graph-rag-vip", "chatbot_math_535"]
     tool_input_schema = ToolInput
+    content_language = "en"

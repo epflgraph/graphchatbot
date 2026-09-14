@@ -63,3 +63,4 @@ class BIOENG310Bot(HintingCourseBot):
     index = "course_bioeng310"
     groups = ["graph-chatbot-admins", "graph-rag-vip", "chatbot_bioeng_310"]
     tool_input_schema = ToolInput
+    content_language = "en"

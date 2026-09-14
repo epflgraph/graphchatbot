@@ -81,9 +81,15 @@ class CourseBot(Bot):
     Subclasses may override:
         CATEGORIES
         build_tools()
+        content_language — the language the course material is kept in; the
+        other translation of every retrieved chunk is dropped in
+        `_format_results`, so one search feeds the model half the text.
+        Defaults to French; English-taught courses override it with `"en"`.
     """
 
     tool_input_schema: type[BaseModel]
+
+    content_language: str = "fr"
 
     CATEGORIES: dict = CATEGORIES
 
@@ -101,11 +107,16 @@ class CourseBot(Bot):
 
     # --- Tools ---
 
-    @staticmethod
-    def _format_results(result: RAGResult) -> list[dict]:
+    @classmethod
+    def _format_results(cls, result: RAGResult) -> list[dict]:
         formatted = []
         for chunk in result.chunks:
             has_url = bool(chunk.original_link)
+            # The course's own language only: the other translation of a chunk
+            # is dropped, falling back to it when the preferred one is missing.
+            content = (chunk.content_fr if cls.content_language == "fr" else chunk.content_en) or (
+                chunk.content_en if cls.content_language == "fr" else chunk.content_fr
+            )
             item = {
                 "type": chunk.chunk_type,
                 # Drop the title for URL-less chunks so the model cannot infer
@@ -116,8 +127,7 @@ class CourseBot(Bot):
                 "url": chunk.original_link or None,
                 "page": chunk.page,
                 "position": chunk.position,
-                "content.fr": chunk.content_fr,
-                "content.en": chunk.content_en,
+                "content": content,
             }
 
             video_lectures = chunk.associated_video_lectures or []

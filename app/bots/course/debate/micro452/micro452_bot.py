@@ -54,6 +54,7 @@ class MICRO452DebateBot(DebateCourseBot):
     index = "course_micro452casestudies"
     groups = []
     tool_input_schema = ToolInput
+    content_language = "en"
 
     async def search_course_material(
         self,
