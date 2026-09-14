@@ -47,3 +47,4 @@ class CH314Bot(HintingCourseBot):
     index = "course_ch314"
     groups = []
     tool_input_schema = ToolInput
+    content_language = "en"

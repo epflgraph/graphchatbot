@@ -3,12 +3,16 @@ import logging
 import time
 
 import httpx
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from app.config import config
 from app.logging_config import truncate
 
 logger = logging.getLogger(__name__)
+
+# Scalars as the endpoint sometimes sends them: booleans and nulls serialized
+# as their string forms by at least one index (e.g. the case-studies one).
+STRING_SCALARS = {"None": None, "True": True, "False": False}
 
 
 class RAGChunk(BaseModel):
@@ -26,8 +30,18 @@ class RAGChunk(BaseModel):
     content_en: str | None = Field(default=None, alias="content.en")
     content_fr: str | None = Field(default=None, alias="content.fr")
     week: int | None = None
-    number: int | None = None
+    # LNCM format ('L1C2') on some indexes, a plain integer on others.
+    number: int | str | None = None
     associated_video_lectures: list["RAGChunk"] | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_string_scalars(cls, raw: object) -> object:
+        if isinstance(raw, dict):
+            return {
+                key: STRING_SCALARS.get(value, value) if isinstance(value, str) else value for key, value in raw.items()
+            }
+        return raw
 
     @property
     def chunk_type(self) -> str | None:
@@ -184,7 +198,7 @@ class GraphAIClient:
             "limit": limit,
         }
 
-        filters_dict = filters.model_dump(exclude_none=True) if filters else {}
+        filters_dict = filters.model_dump(exclude_none=True) if isinstance(filters, BaseModel) else (filters or {})
         if filters_dict:
             payload["filters"] = filters_dict
 

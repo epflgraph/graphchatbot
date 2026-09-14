@@ -47,3 +47,4 @@ class BIO695Bot(DirectCourseBot):
     index = "course_bio695"
     groups = []
     tool_input_schema = ToolInput
+    content_language = "en"

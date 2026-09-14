@@ -47,3 +47,4 @@ class StatisticsBot(DirectCourseBot):
     index = "course_swissunidemo"
     groups = []
     tool_input_schema = ToolInput
+    content_language = "en"

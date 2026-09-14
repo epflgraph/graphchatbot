@@ -70,3 +70,4 @@ class MATH310Bot(DirectCourseBot):
     index = "course_math310"
     groups = []
     tool_input_schema = ToolInput
+    content_language = "en"

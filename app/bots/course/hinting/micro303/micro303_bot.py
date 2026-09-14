@@ -47,3 +47,4 @@ class MICRO303Bot(HintingCourseBot):
     index = "course_micro303"
     groups = []
     tool_input_schema = ToolInput
+    content_language = "en"

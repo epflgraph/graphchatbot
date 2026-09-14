@@ -1,28 +1,12 @@
-from typing import Any, Mapping
-
-from app.bots.base import Bot
-from app.bots.compilers.respond import ResponseCompiler, ResponseContext
-from app.bots.transcript import keep_dialog_roles, last_tool_results
-
-
-class GroundedResponseContext(ResponseContext):
-    """Context for a course answer that also needs this turn's retrieved material."""
-
-    sources: str
+from app.bots.compilers.respond import ResponseCompiler
 
 
 class GroundedResponseCompiler(ResponseCompiler):
-    """The reply, backed by a sources block instead of raw tool turns.
+    """The reply, grounded in the turns that retrieved its sources.
 
-    The conversation is first stripped of tool-call and tool-result messages by
-    `keep_dialog_roles`, then the retrieved material is injected as a `<sources>`
-    block in the prompt context.
+    The conversation is kept whole: the `search_course_material` calls and
+    their results remain real turns in it, so the reply is written right
+    after the material it cites.
     """
 
     config = ResponseCompiler.config.model_copy(update={"system_template": "respond-sys.md"})
-    context_class = GroundedResponseContext
-    message_callbacks = (keep_dialog_roles,)
-
-    @classmethod
-    def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
-        return super().context_fields(bot, state) | {"sources": last_tool_results(state["original_messages"])}
