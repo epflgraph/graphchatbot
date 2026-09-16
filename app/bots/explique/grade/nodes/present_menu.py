@@ -6,7 +6,7 @@ from langgraph.runtime import Runtime
 from app.bots.base import Bot, StateUpdate
 from app.bots.explique.grade.prompts import MENU_TEMPLATES, MENU_UNAVAILABLE_TEMPLATE
 from app.bots.explique.grade.state import GradeBotState
-from app.bots.explique.transcript import all_assistant_turns
+from app.bots.transcript import all_assistant_turns
 from app.bots.utils import stream_text
 from app.compilation.templates import render_prompt
 

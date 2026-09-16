@@ -3,16 +3,9 @@ from enum import StrEnum
 from functools import cached_property
 
 from langchain.tools import tool
-from langgraph.graph import StateGraph
-from langgraph.graph.state import CompiledStateGraph
 from pydantic import BaseModel
 
-from app.bots.base import Bot, BotState
-from app.bots.compilers.classify import ClassifyCompiler
-from app.bots.compilers.respond import ResponseCompiler
-from app.bots.nodes.classify import make_classify_node
-from app.bots.nodes.model import make_model_node
-from app.bots.nodes.tools import make_tools_node
+from app.bots.base import Bot
 from app.compilation.templates import render_prompt
 from app.interfaces.graphai import RAGResult, graphai
 
@@ -24,10 +17,14 @@ class RequestType(StrEnum):
     one decides whether the course material is searched."""
 
     GREETING = "greeting"
-    THEORY = "theory"
-    PRACTICE = "practice"
+    THEORY_REQUEST = "theory_request"
+    PRACTICE_REQUEST = "practice_request"
+    FACTUAL_REQUEST = "factual_request"
     ADMIN = "admin"
     UNRELATED = "unrelated"
+    VAGUE_REQUEST = "vague_request"
+    SOLUTION_REQUEST = "solution_request"
+    SOLUTION_ATTEMPT = "solution_attempt"
 
 
 CATEGORIES = {
@@ -35,12 +32,16 @@ CATEGORIES = {
         "description": "The user is just greeting the assistant or similar.",
         "tool_choice": None,
     },
-    RequestType.THEORY: {
-        "description": "The user's request is about a theoretical aspect of the course.",
+    RequestType.THEORY_REQUEST: {
+        "description": "The user's request is about a theoretical or conceptual aspect of the course.",
         "tool_choice": "any",
     },
-    RequestType.PRACTICE: {
-        "description": "The user's request is about an exercise, lab session, practice exam or similar.",
+    RequestType.PRACTICE_REQUEST: {
+        "description": "The user's request is about a specific exercise, lab session, practice exam or similar.",
+        "tool_choice": "any",
+    },
+    RequestType.FACTUAL_REQUEST: {
+        "description": "The user's request is a simple, factual course question with an immediate, concise answer; hinting does not make sense.",
         "tool_choice": "any",
     },
     RequestType.ADMIN: {
@@ -50,6 +51,18 @@ CATEGORIES = {
     RequestType.UNRELATED: {
         "description": "The user's request is completely unrelated to the course.",
         "tool_choice": None,
+    },
+    RequestType.VAGUE_REQUEST: {
+        "description": "The user wants help but has not specified a concrete exercise, topic, or question (e.g. 'let's do an exercise', 'I have a question').",
+        "tool_choice": "any",
+    },
+    RequestType.SOLUTION_REQUEST: {
+        "description": "The user explicitly asks for the final answer or solution to a problem.",
+        "tool_choice": "any",
+    },
+    RequestType.SOLUTION_ATTEMPT: {
+        "description": "The user presents their own work, solution, or partial attempt to a problem; it may be correct or incorrect.",
+        "tool_choice": "any",
     },
 }
 
@@ -63,14 +76,20 @@ class CourseBot(Bot):
         index: str
         groups: list[str]
         tool_input_schema: type[BaseModel]  — ToolInput with course-specific filters
+        build_graph()
 
     Subclasses may override:
         CATEGORIES
         build_tools()
-        build_graph()
+        content_language — the language the course material is kept in; the
+        other translation of every retrieved chunk is dropped in
+        `_format_results`, so one search feeds the model half the text.
+        Defaults to French; English-taught courses override it with `"en"`.
     """
 
     tool_input_schema: type[BaseModel]
+
+    content_language: str = "fr"
 
     CATEGORIES: dict = CATEGORIES
 
@@ -88,26 +107,37 @@ class CourseBot(Bot):
 
     # --- Tools ---
 
-    @staticmethod
-    def _format_results(result: RAGResult) -> list[dict]:
+    @classmethod
+    def _format_results(cls, result: RAGResult) -> list[dict]:
         formatted = []
         for chunk in result.chunks:
+            has_url = bool(chunk.original_link)
+            # The course's own language only: the other translation of a chunk
+            # is dropped, falling back to it when the preferred one is missing.
+            content = (chunk.content_fr if cls.content_language == "fr" else chunk.content_en) or (
+                chunk.content_en if cls.content_language == "fr" else chunk.content_fr
+            )
             item = {
                 "type": chunk.chunk_type,
-                "title": chunk.title,
+                # Drop the title for URL-less chunks so the model cannot infer
+                # their filenames/URLs from it. Their content is still usable.
+                "title": chunk.title if has_url else None,
                 "week": chunk.week,
                 "number": chunk.number,
-                "url": chunk.original_link,
+                "url": chunk.original_link or None,
                 "page": chunk.page,
                 "position": chunk.position,
-                "content.fr": chunk.content_fr,
-                "content.en": chunk.content_en,
+                "content": content,
             }
 
             video_lectures = chunk.associated_video_lectures or []
             if video_lectures:
                 item["associated_video_lectures"] = [
-                    {"title": video_lecture.title, "url": video_lecture.original_link}
+                    {
+                        # Same sanitization for associated videos without URLs.
+                        "title": video_lecture.title if bool(video_lecture.original_link) else None,
+                        "url": video_lecture.original_link or None,
+                    }
                     for video_lecture in video_lectures
                 ]
 
@@ -118,6 +148,12 @@ class CourseBot(Bot):
         logger.info(f"filters=`{filters}`")
 
         result = await graphai.rag_retrieve(index=self.index, texts=[query], filters=filters)
+
+        # The answer needs grounded theory material: when this call searched
+        # non-theory content only, add a theory round over the same query.
+        if not any(chunk.type == "theory" for chunk in result.chunks):
+            logger.info("No theory material retrieved; adding a theory round.")
+            result = result + await graphai.rag_retrieve(index=self.index, texts=[query], filters={"type": "theory"})
 
         logger.info(f"Retrieved {len(result.chunks)} chunks.")
 
@@ -130,17 +166,3 @@ class CourseBot(Bot):
                 self.search_course_material
             )
         ]
-
-    def build_graph(self) -> CompiledStateGraph:
-        tools = self.build_tools()
-
-        workflow = StateGraph(BotState, context_schema=Bot)
-        workflow.add_node(
-            "classify", make_classify_node(self.CATEGORIES, fallback=RequestType.GREETING, compiler=ClassifyCompiler)
-        )
-        workflow.add_node("model", make_model_node(tools, compiler=ResponseCompiler))
-        workflow.add_node("tools", make_tools_node(tools))
-        workflow.set_entry_point("classify")
-        workflow.add_edge("classify", "model")
-
-        return workflow.compile()

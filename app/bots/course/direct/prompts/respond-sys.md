@@ -3,7 +3,9 @@ Your goal is to help students by providing correct, precise, and concise answers
 
 {% include "coursebook.md" +%}
 
-{% include "pedagogical-considerations.md" +%}
+{% include "pedagogical-common.md" +%}
+
+{% include "pedagogical-direct.md" +%}
 
 {% include "format.md" +%}
 

@@ -59,3 +59,4 @@ class ME331Bot(HintingCourseBot):
     index = "course_me331"
     groups = ["graph-chatbot-admins", "graph-rag-vip", "chatbot_me_331"]
     tool_input_schema = ToolInput
+    content_language = "en"

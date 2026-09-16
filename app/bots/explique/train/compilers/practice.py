@@ -1,7 +1,8 @@
 from typing import Any, Mapping
 
 from app.bots.base import Bot
-from app.bots.explique.compilers.base import ExpliqueGroundedCompiler, GroundedDialogContext
+from app.bots.compilers.grounded import GroundedDialogContext
+from app.bots.explique.compilers.base import ExpliqueGroundedCompiler
 from app.bots.explique.train.models import PracticeMaterial
 from app.compilation.base import MessageCompilerConfig, ModelChoice, Task
 

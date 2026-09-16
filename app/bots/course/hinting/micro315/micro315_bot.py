@@ -8,7 +8,7 @@ from app.bots.course.hinting.hinting_bot import HintingCourseBot
 
 
 class PracticeRequestType(StrEnum):
-    """What MICRO-315 splits the family's `RequestType.PRACTICE` into, since a
+    """What MICRO-315 splits the family's `RequestType.PRACTICE_REQUEST` into, since a
     lab question, a code question and a debugging question need different material."""
 
     EXERCISE = "exercise"
@@ -60,7 +60,7 @@ class MICRO315Bot(HintingCourseBot):
             "description": "The user is just greeting the assistant or similar.",
             "tool_choice": None,
         },
-        RequestType.THEORY: {
+        RequestType.THEORY_REQUEST: {
             "description": "The user is asking a question about a certain concept, a course lecture or the course slides.",
             "tool_choice": "any",
         },

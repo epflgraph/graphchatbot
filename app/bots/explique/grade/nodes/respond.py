@@ -9,7 +9,7 @@ from app.bots.explique.grade.compilers.respond import compiler_for
 from app.bots.explique.grade.state import GradeBotState
 from app.bots.explique.grade.stream_gate import StreamGate
 from app.bots.explique.response_evaluator import EvaluatorContext
-from app.bots.explique.transcript import all_assistant_turns
+from app.bots.transcript import all_assistant_turns
 from app.compilation.invoke import text_call
 
 logger = logging.getLogger(__name__)

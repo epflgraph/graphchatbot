@@ -11,7 +11,7 @@ from app.bots.explique.compilers.respond import (
     switch_representation,
 )
 from app.bots.explique.models import SessionSummary, StudentIntent, StudentState, TutorAction
-from app.bots.explique.transcript import last_tool_results
+from app.bots.transcript import last_tool_results
 
 # Tutor actions that get the plan's `direction` field.
 _DIRECTION_ACTIONS = (TutorAction.CHALLENGE_MASTERY,)
