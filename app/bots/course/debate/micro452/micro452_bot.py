@@ -66,17 +66,17 @@ class MICRO452DebateBot(DebateCourseBot):
             case_study_number = None
         logger.info(f"case_study_number={case_study_number!r}")
 
-        if case_study_number:
+        if case_study_number is not None:
             questions, solution_and_misconceptions, theory_result = await asyncio.gather(
                 graphai.rag_retrieve(
                     index=self.index,
-                    texts=keywords,
+                    texts=[],
                     limit=9999,
                     filters=PracticeFilters(number=case_study_number, is_solution=False),
                 ),
                 graphai.rag_retrieve(
                     index=self.index,
-                    texts=keywords,
+                    texts=[],
                     limit=9999,
                     filters=PracticeFilters(number=case_study_number, is_solution=True),
                 ),
@@ -87,15 +87,18 @@ class MICRO452DebateBot(DebateCourseBot):
                     filters=TheoryFilters(subtype="theory_slides"),
                 ),
             )
-            result = questions + solution_and_misconceptions + theory_result
-        else:
-            result = await graphai.rag_retrieve(
-                index=self.index,
-                texts=[],
-                limit=9999,
-                filters=PracticeFilters(subtype="case_study", is_solution=False),
-            )
+            if questions.chunks:
+                result = questions + solution_and_misconceptions + theory_result
+                logger.info(f"Retrieved {len(result.chunks)} chunks.")
+                return self._format_results(result)
+            logger.info(f"No case study numbered {case_study_number!r}; listing all questions instead.")
 
+        result = await graphai.rag_retrieve(
+            index=self.index,
+            texts=[],
+            limit=9999,
+            filters=PracticeFilters(subtype="case_study", is_solution=False),
+        )
         logger.info(f"Retrieved {len(result.chunks)} chunks.")
 
         return self._format_results(result)
