@@ -62,6 +62,8 @@ class MICRO452DebateBot(DebateCourseBot):
         case_study_number: Optional[str] = None,
     ) -> list:
         keywords = keywords or []
+        if case_study_number and case_study_number.strip().lower() in {"", "none", "null"}:
+            case_study_number = None
         logger.info(f"case_study_number={case_study_number!r}")
 
         if case_study_number:
