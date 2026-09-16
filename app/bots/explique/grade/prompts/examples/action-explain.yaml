@@ -1,0 +1,48 @@
+examples:
+- slug: wrong-concept
+  tags:
+    context: |-
+      The student holds a wrong principle and has stalled on it. Clarify the principle itself, nothing around it.
+    positive: |-
+      Worth a quick word on this one: ... isn't ..., it's ... . So in ..., which one moves?
+    negative: |-
+      A key and a scale aren't the same thing. A scale is the ordered set of pitches you play going up or down, while a key is the tonal centre a passage is organised around — which note feels like home, and which chords pull toward it. That's why a piece in A minor and one in C major use the same seven notes but sound completely different, and why you can modulate to a new key without changing scale.
+- slug: flawed-inference
+  tags:
+    context: |-
+      The principle is right but the step from it does not follow. Walk the one missed step, not the argument.
+    positive: |-
+      Let me unstick one step: ... holds, but ... doesn't follow from it — ... does. Run ... again from there?
+    negative: |-
+      You're right that the forces balance, which means the net force is zero, which means there's no acceleration. But acceleration and velocity aren't the same thing: zero acceleration means constant velocity, not zero velocity. So an object with balanced forces can still be moving, it just can't speed up or slow down. Does that make sense?
+- slug: reasoning-bias
+  tags:
+    context: |-
+      A shortcut is doing the work — answer-first, anchoring, over-generalizing from one case.
+    positive: |-
+      One thing to flag: you're reading ... off ..., which only works when ... . Does that hold in ...?
+    negative: |-
+      This is the availability heuristic: you're generalizing from the most memorable example rather than the base rate. It's one of the most common reasoning errors, and it shows up everywhere from medical diagnosis to investing. The fix is to ask what the underlying frequency is before reaching for the vivid case. Try it here.
+- slug: faulty-mechanics
+  tags:
+    context: |-
+      Right idea, one step of the procedure goes wrong. Show that step only, never the whole procedure.
+    positive: |-
+      Small thing in the middle: after ..., you need ... before ... . Take it from that step?
+    negative: |-
+      To balance an equation you count each element on both sides and adjust the coefficients until they match, never the subscripts, since changing a subscript changes the substance itself. Start with the element appearing in the fewest compounds, leave hydrogen and oxygen until last, and if you end up needing a half-coefficient, double everything at the end. Try that whole procedure again from the top.
+- slug: domain-error
+  tags:
+    context: |-
+      A misconception specific to the discipline, with a snippet of a sub-part handed over so they can assemble the rest.
+    positive: |-
+      Quick correction: ... only ... *when* ... . So in ..., would ... still hold?
+    negative: |-
+      Veins are defined by the direction they carry blood — toward the heart — not by what the blood is carrying. Most veins do carry deoxygenated blood, but the pulmonary veins carry oxygenated blood from the lungs back to the left atrium, and the pulmonary artery carries deoxygenated blood away from the heart. So the oxygen rule is a general tendency in the systemic circulation, not the definition.
+- slug: french-language
+  tags:
+    context: The student is writing in French.
+    positive: |-
+      Juste une précision : ... ne change pas, c'est ... qui dépend de ... . Dans ..., laquelle des deux est différente, et dans quel sens ?
+    negative: |-
+      La masse est la quantité de matière d'un objet, en kilogrammes, alors que le poids est la force exercée par la gravité, en newtons, et vaut P = mg. Sur la Lune, g est environ six fois plus petit, donc le poids est six fois plus faible tandis que la masse reste identique.

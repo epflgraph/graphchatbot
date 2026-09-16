@@ -1,0 +1,100 @@
+examples:
+- slug: covered-after-a-wrong-turn
+  tags:
+    example_dialog_history: |-
+      ----AI----
+      Topic: **Classical conditioning**.
+
+      Explain it in your own words, as though you were teaching it to someone seeing it for the first time.
+
+      ----HUMAN----
+      It's when an animal learns to link two things together, like a sound and food, and then reacts to the sound.
+
+      ----AI----
+      Take a cat that comes running at the electric tin opener. Which part of that works before the cat has learned anything?
+
+      ----HUMAN----
+      The sound, I think? That's what gets it moving.
+
+      ----AI----
+      Try that again — the cat has heard the opener since the day it arrived. What did it never have to learn to want?
+
+      ----HUMAN----
+      Oh, the food. The food works on its own, the sound only got its meaning from turning up before the food.
+
+      ----AI----
+      Now run the opener for a week with nothing in the tin.
+
+      ----HUMAN----
+      The cat gives up on it, because the sound stopped predicting anything. But I'd expect it to come back if you left it a while — the link isn't wiped, it's just not paying off.
+    output: |-
+      {
+        "reasoning": "The student opened with a loose 'linking two things' account and mislabelled which stimulus was doing the work, then corrected themselves once pushed and carried the idea through to extinction and its recovery without further help.",
+        "topics": ["Which stimulus produces a reaction without any learning, and why the paired one only borrows its meaning", "What repeated pairing does, and what happens once the pairing stops", "That a faded reaction can return, so the link is suppressed rather than erased"],
+        "strengths": ["Dropped a wrong first answer as soon as it was questioned, instead of defending it", "Reached the recovery case on their own, past the point they were asked about"],
+        "weaknesses": ["Names the two stimuli confidently only after being prompted — worth practising on a fresh reflex from scratch"]
+      }
+- slug: covered-but-thin-in-places
+  tags:
+    example_dialog_history: |-
+      ----AI----
+      Topic: **The phases of the Moon**.
+
+      Explain it in your own words, as though you were teaching it to someone seeing it for the first time.
+
+      ----HUMAN----
+      The Moon makes no light of its own, it reflects the Sun. As it goes round the Earth we see different amounts of the lit half from where we're standing, and that's the phases.
+
+      ----AI----
+      So at full moon, where is the Moon relative to the Sun and the Earth?
+
+      ----HUMAN----
+      Opposite the Sun with the Earth in between, so we're looking straight at the lit side.
+
+      ----AI----
+      Then why isn't there an eclipse every full moon?
+
+      ----HUMAN----
+      The Moon's orbit is tilted a few degrees, so most months it passes above or below the Earth's shadow instead of through it.
+
+      ----AI----
+      And the same face of the Moon is always turned toward us. Why?
+
+      ----HUMAN----
+      Because it spins once per orbit. I know that's the rule but I couldn't tell you why it ended up that way.
+    output: |-
+      {
+        "reasoning": "The student had the reflected-light and geometry account from their opening message and carried it unaided to the eclipse case, bringing the orbital tilt themselves; the synchronised rotation came back as a remembered rule they could not motivate.",
+        "topics": ["That the Moon is lit by the Sun and the phases are how much of the lit half we can see", "The Sun-Earth-Moon arrangement that produces a full moon", "Why that arrangement does not produce an eclipse every month", "That the Moon turns once per orbit, so one face stays toward us"],
+        "strengths": ["Reached for the orbital tilt without being pointed at it", "Said plainly which part they had memorised rather than dressing it up"],
+        "weaknesses": ["Holds the synchronised rotation as a bare fact — worth working out why a spin locked to the orbit is the state it settles into"]
+      }
+- slug: covered-with-nothing-left-to-revisit
+  tags:
+    example_dialog_history: |-
+      ----AI----
+      Topic: **Buoyancy**.
+
+      Explain it in your own words, as though you were teaching it to someone seeing it for the first time.
+
+      ----HUMAN----
+      A fluid pushes up on anything in it with a force equal to the weight of the fluid that the object shoved out of the way. Float or sink is just that push against the object's own weight.
+
+      ----AI----
+      So take a steel bar and a steel bowl of the same mass. Why does one sink and one float?
+
+      ----HUMAN----
+      The bowl displaces far more water because of the air it encloses, so the upward push is larger even though the steel weighs the same. Shape sets the displaced volume, not the material.
+
+      ----AI----
+      Now push that bowl down until water pours over the rim.
+
+      ----HUMAN----
+      Once it floods, the enclosed air is gone and the displaced volume drops back to the steel's own volume. The push is then less than the weight and it sinks, and it won't come back up on its own.
+    output: |-
+      {
+        "reasoning": "The student gave the displacement account unprompted in their opening message and carried it through both the shape case and the flooding case without help, including that the sinking is irreversible.",
+        "topics": ["That the upward force equals the weight of the fluid displaced, weighed against the object's own weight", "Why shape rather than material decides whether equal masses float", "What flooding does to the displaced volume, and why the sinking does not reverse"],
+        "strengths": ["Brought the displacement rule themselves rather than waiting to be led to it", "Followed the flooded case through to it being irreversible, which was not asked"],
+        "weaknesses": []
+      }

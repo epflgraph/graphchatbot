@@ -3,7 +3,7 @@ from configparser import ConfigParser
 from pathlib import Path
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 load_dotenv()
 
@@ -55,6 +55,28 @@ class LangfuseConfig(BaseConfig):
     environment: str | None = None
 
 
+class MoodleConfig(BaseConfig):
+    base_url: str | None = None
+    token: str | None = None
+    timeout: float = Field(default=10.0, gt=0)
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.base_url and self.token)
+
+    @model_validator(mode="after")
+    def _require_both_or_neither(self) -> "MoodleConfig":
+        if bool(self.base_url) != bool(self.token):
+            raise ValueError("Moodle config needs both base_url and token, or neither")
+        return self
+
+
+class MoodlePollingConfig(BaseConfig):
+    """Polling that keeps a graded course's topic groups in step with its tagged quizzes."""
+
+    interval_seconds: float = Field(default=30.0, gt=0)
+
+
 class AppConfig(BaseConfig):
     rcp: RcpConfig
     elasticsearch: ElasticsearchConfig
@@ -62,6 +84,8 @@ class AppConfig(BaseConfig):
     graphai: GraphaiConfig
     cache: CacheConfig = Field(default_factory=CacheConfig)
     langfuse: LangfuseConfig = Field(default_factory=LangfuseConfig)
+    moodle: MoodleConfig = Field(default_factory=MoodleConfig)
+    moodle_polling: MoodlePollingConfig = Field(default_factory=MoodlePollingConfig)
 
 
 # Overridable so the test suite can point at a placeholder config (see `tests/__init__.py`).

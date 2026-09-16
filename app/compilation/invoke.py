@@ -1,6 +1,7 @@
 import logging
-from typing import TYPE_CHECKING, Any, Mapping, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Mapping, TypeVar
 
+from langchain_core.callbacks import AsyncCallbackHandler
 from pydantic import BaseModel
 
 from app.bots.languages import no_answer
@@ -38,27 +39,41 @@ async def structured_call(
     return result
 
 
+class TextStreamCallbackHandler(AsyncCallbackHandler):
+    """Hands each token of a streamed call to `stream_writer` as it arrives."""
+
+    raise_error = True
+
+    def __init__(self, stream_writer: Callable[[str], None]):
+        self.stream_writer = stream_writer
+
+    async def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
+        self.stream_writer(token)
+
+
 async def text_call(
     bot: "Bot",
     compiler: type[MessageCompiler],
     state: Mapping[str, Any],
     tags: tuple[str, ...] = (),
+    fallback: str | None = None,
+    stream_writer: Callable[[str], None] | None = None,
 ) -> str:
-    """Compile the call, run it, and return the model's plain text response, or the
-    canned `NO_ANSWER` if anything goes wrong. `tags` reach the client as LangChain run tags.
-
-    Unlike `structured_call` there is no caller-supplied fallback: this is the
-    last call of a turn, so nothing downstream can recover it and the student
-    reads whatever comes back from here.
+    """Compile the call, run it, and return the model's plain text response, or `fallback` if anything goes wrong.
+    - `tags` reach the client as LangChain run tags.
+    - `fallback` defaults to a canned apology, in the language of the turn.
+    - `stream_writer` streams the call: it is handed each token as it arrives.
     """
     messages = compiler.compile(bot, state)
     model = bot.model_for(compiler.config.model_choice).with_config(tags=list(tags))
+    if stream_writer is not None:
+        model = model.bind(stream=True).with_config(callbacks=[TextStreamCallbackHandler(stream_writer)])
 
     message = await generate_response(model, messages)
 
     response = flatten_content(message.content) if message is not None else ""
     if not response.strip():
-        logger.warning("Text %s call produced nothing; falling back to NO_ANSWER", compiler.config.task)
-        return no_answer(state.get("lang_code"))
+        logger.warning("Text %s call produced nothing; using fallback response", compiler.config.task)
+        return no_answer(bot.prompt_search_path, state.get("lang_code")) if fallback is None else fallback
 
     return response

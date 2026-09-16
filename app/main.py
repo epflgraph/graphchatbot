@@ -3,12 +3,16 @@ This module creates the FastAPI application that constitutes the entry point of 
 It defines the input and output models and creates the endpoints.
 """
 
-from contextlib import asynccontextmanager
+import asyncio
+from contextlib import asynccontextmanager, suppress
 
 import uvicorn
 from fastapi import FastAPI
 
 from app.bots import registry as bot_registry
+from app.bots.explique.grade.course_polling import start_polling
+from app.config import config
+from app.interfaces.moodle import moodle
 from app.logging_config import setup_logging
 from app.routers import public
 
@@ -29,6 +33,8 @@ async def lifespan(app: FastAPI):
     ################################################################
     bot_registry.init_bots()
 
+    polling = start_polling(bot_registry.list_bots(), interval_seconds=config.moodle_polling.interval_seconds)
+
     ################################################################
     # Yield execution to API                                       #
     ################################################################
@@ -37,7 +43,12 @@ async def lifespan(app: FastAPI):
     ################################################################
     # After shutdown                                               #
     ################################################################
-    pass
+    if polling is not None:
+        polling.cancel()
+        with suppress(asyncio.CancelledError):
+            await polling
+
+    await moodle.aclose()
 
 
 app = FastAPI(

@@ -5,7 +5,8 @@ from typing import ClassVar
 
 from langchain_core.messages import BaseMessage
 from langgraph.runtime import Runtime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+from typing_extensions import Self
 
 from app.bots.base import Bot, BotState, StateUpdate
 from app.bots.cache import image_transcriptions
@@ -17,22 +18,25 @@ from app.llms.utils import generate_structured_response, has_image_part
 logger = logging.getLogger(__name__)
 
 
+# Placeholder text for unreadable image.
+UNREADABLE_IMAGE_TEXT = "<user uploaded image>"
+
+
 class ImageTranscription(BaseModel):
     """What an image a user sent says, rendered as if they had typed it."""
 
+    readable: bool = Field(description="Whether the image carries anything to transcribe.")
     transcription: str = Field(
-        default="<user uploaded image>",
+        default=UNREADABLE_IMAGE_TEXT,
         description="The image's content, transcribed as the user's own turn and written in their voice.",
     )
 
-
-@dataclass(frozen=True)
-class TranscriptionResult:
-    """One image turn rewritten to text, and whether
-    the transcription was successful or fell back to the default."""
-
-    failed: bool
-    message: BaseMessage
+    @model_validator(mode="after")
+    def _drop_transcription_if_unreadable(self) -> Self:
+        """If an image carries nothing to transcribe, set its transcription to the placeholder text."""
+        if not self.readable:
+            self.transcription = UNREADABLE_IMAGE_TEXT
+        return self
 
 
 @dataclass(frozen=True)
@@ -80,29 +84,23 @@ class ImageTranscriber:
                 logger.warning("Attempt count is not a number (%r); reading the image again", attempts)
         return 0
 
-    async def run(self, messages: list[BaseMessage]) -> TranscriptionResult:
-        """Transcribe the image in the last turn of `messages`, checking the cache first."""
+    async def run(self, messages: list[BaseMessage]) -> BaseMessage:
+        """The last turn of `messages` with its image transcribed, checking the cache first."""
         compiled_messages = self.compiler.compile(self.bot, {"messages": messages})
         cache_key = self._cache_key(compiled_messages)
-        cached_transcription = image_transcriptions.CACHE.get(cache_key)
+        transcription = image_transcriptions.CACHE.get(cache_key)
 
-        if cached_transcription is not None:
-            # Cache hit
-            failed = False
-            rewritten = messages[-1].model_copy(update={"content": cached_transcription})
-        else:
+        if transcription is None:
             # Cache miss
             result = await self._read_image(cache_key, compiled_messages)
-            failed = result is None
-            transcription = ImageTranscription().transcription if failed else result.transcription
+            transcription = UNREADABLE_IMAGE_TEXT if result is None else result.transcription
 
-            # Never cache a failure — only the attempt that produced it
-            if not failed:
+            # Never cache a failure; only the attempt that produced it. An image that carries
+            # nothing is an answer, not a failure, so later turns don't read it again.
+            if result is not None:
                 image_transcriptions.CACHE.put(cache_key, transcription)
 
-            rewritten = messages[-1].model_copy(update={"content": transcription})
-
-        return TranscriptionResult(message=rewritten, failed=failed)
+        return messages[-1].model_copy(update={"content": transcription})
 
     async def _read_image(self, cache_key: CacheKey, compiled: list[BaseMessage]) -> BaseModel | None:
         """Read an image the cache holds no transcription for, recording a failed attempt.
@@ -138,7 +136,8 @@ def make_image_transcriber_node(compiler: type[MessageCompiler], on_unreadable: 
     """Returns a node that transcribes every image in the conversation.
 
     `on_unreadable` is a `category`, not a node name; `compiler`'s schema must
-    carry a `transcription` field, as `ImageTranscription` does.
+    carry a `transcription` field that reads `UNREADABLE_IMAGE_TEXT` when nothing was
+    read, as `ImageTranscription` does.
     """
 
     async def image_transcriber_node(state: BotState, runtime: Runtime[Bot]) -> StateUpdate:
@@ -146,9 +145,8 @@ def make_image_transcriber_node(compiler: type[MessageCompiler], on_unreadable: 
 
         messages = state["messages"]
 
-        # Each context is the transcript up to and including one image turn — that
-        # prefix becomes that image's own dialog history, so transcription can resolve
-        # notation from what preceded it without leaking what came after.
+        # Each context is the transcript up to and including one image turn, so a
+        # compiler that reads the conversation never sees what came after that image.
         image_contexts = [
             messages[: idx + 1]
             for idx, message in enumerate(messages)
@@ -164,13 +162,13 @@ def make_image_transcriber_node(compiler: type[MessageCompiler], on_unreadable: 
         # Update only the messages that got transcribed here, not the whole dialog.
         # This happens by id: each result keeps its original turn's id, so `add_messages`
         # replaces it in place instead of appending a duplicate.
-        state_update = {"messages": [result.message for result in results]}
+        state_update = {"messages": list(results)}
 
         latest_message = messages[-1]
         latest_message_has_image = has_image_part(latest_message.content)
         latest_transcription = results[-1]
 
-        if latest_message_has_image and latest_transcription.failed:
+        if latest_message_has_image and latest_transcription.content == UNREADABLE_IMAGE_TEXT:
             state_update["category"] = on_unreadable
 
         return state_update

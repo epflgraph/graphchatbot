@@ -30,3 +30,14 @@ host: https://langfuse.cede-apps.ch
 secret_key: xxxx
 public_key: xxxx
 environment: local
+
+[moodle]
+; The web-service account this app talks to Moodle through.
+base_url: https://moodle.epfl.ch
+token: xxxx
+; Seconds to wait on a Moodle call before giving up.
+timeout: 10
+
+[moodle_polling]
+; Seconds between polling passes.
+interval_seconds: 30

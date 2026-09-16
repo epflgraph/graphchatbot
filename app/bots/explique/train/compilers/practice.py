@@ -1,9 +1,15 @@
 from typing import Any, Mapping
 
 from app.bots.base import Bot
-from app.bots.explique.train.compilers.base import ExpliqueGroundedCompiler, ExpliqueTask, GroundedDialogContext
+from app.bots.explique.compilers.base import ExpliqueGroundedCompiler, GroundedDialogContext
 from app.bots.explique.train.models import PracticeMaterial
-from app.compilation.base import MessageCompilerConfig, ModelChoice
+from app.compilation.base import MessageCompilerConfig, ModelChoice, Task
+
+
+class TrainTask(Task):
+    """The task only the tutor runs, on top of the `ExpliqueTask` ones."""
+
+    PRACTICE = "practice"
 
 
 class PracticeContext(GroundedDialogContext):
@@ -16,7 +22,7 @@ class PracticeCompiler(ExpliqueGroundedCompiler):
     context_class = PracticeContext
 
     config = MessageCompilerConfig(
-        task=ExpliqueTask.PRACTICE,
+        task=TrainTask.PRACTICE,
         model_choice=ModelChoice.LIGHT,
         system_template="practice-sys.md",
         user_template="practice-usr.md",

@@ -1,0 +1,78 @@
+examples:
+- slug: one-claim-per-point
+  tags:
+    context: |-
+      The sources cover the topic and nothing else. The work is splitting them into claims a
+      student can be right or wrong about one at a time.
+    example_sources: |-
+      Slides 12 — Buffer solutions. A weak acid dissociates only partially, so the acid and its
+      conjugate base are both present in solution at once. A buffer resists change in pH when small
+      amounts of acid or base are added. It is prepared from a weak acid together with its conjugate
+      base in comparable amounts. Added H+ is taken up by the conjugate base; added OH- is taken up
+      by the weak acid. The Henderson-Hasselbalch relation, pH = pKa + log([A-]/[HA]), places the pH
+      near the pKa whenever the two are present in similar amounts, and at exactly the pKa when they
+      are equal. Buffer capacity is greatest at that equal ratio and falls away as the ratio departs
+      from it. The buffer fails once one of the two components has been largely consumed.
+    output: |-
+      {
+        "reasoning": "The topic is what a buffer is made of, why that composition resists a change in pH, and where the resistance runs out; the Henderson-Hasselbalch relation is one way of writing the pH claim rather than a claim of its own.",
+        "points": [
+          "A weak acid dissociates only partially, so the acid and its conjugate base are both present at once",
+          "A buffer resists a change in pH when acid or base is added to it",
+          "A buffer needs both a weak acid and its conjugate base present in comparable amounts",
+          "Added acid is taken up by the conjugate base",
+          "Added base is taken up by the weak acid",
+          "The pH of a buffer is set by the acid's pKa together with the ratio of the two components",
+          "The pH equals the pKa when the two components are present in equal amounts",
+          "The buffer's capacity to absorb added acid or base is greatest at that equal ratio",
+          "That capacity falls as the ratio moves away from equal",
+          "The buffer stops working once one of the two components has been largely consumed"
+        ]
+      }
+    rejected_points: |-
+      - "A buffer resists pH change when acid or base is added, and is made from a weak acid and its
+        conjugate base" — two claims joined by "and"; a student could describe the behaviour correctly
+        and the composition wrongly and still tick it off.
+      - "pH = pKa + log([A-]/[HA])" — the notation of one passage rather than the idea behind it; a
+        student who cannot reproduce the formula may still know exactly what sets the pH.
+      - "Buffer capacity peaks at the half-equivalence point of the titration curve from Lab 4" — names
+        a course's own material, and reaches into titration, which this topic does not cover.
+      - "Buffers hold blood near pH 7.4 through the bicarbonate system" — true, and absent from the
+        sources; the bar must not include what this course never taught.
+- slug: sources-cover-more-than-the-topic
+  tags:
+    context: |-
+      The retrieved material runs past the topic it was fetched for. The neighbouring material is
+      left out however well the sources cover it.
+    example_sources: |-
+      Slides 4 — Oscillations. Simple harmonic motion arises whenever the restoring force on a body
+      is proportional to its displacement and directed back toward equilibrium. The motion is
+      sinusoidal in time. Its period does not depend on the amplitude. Energy passes back and forth
+      between kinetic and potential, with the total conserved. A mass on a spring, and a pendulum at
+      small angles, are both instances of it.
+
+      Later in the same deck: adding a resistive force damps the oscillation, so the amplitude decays
+      over time. A driven oscillator reaches its largest amplitude when the driving frequency
+      approaches the natural frequency, which is resonance.
+    output: |-
+      {
+        "reasoning": "The topic is what makes a motion simple harmonic and what follows from that; the damping and resonance material later in the same deck belongs to a neighbouring topic and is left out of the bar.",
+        "points": [
+          "A restoring force that grows in proportion to the displacement produces simple harmonic motion",
+          "That force always points back toward the equilibrium position",
+          "The resulting motion varies sinusoidally with time",
+          "The period of the motion does not depend on how large the swing is",
+          "Energy moves back and forth between kinetic and potential through the motion",
+          "The total of those two stays constant while nothing dissipates it",
+          "A mass on a spring is an instance of this motion",
+          "A pendulum swinging through small angles is another instance of it"
+        ]
+      }
+    rejected_points: |-
+      - "Adding a resistive force makes the amplitude decay over time" — sitting in the sources, but
+        belonging to damping; retrieved material routinely spills past the topic it was fetched for.
+      - "A driven oscillator peaks in amplitude when driven near its natural frequency" — the same
+        spill, one topic further on again.
+      - "Energy moves between kinetic and potential, and the total is conserved" — two claims in one,
+        and the second holds only while nothing dissipates, so a student could have the exchange right
+        and the conservation wrong.

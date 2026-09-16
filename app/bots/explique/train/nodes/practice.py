@@ -3,16 +3,17 @@ import logging
 from langgraph.runtime import Runtime
 
 from app.bots.base import Bot, StateUpdate
+from app.bots.explique.models import QuizConfig, QuizQuestions
+from app.bots.explique.quiz_page import Quiz
 from app.bots.explique.train.compilers.practice import PracticeCompiler
-from app.bots.explique.train.models import PracticeMaterial, QuizConfig, QuizQuestions
-from app.bots.explique.train.quiz_page import Quiz
-from app.bots.explique.train.state import ExpliqueBotState
+from app.bots.explique.train.models import PracticeMaterial
+from app.bots.explique.train.state import TrainBotState
 from app.compilation.invoke import structured_call
 
 logger = logging.getLogger(__name__)
 
 
-async def practice_node(state: ExpliqueBotState, runtime: Runtime[Bot]) -> StateUpdate:
+async def practice_node(state: TrainBotState, runtime: Runtime[Bot]) -> StateUpdate:
     """Compute this turn's practice material into `practice_response`, for `respond` to
     return verbatim when there is any."""
     bot = runtime.context

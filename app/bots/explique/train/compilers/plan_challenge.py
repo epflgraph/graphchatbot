@@ -1,4 +1,4 @@
-from app.bots.explique.train.compilers.base import ExpliqueGroundedCompiler, ExpliqueTask
+from app.bots.explique.compilers.base import ExpliqueGroundedCompiler, ExpliqueTask
 from app.bots.explique.train.models import ChallengePlan
 from app.compilation.base import MessageCompilerConfig, ModelChoice
 

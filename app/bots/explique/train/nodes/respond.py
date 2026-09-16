@@ -7,9 +7,9 @@ from langgraph.runtime import Runtime
 from langgraph.types import Command
 
 from app.bots.base import Bot
+from app.bots.explique.models import StudentIntent
 from app.bots.explique.train.compilers.respond import compiler_for
-from app.bots.explique.train.models import StudentIntent
-from app.bots.explique.train.state import ExpliqueBotState
+from app.bots.explique.train.state import TrainBotState
 from app.compilation.invoke import text_call
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def make_respond_node(on_candidate_response: str):
     """Generates the tutor's response and sends it to be checked before delivery."""
 
-    async def respond_node(state: ExpliqueBotState, runtime: Runtime[Bot]) -> Command:
+    async def respond_node(state: TrainBotState, runtime: Runtime[Bot]) -> Command:
         """Looks up the reply by category, except a filled practice request,
         whose material comes from `practice` and skips generation entirely."""
         bot = runtime.context

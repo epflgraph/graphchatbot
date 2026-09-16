@@ -1,0 +1,262 @@
+examples:
+- slug: opening-monologue-earns-what-it-works
+  tags:
+    example_expected_points: |-
+      1. Individuals in a population vary in their traits
+      2. Some of that variation is heritable, passed from parent to offspring
+      3. More offspring are produced than the environment can support
+      4. A trait changes an individual's chance of surviving and reproducing in a given environment
+      5. Individuals carrying an advantageous heritable trait leave more offspring
+      6. The frequency of that trait rises in the population over generations
+      7. Selection acts on variation that is already there and cannot produce a trait on demand
+      8. Which traits count as advantageous depends on the environment, so it changes when the environment does
+    example_dialog_history: |-
+      ----AI----
+      Topic: **Natural selection**.
+
+      Explain it in your own words, as though you were teaching it to someone seeing it for the first time.
+
+      ----HUMAN----
+      Animals that are better suited to their environment survive and have more babies, so those traits spread through the population over time. The important bit is that the trait has to be heritable — a bear that just eats a lot and gets fat one winter won't have fatter cubs, so that kind of difference never carries over even though it helped that one bear.
+    output: |-
+      {
+        "reasoning": "Point 2 is applied — they brought their own counterexample and read it correctly — while the survival and spreading claims in the first sentence are asserted with no case behind them, so point 4 is where their own wording opens.",
+        "applied_points": [2],
+        "next_point": 4,
+        "direction": "Hand them a drought year and two beak depths on one island, and have them say which bird leaves more offspring."
+      }
+- slug: applied-on-a-fresh-case
+  tags:
+    example_expected_points: |-
+      1. An unconditioned stimulus produces a reaction with no prior learning
+      2. That automatic reaction is the unconditioned response
+      3. A neutral stimulus produces no such reaction before conditioning
+      4. Repeatedly pairing the neutral stimulus with the unconditioned one makes it predictive
+      5. After conditioning, the once-neutral stimulus alone produces the reaction
+      6. The reaction it now produces is the conditioned response
+      7. Presenting the conditioned stimulus without the unconditioned one weakens the reaction
+      8. A weakened reaction can return later, so this suppresses the link rather than erasing it
+    example_dialog_history: |-
+      ----AI----
+      Here's one you haven't seen: a cat comes running when it hears the electric tin opener. What's doing what?
+
+      ----HUMAN----
+      The food is the part that works on its own — the cat doesn't have to learn to want it. The sound only means anything because it kept turning up right before the food did.
+    output: |-
+      {
+        "reasoning": "The tin-opener case was mine, but the mapping was theirs and my question carried no answer, so points 1 and 4 are applied; they stopped just short of saying the sound alone now drives the reaction.",
+        "applied_points": [1, 4],
+        "next_point": 5,
+        "direction": "Have them say what the cat does the moment the sound starts, before any food is in sight."
+      }
+- slug: sources-do-not-supply-the-case
+  tags:
+    example_expected_points: |-
+      1. An infection spreads when each case passes it on to more than one new person on average
+      2. Immunity in a population removes some of those onward chances
+      3. Immunity can come either from recovering or from vaccination
+      4. Once enough of a population is immune, each case passes it on to fewer than one new person
+      5. At that point an outbreak shrinks instead of growing
+      6. This protects people who are not themselves immune
+      7. The share that has to be immune rises with how contagious the infection is
+      8. Immunity spread unevenly leaves clusters where an outbreak can still take hold
+    example_sources: |-
+      Slides 9 — Population immunity. The threshold share rises with the reproduction number, so a
+      highly contagious infection needs a far higher share immune than a mild one.
+      Case study: the 2019 Samoa measles outbreak followed a collapse in vaccination coverage, and
+      spread fastest among infants too young to have been vaccinated.
+    example_dialog_history: |-
+      ----AI----
+      You brought up your old school — take a class where most children are vaccinated and two are not. One of the two catches measles. What happens?
+
+      ----HUMAN----
+      Not much spreads, because nearly everyone they'd pass it to can't catch it. So the two unvaccinated ones end up covered by everyone else.
+    output: |-
+      {
+        "reasoning": "Points 5 and 6 are applied on the classroom they raised themselves; the Samoa outbreak in the sources is a case they never mentioned, so the next move stays in their classroom and tests point 7.",
+        "applied_points": [5, 6],
+        "next_point": 7,
+        "direction": "Stay in their classroom and have them say what changes if the infection were twice as catching."
+      }
+- slug: stated-but-not-applied
+  tags:
+    example_expected_points: |-
+      1. Speech sounds a language treats as distinct can change which word is being said
+      2. A phoneme is a sound category that distinguishes meaning in a given language
+      3. Two sounds belong to the same phoneme if swapping them never changes the word
+      4. Those non-distinguishing variants are allophones of that phoneme
+      5. A minimal pair is two words differing in exactly one sound
+      6. A minimal pair shows that the two sounds are separate phonemes in that language
+      7. Which sounds count as separate phonemes differs from one language to another
+      8. Allophones are usually predictable from the sounds around them
+    example_dialog_history: |-
+      ----AI----
+      Topic: **Phonemes and allophones**.
+
+      Explain it in your own words, as though you were teaching it to someone seeing it for the first time.
+
+      ----HUMAN----
+      A phoneme is the smallest unit of sound that can change the meaning of a word in a language, and allophones are different ways of pronouncing the same phoneme that don't change the meaning.
+    output: |-
+      {
+        "reasoning": "Points 2 and 4 are defined fluently and used on nothing, so neither is credited; point 3 is the test their own definition rests on without ever applying it.",
+        "applied_points": [],
+        "next_point": 3,
+        "direction": "Give them the puff of air in 'pin' against the one in 'spin' and make them say whether English counts those as the same sound."
+      }
+- slug: explained-then-parroted
+  tags:
+    example_expected_points: |-
+      1. The lithosphere is broken into plates that move relative to one another
+      2. Oceanic crust is denser than continental crust
+      3. Where two plates converge, the denser one sinks beneath the other
+      4. The sinking plate carries water down with it
+      5. That water lowers the melting point of the mantle rock above the sinking plate
+      6. The resulting melt is buoyant and rises through the plate above
+      7. Where it reaches the surface it builds a chain of volcanoes above the sinking plate
+      8. Where two plates of similar density converge, neither sinks and the crust thickens into mountains
+    example_dialog_history: |-
+      ----AI----
+      At a subduction zone the denser oceanic plate sinks beneath the lighter continental one, and the melting rock above it feeds the volcanoes.
+
+      ----HUMAN----
+      Right, so the denser oceanic plate sinks under the continental one, and the melt above it feeds the volcanoes.
+    output: |-
+      {
+        "reasoning": "Every word of that turn is my own sentence handed back, which credits nothing; point 8 is the case that would show whether the density argument is theirs.",
+        "applied_points": [],
+        "next_point": 8,
+        "direction": "Put two continental plates together and have them say which one goes down."
+      }
+- slug: half-right-credits-nothing
+  tags:
+    example_expected_points: |-
+      1. A reversible reaction is at equilibrium when the forward and reverse rates are equal
+      2. At equilibrium the amounts of reactants and products stop changing
+      3. Disturbing an equilibrium makes it shift so as to partly offset the disturbance
+      4. Adding more of a substance shifts the equilibrium away from that substance
+      5. Removing a substance shifts the equilibrium toward it
+      6. For a reaction that gives off heat, raising the temperature shifts it back toward the reactants
+      7. Changing the temperature also changes the equilibrium constant itself
+      8. A catalyst speeds both directions equally, so it does not move the position of equilibrium
+    example_dialog_history: |-
+      ----AI----
+      The reaction that makes ammonia gives off heat. You heat the vessel. What happens to the amount of ammonia at equilibrium?
+
+      ----HUMAN----
+      It drops — the equilibrium shifts back toward the reactants. Though heating speeds the reaction up as well, so maybe more ammonia forms after all and it evens out.
+    output: |-
+      {
+        "reasoning": "The first half is right and the second reads a faster reaction as a bigger yield, and a muddled point is not applied, so point 8 is where that confusion has to be settled.",
+        "applied_points": [],
+        "next_point": 8,
+        "direction": "Give them a catalyst instead of the heat and make them say whether the amount of ammonia at equilibrium moves at all."
+      }
+- slug: earlier-credit-survives-a-leading-question
+  tags:
+    example_expected_points: |-
+      1. A demand curve relates the quantity buyers want to the price
+      2. A supply curve relates the quantity sellers offer to the price
+      3. A change in price moves along a curve; a change in any other condition shifts the curve
+      4. Equilibrium is the price at which the quantity offered and the quantity wanted are equal
+      5. A supply shock shifts the supply curve and moves the equilibrium along the demand curve
+      6. A tax drives a wedge between the price the buyer pays and the price the seller keeps
+      7. The side a tax is levied on does not determine who bears it
+      8. The burden falls more on whichever side is less able to change its quantity in response
+    example_dialog_history: |-
+      ----AI----
+      A new tax is levied on sellers of a good. Who ends up paying it?
+
+      ----HUMAN----
+      Both, and how it splits depends on who can walk away more easily. If buyers have substitutes, sellers absorb most of it.
+
+      ----AI----
+      So it comes down to the relative elasticities, doesn't it?
+
+      ----HUMAN----
+      Yes, exactly.
+    output: |-
+      {
+        "reasoning": "Points 7 and 8 were applied two turns ago on their own substitutes case and still stand; the latest turn only agrees with a question that carried its own answer, so it adds nothing and point 6 is untouched.",
+        "applied_points": [7, 8],
+        "next_point": 6,
+        "direction": "Put a flat two-franc tax on it and have them say what the buyer hands over and what the seller keeps."
+      }
+- slug: credited-then-contradicted
+  tags:
+    example_expected_points: |-
+      1. A demand curve relates the quantity buyers want to the price
+      2. A supply curve relates the quantity sellers offer to the price
+      3. A change in price moves along a curve; a change in any other condition shifts the curve
+      4. Equilibrium is the price at which the quantity offered and the quantity wanted are equal
+      5. A supply shock shifts the supply curve and moves the equilibrium along the demand curve
+      6. A tax drives a wedge between the price the buyer pays and the price the seller keeps
+      7. The side a tax is levied on does not determine who bears it
+      8. The burden falls more on whichever side is less able to change its quantity in response
+    example_dialog_history: |-
+      ----AI----
+      A tax goes on sellers of insulin. Who bears it?
+
+      ----HUMAN----
+      Mostly the buyers. People who need insulin can't cut back much when the price rises, so sellers can pass nearly all of it on.
+
+      ----AI----
+      Now the same tax on one brand of cola, with dozens of others on the shelf.
+
+      ----HUMAN----
+      Same thing — sellers add it to the price and buyers pay it. The tax is on the seller but it always lands on whoever's buying.
+    output: |-
+      {
+        "reasoning": "Point 8 was applied on the insulin case and is withdrawn by the cola turn, which makes the burden independent of elasticity; point 7 survives in their own wording, so 8 is what has to be rebuilt.",
+        "applied_points": [7],
+        "next_point": 8,
+        "direction": "Take them back to the cola and have them say what a buyer there can do that an insulin buyer cannot."
+      }
+- slug: every-point-applied
+  tags:
+    example_expected_points: |-
+      1. An unconditioned stimulus produces a reaction with no prior learning
+      2. That automatic reaction is the unconditioned response
+      3. A neutral stimulus produces no such reaction before conditioning
+      4. Repeatedly pairing the neutral stimulus with the unconditioned one makes it predictive
+      5. After conditioning, the once-neutral stimulus alone produces the reaction
+      6. The reaction it now produces is the conditioned response
+      7. Presenting the conditioned stimulus without the unconditioned one weakens the reaction
+      8. A weakened reaction can return later, so this suppresses the link rather than erasing it
+    example_dialog_history: |-
+      ----AI----
+      Take the tin opener again — what's doing the work before the cat has learned anything?
+
+      ----HUMAN----
+      The food. It gets the cat running with no learning at all, and that running is the reaction it already had.
+
+      ----AI----
+      And the sound, before any of this started?
+
+      ----HUMAN----
+      Nothing. It's a noise, the cat wouldn't care about it on its own.
+
+      ----AI----
+      So what changes it?
+
+      ----HUMAN----
+      It keeps landing right before the food, so it starts predicting it. After enough of those the sound on its own gets the cat running, and that running is now a learned reaction to the sound rather than to the food.
+
+      ----AI----
+      Now run the opener for a week with nothing in the tin.
+
+      ----HUMAN----
+      The cat stops bothering, because the sound stopped predicting anything.
+
+      ----AI----
+      Gone for good?
+
+      ----HUMAN----
+      No, it'd probably come back if you left it a while and ran it again. The link is still there, it's just not being acted on.
+    output: |-
+      {
+        "reasoning": "Every point is applied across the exchange; point 2 is the thinnest, named in passing rather than shown, so that is the one to stress.",
+        "applied_points": [1, 2, 3, 4, 5, 6, 7, 8],
+        "next_point": 2,
+        "direction": "Give them a reflex with no food in it, like flinching at a bang, and have them separate the reaction from the thing that causes it."
+      }

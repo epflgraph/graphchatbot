@@ -74,7 +74,7 @@ class ModelNode:
         # A failed call and a blank reply leave the student in the same place.
         if call_failed or (answered_with_nothing and self._config.text_is_reply):
             logger.warning("Model call produced nothing; falling back to NO_ANSWER")
-            response = AIMessage(content=no_answer(state.get("lang_code")))
+            response = AIMessage(content=no_answer(bot.prompt_search_path, state.get("lang_code")))
 
         return self._answered(response)
 
