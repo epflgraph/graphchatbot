@@ -53,12 +53,19 @@ def _provenance(bot: Bot, topic: Topic, *, sourced: bool) -> str:
 
 async def derive_topic_points(bot: Bot, topic: Topic, state: Mapping[str, Any]) -> tuple[str, ...]:
     """The points `topic` has to cover, derived once and cached: the standard is shared across
-    students so two equal explanations grade the same. From the course material when the
-    index has any, otherwise from the topic name alone."""
+    students so two equal explanations grade the same. Points are derived from the course material
+    when it teaches the topic, otherwise from the topic name alone."""
     material = await fetch_topic_material(bot.index, topic.name)
-    if not material:
-        logger.warning("No material for topic %r in index %r; deriving points unsourced", topic.name, bot.index)
+    points = await _derive_topic_points(bot, topic, state, material) if material else ()
+    if not points:
+        logger.info("No material teaching topic %r in index %r; deriving points unsourced", topic.name, bot.index)
+        points = await _derive_topic_points(bot, topic, state, material="")
+    return points
 
+
+async def _derive_topic_points(bot: Bot, topic: Topic, state: Mapping[str, Any], material: str) -> tuple[str, ...]:
+    """One derivation, sourced when there is material, read from the cache when it ran before.
+    An empty verdict on material is cached too, since the material is in its key."""
     compiler = SourcedTopicPointsCompiler if material else UnsourcedTopicPointsCompiler
 
     call_state = {**state, "topic_material": material}
@@ -68,11 +75,12 @@ async def derive_topic_points(bot: Bot, topic: Topic, state: Mapping[str, Any]) 
         return tuple(json.loads(cached))
 
     derived = await structured_call(bot=bot, compiler=compiler, state=call_state, fallback=TopicPoints())
-    if not derived.points:
-        logger.warning("No points derived for topic %r in index %r; the exercise cannot finish", topic.name, bot.index)
-        return ()
+    log_level = logging.INFO if derived.points else logging.WARNING
+    logger.log(
+        log_level, "Derived points for topic %r (%s): %s", topic.name, truncate(derived.reasoning), derived.points
+    )
 
-    cache.CACHE.put(key, json.dumps(derived.points, ensure_ascii=False))
-    cache.PROVENANCE.put(key, _provenance(bot, topic, sourced=bool(material)))
-    logger.info("Derived points for topic %r (%s): %s", topic.name, truncate(derived.reasoning), derived.points)
+    if derived.points or material:
+        cache.CACHE.put(key, json.dumps(derived.points, ensure_ascii=False))
+        cache.PROVENANCE.put(key, _provenance(bot, topic, sourced=bool(material)))
     return tuple(derived.points)
