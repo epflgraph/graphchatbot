@@ -30,7 +30,7 @@ async def chat(
 
     if chat_request.get("stream"):
         stream = bot_agenerate_completion(chat_request, bot, requester=requester)
-        return StreamingResponse(stream, media_type="text/event-stream")
+        return StreamingResponse(stream, media_type="text/event-stream", headers={"X-Accel-Buffering": "no"})
     else:
         return await bot_generate_completion(chat_request, bot, requester=requester)
 
