@@ -162,23 +162,23 @@ async def generate_structured_response(
     model: BaseChatModel,
     messages: list[BaseMessage],
     output_schema: type[BaseModel],
+    max_retries: int = 0,
 ) -> BaseModel | None:
-    """Run a structured-output call on already-compiled messages, returning `None`
-    if it fails for any reason: a bad parse, a provider error, invalid credentials,
-    or outrunning `wall_clock_timeout`.
+    """Run a structured-output call on already-compiled messages, or return `None` if it fails.
 
-    Every caller has a degraded path it takes when this returns `None`, so the
-    catch is broad and lives here — one policy, rather than one that treats a
-    malformed reply and a transient 503 differently depending on the call site.
-    Invalid credentials are logged at `CRITICAL`, since unlike the others they
-    won't resolve on their own.
+    Every caller has a fallback for `None`, so every failure is caught here. A reply
+    that fails to parse is being retried up to `max_retries` times.
     """
     structured_model = model.with_structured_output(output_schema).with_config(tags=[TAG_NOSTREAM])
 
     try:
-        return await asyncio.wait_for(structured_model.ainvoke(input=messages), timeout=wall_clock_timeout(model))
-    except (OutputParserException, ValidationError):
-        logger.exception("Structured response failed to parse/validate")
+        async with asyncio.timeout(wall_clock_timeout(model)):
+            for _ in range(max_retries + 1):
+                try:
+                    return await structured_model.ainvoke(input=messages)
+                # Only a bad parse is retried.
+                except (OutputParserException, ValidationError):
+                    logger.exception("Structured response failed to parse/validate")
     except asyncio.TimeoutError:
         logger.warning("Structured response timed out")
     except (AuthenticationError, PermissionDeniedError):

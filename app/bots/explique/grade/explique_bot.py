@@ -175,6 +175,7 @@ class ExpliqueGradeBot(ExpliqueBot):
                 self.INTENT_TOOL_CHOICES,
                 fallback=StudentIntent.IN_TOPIC_RESPONSE,
                 compiler=GradeClassifyCompiler,
+                max_retries=1,
             ),
             input_schema=GradeBotState,
         )
