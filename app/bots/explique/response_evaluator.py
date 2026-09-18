@@ -44,6 +44,9 @@ class ResponseEvaluator:
     # Priority queue when there are more than one tag; most severe first.
     TAG_PRIORITY = (EvaluationTag.REPETITIVE,)
 
+    # LLMs generate curly and straight quotes interchangeably; a repeat must not hide behind them.
+    CURLY_TO_STRAIGHT_QUOTES = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"'})
+
     @staticmethod
     def get_prioritized_tag(tags: tuple[EvaluationTag, ...]) -> EvaluationTag:
         for tag in ResponseEvaluator.TAG_PRIORITY:
@@ -61,11 +64,16 @@ class ResponseEvaluator:
         return resolution
 
     @staticmethod
+    def _normalize(text: str) -> str:
+        """`text` with case, spacing and quote style folded."""
+        return casefold_and_collapse_whitespace(text.translate(ResponseEvaluator.CURLY_TO_STRAIGHT_QUOTES))
+
+    @staticmethod
     def scan_repetitions(response: str, context: EvaluatorContext) -> EvaluationTag | None:
         """The assistant repeated itself verbatim."""
-        response = casefold_and_collapse_whitespace(response)
+        response = ResponseEvaluator._normalize(response)
         for prior in reversed(context.prior_turns):
-            if response == casefold_and_collapse_whitespace(prior):
+            if response == ResponseEvaluator._normalize(prior):
                 return EvaluationTag.REPETITIVE
         return None
 
@@ -85,5 +93,5 @@ class ResponseEvaluator:
     @staticmethod
     def may_reject(response_prefix: str, context: EvaluatorContext) -> bool:
         """Whether `response_prefix` could grow into a response `evaluate` rejects."""
-        response_prefix = casefold_and_collapse_whitespace(response_prefix)
-        return any(casefold_and_collapse_whitespace(prior).startswith(response_prefix) for prior in context.prior_turns)
+        response_prefix = ResponseEvaluator._normalize(response_prefix)
+        return any(ResponseEvaluator._normalize(prior).startswith(response_prefix) for prior in context.prior_turns)
