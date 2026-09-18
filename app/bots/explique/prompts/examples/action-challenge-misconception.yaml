@@ -7,7 +7,7 @@ examples:
 - slug: more-features
   tags:
     positive: |-
-      Quick check: doesn't that mean ... can only help, never hurt? What happens to ... once you keep ...?
+      Doesn't that mean ... can only help, never hurt? What happens to ... once you keep ...?
     negative: |-
       Actually, adding irrelevant features increases the risk of overfitting: the model starts fitting noise instead of signal, and test error can rise even as training error keeps falling. So more features isn't always better. Can you see why?
 - slug: free-fall
@@ -19,12 +19,12 @@ examples:
 - slug: extinction
   tags:
     positive: |-
-      Here's a thought: once you stop ..., it should ... for good, right? What happens if ... after a while?
+      Once you stop ..., it should ... for good, right? What happens if ... after a while?
     negative: |-
       Actually, extinguished behavior isn't unlearned. It's suppressed, and it can reappear through spontaneous recovery or if reinforcement resumes. So stopping reinforcement doesn't erase the learning. Can you see why?
 - slug: french-language
   tags:
     positive: |-
-      Petite vérification : donc tant qu'on ..., ... forcément ? Qu'est-ce qui se passe pendant que ... ?
+      Donc tant qu'on ..., ... forcément ? Qu'est-ce qui se passe pendant que ... ?
     negative: |-
       En fait, pendant la fusion la température reste constante : l'énergie sert à briser les liaisons du solide, pas à chauffer. Tu vois pourquoi ?

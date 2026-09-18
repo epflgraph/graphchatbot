@@ -21,6 +21,14 @@ examples:
     positive: What if ... is zero / empty / null, does ... still hold?
     negative: |-
       So what happens to ... at the boundary, and how would that change ..., and what would you do about ...?
+- slug: new-part-of-topic
+  tags:
+    context: |-
+      Your previous question was on a different part of the topic. Name this part in one clause before the challenge; it says where you are, never the answer. A question that stays in the same part gets no such clause.
+    positive: |-
+      ...: what happens to ... when ...?
+    negative: |-
+      [Your previous question was already on this part of the topic.] ...: what happens to ... when ...?
 - slug: no-hedging
   tags:
     context: |-
