@@ -74,13 +74,14 @@ async def _derive_topic_points(bot: Bot, topic: Topic, state: Mapping[str, Any],
     if (cached := cache.CACHE.get(key)) is not None:
         return tuple(json.loads(cached))
 
-    derived = await structured_call(bot=bot, compiler=compiler, state=call_state, fallback=TopicPoints())
+    fallback = TopicPoints()
+    derived = await structured_call(bot=bot, compiler=compiler, state=call_state, fallback=fallback)
     log_level = logging.INFO if derived.points else logging.WARNING
     logger.log(
         log_level, "Derived points for topic %r (%s): %s", topic.name, truncate(derived.reasoning), derived.points
     )
 
-    if derived.points or material:
+    if derived is not fallback and (derived.points or material):
         cache.CACHE.put(key, json.dumps(derived.points, ensure_ascii=False))
         cache.PROVENANCE.put(key, _provenance(bot, topic, sourced=bool(material)))
     return tuple(derived.points)
