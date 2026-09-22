@@ -10,3 +10,4 @@ class GradeNode(StrEnum):
     INVITE = "invite"
     REDIRECT = "redirect"
     FINISH = "finish"
+    NO_ANSWER = "no_answer"

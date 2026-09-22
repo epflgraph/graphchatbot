@@ -12,6 +12,9 @@ def make_select_action_node(select_tutor_action: Callable[[StudentState], TutorA
     """Returns a node that picks the tutor's move from the evaluated student state, by the given rules."""
 
     async def select_action_node(state: ExpliqueBotState) -> StateUpdate:
+        if state["student_state"] is None:
+            logger.warning("No student state to select a tutor action from")
+            return {}
         action = select_tutor_action(state["student_state"])
         logger.info("Selected tutor action=%r", action)
         return {"tutor_action": action}

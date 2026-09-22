@@ -4,18 +4,17 @@ from langgraph.graph.state import CompiledStateGraph
 from app.bots.base import Bot
 from app.bots.explique.compilers.classify import ClassifyCompiler
 from app.bots.explique.compilers.detect_language import LanguageDetectorCompiler
-from app.bots.explique.compilers.evaluate import EvaluateCompiler
 from app.bots.explique.compilers.respond import ResponseCompiler
 from app.bots.explique.compilers.retrieve import RetrieveCompiler
 from app.bots.explique.compilers.transcribe_image import ImageTranscriptionCompiler
 from app.bots.explique.explique_bot import ExpliqueBot
 from app.bots.explique.models import MessageEvent, StudentIntent
 from app.bots.explique.node_names import Node
-from app.bots.explique.nodes.evaluate import make_evaluate_node
 from app.bots.explique.nodes.evaluate_response import make_evaluate_response_node
 from app.bots.explique.nodes.select_action import make_select_action_node
 from app.bots.explique.nodes.summarize import summarize_node
 from app.bots.explique.train.node_names import TrainNode
+from app.bots.explique.train.nodes.evaluate import evaluate_node
 from app.bots.explique.train.nodes.plan_challenge import plan_challenge_node
 from app.bots.explique.train.nodes.practice import practice_node
 from app.bots.explique.train.nodes.respond import make_respond_node
@@ -144,7 +143,7 @@ class ExpliqueTrainBot(ExpliqueBot):
 
         workflow.add_node(Node.TOOLS, make_tools_node(tools))
         workflow.add_node(Node.POST_RETRIEVE, self._post_retrieve)
-        workflow.add_node(Node.EVALUATE, make_evaluate_node(EvaluateCompiler))
+        workflow.add_node(Node.EVALUATE, evaluate_node)
         workflow.add_node(Node.PLAN_CHALLENGE, plan_challenge_node)
         workflow.add_node(TrainNode.PRACTICE, practice_node)
         workflow.add_node(Node.SELECT_ACTION, make_select_action_node(select_tutor_action))

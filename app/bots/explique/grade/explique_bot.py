@@ -8,14 +8,15 @@ from app.bots.explique.compilers.retrieve import RetrieveCompiler
 from app.bots.explique.compilers.transcribe_image import ImageTranscriptionCompiler
 from app.bots.explique.explique_bot import ExpliqueBot
 from app.bots.explique.grade.compilers.classify import GradeClassifyCompiler
-from app.bots.explique.grade.compilers.evaluate import GradeEvaluateCompiler
 from app.bots.explique.grade.completion import topic_covered
 from app.bots.explique.grade.models import GradeStudentIntent
 from app.bots.explique.grade.node_names import GradeNode
 from app.bots.explique.grade.nodes.derive_topic_points import derive_topic_points_node
+from app.bots.explique.grade.nodes.evaluate import evaluate_node
 from app.bots.explique.grade.nodes.finish import finish_node
 from app.bots.explique.grade.nodes.invite import invite_node
 from app.bots.explique.grade.nodes.lock_topic import lock_topic_node
+from app.bots.explique.grade.nodes.no_answer import no_answer_node
 from app.bots.explique.grade.nodes.plan_challenge import plan_challenge_node
 from app.bots.explique.grade.nodes.present_menu import present_menu_node
 from app.bots.explique.grade.nodes.redirect import redirect_node
@@ -27,7 +28,6 @@ from app.bots.explique.grade.transcript import graded_turns
 from app.bots.explique.grade.tutor_action import select_tutor_action
 from app.bots.explique.models import MessageEvent, StudentIntent
 from app.bots.explique.node_names import Node
-from app.bots.explique.nodes.evaluate import make_evaluate_node
 from app.bots.explique.nodes.evaluate_response import make_evaluate_response_node
 from app.bots.explique.nodes.select_action import make_select_action_node
 from app.bots.nodes.classify import make_classify_node
@@ -103,7 +103,10 @@ class ExpliqueGradeBot(ExpliqueBot):
         return GradeNode.REDIRECT
 
     def _route_after_select_action(self, state: GradeBotState) -> Node | GradeNode:
-        """A covered topic ends the exercise instead of extending it."""
+        """A covered topic ends the exercise instead of extending it; a turn that could not be evaluated gets
+        NO_ANSWER."""
+        if state["student_state"] is None:
+            return GradeNode.NO_ANSWER
         topic_lock = state["topic_lock"]
         # A jailbreak turn explained nothing, so it does not count towards the floor.
         graded = graded_turns(self.prompt_search_path, topic_lock.topic, state["messages"])
@@ -133,7 +136,8 @@ class ExpliqueGradeBot(ExpliqueBot):
                           └─ classify ─┬─ (anything but an explanation) ─────────────────────────────► redirect ─► END
                                        └─ retrieve ─┬─ (tool call) ────► tools ──────┐
                                                     └─ (no tool call) ───────────────┴─► post_retrieve ─┬─ evaluate ───────┬─► select_action ─┬─ (covered) ─► finish ─► END
-                                                                                                        └─ plan_challenge ─┘                  └─ (points left) ─► respond
+                                                                                                        └─ plan_challenge ─┘                  ├─ (not evaluated) ─► no_answer ─► END
+                                                                                                                                              └─ (points left) ─► respond
 
             respond ─────────► evaluate_response ──(accepted, or budget spent)──► END
                ▲                       │
@@ -142,7 +146,8 @@ class ExpliqueGradeBot(ExpliqueBot):
         `respond` streams through a `StreamGate` and writes `candidate_response`, not `messages`;
         `evaluate_response` creates the message and streams what the gate held back. `finish` is
         the only way out: it runs the recap alongside the Moodle write, and covering the topic is
-        what earns it.
+        what earns it. `no_answer` sends the canned apology when `evaluate` failed, since there
+        is no verdict to answer from.
         """
         tools = self.build_tools()
 
@@ -193,7 +198,8 @@ class ExpliqueGradeBot(ExpliqueBot):
 
         workflow.add_node(Node.TOOLS, make_tools_node(tools))
         workflow.add_node(Node.POST_RETRIEVE, self._post_retrieve)
-        workflow.add_node(Node.EVALUATE, make_evaluate_node(GradeEvaluateCompiler), input_schema=GradeBotState)
+        workflow.add_node(Node.EVALUATE, evaluate_node)
+        workflow.add_node(GradeNode.NO_ANSWER, no_answer_node)
         workflow.add_node(Node.PLAN_CHALLENGE, plan_challenge_node)
         workflow.add_node(Node.SELECT_ACTION, make_select_action_node(select_tutor_action))
         workflow.add_node(Node.RESPOND, make_respond_node(on_candidate_response=Node.EVALUATE_RESPONSE))
@@ -208,6 +214,7 @@ class ExpliqueGradeBot(ExpliqueBot):
         workflow.add_edge(GradeNode.INVITE, END)
         workflow.add_edge(GradeNode.REDIRECT, END)
         workflow.add_edge(GradeNode.FINISH, END)
+        workflow.add_edge(GradeNode.NO_ANSWER, END)
         workflow.add_conditional_edges(Node.DETECT_LANGUAGE, self._route_after_detect_language)
         workflow.add_conditional_edges(Node.TRANSCRIBE_IMAGE, self._route_after_transcribe_image)
         workflow.add_conditional_edges(Node.CLASSIFY, self._route_after_classify)

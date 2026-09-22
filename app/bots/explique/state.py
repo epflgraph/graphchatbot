@@ -5,7 +5,7 @@ from app.bots.explique.models import RejectedResponse, SessionSummary, StudentSt
 class ExpliqueBotState(BotState):
     """LangGraph state all explique flavours write."""
 
-    student_state: StudentState
+    student_state: StudentState | None
     tutor_action: TutorAction
     session_summary: SessionSummary
 
