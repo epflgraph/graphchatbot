@@ -19,19 +19,19 @@ ATTACHMENT_END_TAG = "</context>"
 def without_attachments(search_path: tuple[Path, ...], messages: list[BaseMessage]) -> list[BaseMessage]:
     """The conversation with every attached file's text replaced by a placeholder.
     The student's own words and photos stay."""
-    return [_drop_attachments(search_path, message) if message.type == "human" else message for message in messages]
+    placeholder = render_prompt(search_path, ATTACHMENT_DROPPED_TEMPLATE).strip()
+    return [replace_attachments(message, placeholder) if message.type == "human" else message for message in messages]
 
 
-def _drop_attachments(search_path: tuple[Path, ...], message: BaseMessage) -> BaseMessage:
-    """`message` with a placeholder instead of the attached file's content; intact when it carries none."""
+def replace_attachments(message: BaseMessage, replacement: str) -> BaseMessage:
+    """`message` with `replacement` instead of the attached file's content; intact when it carries none."""
     parts = wrap_content(message.content)
     texts = [text_after_attachment(part["text"]) if part.get("type") == "text" else None for part in parts]
     if all(text is None for text in texts):
         return message
 
-    placeholder = render_prompt(search_path, ATTACHMENT_DROPPED_TEMPLATE).strip()
     replaced = [
-        part if text is None else {**part, "text": "\n\n".join(filter(None, (placeholder, text)))}
+        part if text is None else {**part, "text": "\n\n".join(filter(None, (replacement, text)))}
         for part, text in zip(parts, texts)
     ]
     content = replaced[0]["text"] if isinstance(message.content, str) else replaced
