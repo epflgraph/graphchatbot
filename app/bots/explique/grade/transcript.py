@@ -25,7 +25,7 @@ def without_attachments(search_path: tuple[Path, ...], messages: list[BaseMessag
 def _drop_attachments(search_path: tuple[Path, ...], message: BaseMessage) -> BaseMessage:
     """`message` with a placeholder instead of the attached file's content; intact when it carries none."""
     parts = wrap_content(message.content)
-    texts = [_text_after_attachment(part["text"]) if part.get("type") == "text" else None for part in parts]
+    texts = [text_after_attachment(part["text"]) if part.get("type") == "text" else None for part in parts]
     if all(text is None for text in texts):
         return message
 
@@ -38,7 +38,7 @@ def _drop_attachments(search_path: tuple[Path, ...], message: BaseMessage) -> Ba
     return message.model_copy(update={"content": content})
 
 
-def _text_after_attachment(text: str) -> str | None:
+def text_after_attachment(text: str) -> str | None:
     """What follows the attached file's wrapper in `text`; None when there is no wrapper."""
     if ATTACHMENT_SOURCE_TAG not in text:
         return None

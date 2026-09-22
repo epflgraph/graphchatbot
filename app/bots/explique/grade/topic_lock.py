@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.bots.explique.grade.prompts import INVITE_TEMPLATE, TOPIC_LIST_TEMPLATE
 from app.bots.explique.grade.topics import Topic, Topics
+from app.bots.explique.grade.transcript import text_after_attachment
 from app.bots.explique.grade.utils import parse_int
 from app.bots.languages import LANGUAGES
 from app.compilation.templates import render_prompt
@@ -70,8 +71,10 @@ def find_topic_lock(search_path: tuple[Path, ...], topics: Topics, messages: lis
         # A new number needs a current menu, or "3" could lock a topic the student never saw.
         # An earlier one is checked against the invitation that answered it instead.
         is_latest_turn = position == len(messages) - 1
+        content = flatten_content(message.content)
+        after_file = text_after_attachment(content)
         topic = _selected_topic(
-            topics, flatten_content(message.content), by_number=menu_is_current or not is_latest_turn
+            topics, content if after_file is None else after_file, by_number=menu_is_current or not is_latest_turn
         )
         if topic is None:
             continue
