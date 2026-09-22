@@ -1,6 +1,7 @@
 import asyncio
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from functools import partial
 from typing import ClassVar
 
 from langchain_core.messages import BaseMessage
@@ -49,9 +50,11 @@ class ImageTranscriber:
     # under a resumed conversation, not just an earlier failure.
     MAX_TRANSCRIPTION_ATTEMPTS: ClassVar[int] = 3
     RETRY_TIMEOUT_SECONDS: ClassVar[float] = 15.0
+    MAX_CONCURRENT_TRANSCRIPTIONS: ClassVar[int] = 16
 
     bot: Bot
     compiler: type[MessageCompiler]
+    call_slots: asyncio.Semaphore = field(default_factory=partial(asyncio.Semaphore, MAX_CONCURRENT_TRANSCRIPTIONS))
 
     def _cache_key(self, compiled: list[BaseMessage]) -> CacheKey:
         """The cache key for a call: `compiled`, the bot, and the model settings that affect its output."""
@@ -84,9 +87,9 @@ class ImageTranscriber:
                 logger.warning("Attempt count is not a number (%r); reading the image again", attempts)
         return 0
 
-    async def run(self, messages: list[BaseMessage]) -> BaseMessage:
-        """The last turn of `messages` with its image transcribed, checking the cache first."""
-        compiled_messages = self.compiler.compile(self.bot, {"messages": messages})
+    async def run(self, message: BaseMessage) -> BaseMessage:
+        """`message` with its image transcribed, checking the cache first."""
+        compiled_messages = self.compiler.compile(self.bot, {"messages": [message]})
         cache_key = self._cache_key(compiled_messages)
         transcription = image_transcriptions.CACHE.get(cache_key)
 
@@ -100,7 +103,7 @@ class ImageTranscriber:
             if result is not None:
                 image_transcriptions.CACHE.put(cache_key, transcription)
 
-        return messages[-1].model_copy(update={"content": transcription})
+        return message.model_copy(update={"content": transcription})
 
     async def _read_image(self, cache_key: CacheKey, compiled: list[BaseMessage]) -> BaseModel | None:
         """Read an image the cache holds no transcription for, recording a failed attempt.
@@ -113,19 +116,20 @@ class ImageTranscriber:
             logger.debug("Leaving image unread after %s failed attempts", attempts)
             return None
 
-        call = generate_structured_response(
-            model=self.bot.model_for(self.compiler.config.model_choice),
-            messages=compiled,
-            output_schema=self.compiler.config.output_schema,
-        )
-        if attempts:
-            call = asyncio.wait_for(call, timeout=self.RETRY_TIMEOUT_SECONDS)
+        async with self.call_slots:
+            call = generate_structured_response(
+                model=self.bot.model_for(self.compiler.config.model_choice),
+                messages=compiled,
+                output_schema=self.compiler.config.output_schema,
+            )
+            if attempts:
+                call = asyncio.wait_for(call, timeout=self.RETRY_TIMEOUT_SECONDS)
 
-        try:
-            result = await call
-        except asyncio.TimeoutError:
-            logger.warning("Gave up re-reading an image after %ss", self.RETRY_TIMEOUT_SECONDS)
-            result = None
+            try:
+                result = await call
+            except asyncio.TimeoutError:
+                logger.warning("Gave up re-reading an image after %ss", self.RETRY_TIMEOUT_SECONDS)
+                result = None
 
         if result is None:
             image_transcriptions.ATTEMPTS.put(cache_key, str(attempts + 1))
@@ -137,7 +141,7 @@ def make_image_transcriber_node(compiler: type[MessageCompiler], on_unreadable: 
 
     `on_unreadable` is a `category`, not a node name; `compiler`'s schema must
     carry a `transcription` field that reads `UNREADABLE_IMAGE_TEXT` when nothing was
-    read, as `ImageTranscription` does.
+    read, as `ImageTranscription` does. `compiler` is given each image turn alone.
     """
 
     async def image_transcriber_node(state: BotState, runtime: Runtime[Bot]) -> StateUpdate:
@@ -145,18 +149,12 @@ def make_image_transcriber_node(compiler: type[MessageCompiler], on_unreadable: 
 
         messages = state["messages"]
 
-        # Each context is the transcript up to and including one image turn, so a
-        # compiler that reads the conversation never sees what came after that image.
-        image_contexts = [
-            messages[: idx + 1]
-            for idx, message in enumerate(messages)
-            if message.type == "human" and has_image_part(message.content)
-        ]
-        if not image_contexts:
+        image_turns = [message for message in messages if message.type == "human" and has_image_part(message.content)]
+        if not image_turns:
             return {}
 
         transcriber = ImageTranscriber(runtime.context, compiler)
-        async_tasks = (transcriber.run(context) for context in image_contexts)
+        async_tasks = (transcriber.run(turn) for turn in image_turns)
         results = await asyncio.gather(*async_tasks)
 
         # Update only the messages that got transcribed here, not the whole dialog.
