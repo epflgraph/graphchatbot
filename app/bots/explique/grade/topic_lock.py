@@ -41,14 +41,12 @@ def has_invitation_for_topic(search_path: tuple[Path, ...], message: BaseMessage
     )
 
 
-def _selected_topic(topics: Topics, content: str, menu_is_current: bool) -> Topic | None:
-    """The topic this student turn selects, by name or by its number on the menu."""
+def _selected_topic(topics: Topics, content: str, by_number: bool) -> Topic | None:
+    """The topic this student turn selects, by name or, when `by_number`, by its number on the menu."""
     if topic := topics.get_by_name(content):
         return topic
 
-    # A number is only meaningful against a menu.
-    # With no menu a bare "3" would lock a topic the student never saw.
-    topic_number = parse_int(content) if menu_is_current else None
+    topic_number = parse_int(content) if by_number else None
     return topics.get_by_number(topic_number) if topic_number is not None else None
 
 
@@ -69,12 +67,17 @@ def find_topic_lock(search_path: tuple[Path, ...], topics: Topics, messages: lis
         if message.type != "human":
             continue
 
-        topic = _selected_topic(topics, flatten_content(message.content), menu_is_current)
+        # A new number needs a current menu, or "3" could lock a topic the student never saw.
+        # An earlier one is checked against the invitation that answered it instead.
+        is_latest_turn = position == len(messages) - 1
+        topic = _selected_topic(
+            topics, flatten_content(message.content), by_number=menu_is_current or not is_latest_turn
+        )
         if topic is None:
             continue
 
         # If topic selection happens in the last turn, then it counts as a lock
-        if position == len(messages) - 1:
+        if is_latest_turn:
             return TopicLock(position=position, topic=topic)
 
         next_turn = messages[position + 1]
