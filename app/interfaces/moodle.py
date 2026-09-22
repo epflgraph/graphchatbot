@@ -247,7 +247,12 @@ class MoodleClient:
         """Create the group `group_name` in `course_id` and return its id."""
         new_groups = await self._call_and_validate(
             function="core_group_create_groups",
-            params={"groups[0][courseid]": course_id, "groups[0][name]": group_name, "groups[0][description]": ""},
+            params={
+                "groups[0][courseid]": course_id,
+                "groups[0][name]": group_name,
+                "groups[0][description]": "",
+                "groups[0][participation]": 0,
+            },
             schema=MoodleGroup,
         )
         group_id = new_groups[0].id
