@@ -181,11 +181,15 @@ class CoverageRecorder:
             return CoverageResult(outcome=CoverageOutcome.UNIDENTIFIED)
 
         group_id = await self._get_or_create_group(topic)
+        await self.client.add_group_member(group_id, user_id)
 
-        _, modules = await asyncio.gather(
-            self.client.add_group_member(group_id, user_id),
-            self.client.get_course_modules(self.course_id),
-        )
+        try:
+            modules = await self.client.get_course_modules(self.course_id)
+        except MoodleError:
+            logger.warning(
+                "Recorded %r, but could not read course %s for its quiz", topic.name, self.course_id, exc_info=True
+            )
+            return CoverageResult(outcome=CoverageOutcome.RECORDED_NO_LINK)
 
         assessment_urls = self._get_assessment_urls(group_id, modules)
         if not assessment_urls:
