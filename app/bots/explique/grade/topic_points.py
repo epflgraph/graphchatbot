@@ -3,6 +3,8 @@ import logging
 from datetime import datetime
 from typing import Any, Mapping
 
+from pydantic import TypeAdapter, ValidationError
+
 from app.bots.base import Bot
 from app.bots.cache import topic_points as cache
 from app.bots.cache.file_cache import CacheKey
@@ -16,6 +18,8 @@ from app.compilation.invoke import structured_call
 from app.logging_config import truncate
 
 logger = logging.getLogger(__name__)
+
+_TOPIC_POINTS_SCHEMA = TypeAdapter(list[str])
 
 
 def _cache_key(bot: Bot, compiler: type[ExpliqueCompiler], call_state: Mapping[str, Any]) -> CacheKey:
@@ -72,7 +76,12 @@ async def _derive_topic_points(bot: Bot, topic: Topic, state: Mapping[str, Any],
 
     key = _cache_key(bot, compiler, call_state)
     if (cached := cache.CACHE.get(key)) is not None:
-        return tuple(json.loads(cached))
+        try:
+            return tuple(_TOPIC_POINTS_SCHEMA.validate_json(cached))
+        except ValidationError:
+            logger.warning(
+                "Cached points for topic %r at %s are not a list of strings; deriving them again", topic.name, key.value
+            )
 
     fallback = TopicPoints()
     derived = await structured_call(bot=bot, compiler=compiler, state=call_state, fallback=fallback)
