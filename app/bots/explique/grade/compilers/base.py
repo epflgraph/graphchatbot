@@ -3,7 +3,7 @@ from typing import Any, Mapping
 from app.bots.base import Bot
 from app.bots.compilers.grounded import GroundedDialogContext
 from app.bots.explique.compilers.base import ExpliqueCompiler
-from app.bots.explique.grade.transcript import graded_turns, without_attachments
+from app.bots.explique.grade.transcript import graded_turns
 from app.compilation.base import PromptContext, Task
 from app.compilation.dialog import DialogTextContext
 
@@ -49,7 +49,5 @@ class GradedTurnsCompiler(GradeCompiler):
 
     @classmethod
     def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
-        search_path = bot.prompt_search_path
-        messages = without_attachments(search_path, state["messages"])
-        graded = graded_turns(search_path, state["topic_lock"].topic, messages)
+        graded = graded_turns(bot.prompt_search_path, state["topic_lock"].topic, state["messages"])
         return super().context_fields(bot, {**state, "messages": graded})

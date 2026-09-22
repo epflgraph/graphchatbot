@@ -17,6 +17,7 @@ from app.bots.explique.grade.prompts import (
     STATUS_FINISHING_TEMPLATE,
 )
 from app.bots.explique.grade.state import GradeBotState
+from app.bots.explique.grade.transcript import graded_turns
 from app.bots.explique.nodes.summarize import summarize_node
 from app.bots.utils import announce, stream_text
 from app.compilation.invoke import text_call
@@ -53,9 +54,9 @@ async def finish_node(state: GradeBotState, runtime: Runtime[Bot]) -> StateUpdat
     # The session recap and coverage recording share nothing, so the LLM call and the Moodle
     # round trips overlap. Only the recording decides what the student is told about
     # the quiz; the recap is decorative.
-    # The recap reads the explanation only: turns before the lock are the student
+    # The recap reads the explanation only, as the graders do: turns before the lock are the student
     # finding a topic, not working on one, and grading them reads as grading the menu.
-    session_messages = topic_lock.post_lock_turns(state["messages"])
+    session_messages = graded_turns(bot.prompt_search_path, topic, topic_lock.post_lock_turns(state["messages"]))
     updated_state, access = await asyncio.gather(
         summarize_node({**state, "messages": session_messages}, runtime),
         recorder.record(topic, on_retry=partial(_announce_retry, runtime)),

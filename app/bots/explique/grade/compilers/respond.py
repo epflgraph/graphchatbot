@@ -10,7 +10,7 @@ from app.bots.explique.compilers.respond import (
     response_config,
     switch_representation,
 )
-from app.bots.explique.grade.compilers.base import GradeCompiler, GradeContext, GradedTurnsCompiler
+from app.bots.explique.grade.compilers.base import GradeContext, GradedTurnsCompiler
 from app.bots.explique.grade.models import GradeChallengePlan
 from app.bots.explique.models import StudentIntent, StudentState, TutorAction
 
@@ -71,7 +71,7 @@ class GradeTutoringResponseCompiler(GradedTurnsCompiler, ResponseCompiler):
         }
 
 
-class GradeContentUnreadableResponseCompiler(GradeCompiler, ContentUnreadableResponseCompiler):
+class GradeContentUnreadableResponseCompiler(GradedTurnsCompiler, ContentUnreadableResponseCompiler):
     """The tutor's reply to an unreadable turn, told which topic the session is on."""
 
     context_class = GradeResponseContext

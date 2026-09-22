@@ -2,11 +2,11 @@ from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from app.bots.base import Bot
-from app.bots.explique.compilers.detect_language import LanguageDetectorCompiler
 from app.bots.explique.compilers.respond import ResponseCompiler
-from app.bots.explique.compilers.retrieve import RetrieveCompiler
 from app.bots.explique.explique_bot import ExpliqueBot
 from app.bots.explique.grade.compilers.classify import GradeClassifyCompiler
+from app.bots.explique.grade.compilers.detect_language import GradeLanguageDetectorCompiler
+from app.bots.explique.grade.compilers.retrieve import GradeRetrieveCompiler
 from app.bots.explique.grade.compilers.transcribe_image import GradeImageTranscriptionCompiler
 from app.bots.explique.grade.completion import topic_covered
 from app.bots.explique.grade.models import GradeStudentIntent
@@ -169,10 +169,10 @@ class ExpliqueGradeBot(ExpliqueBot):
         )
         workflow.add_node(
             Node.DETECT_LANGUAGE,
-            make_detect_language_node(LanguageDetectorCompiler),
+            make_detect_language_node(GradeLanguageDetectorCompiler),
         )
         # The tutor's nodes are typed on the state the tutor writes, and a node receives
-        # only the keys its type names; these two read the graded conversation, which
+        # only the keys its type names; these read the graded conversation, which
         # takes the lock, so the graded state is declared for them.
         workflow.add_node(
             Node.CLASSIFY,
@@ -188,12 +188,13 @@ class ExpliqueGradeBot(ExpliqueBot):
             Node.RETRIEVE,
             make_model_node(
                 tools,
-                compiler=RetrieveCompiler,
+                compiler=GradeRetrieveCompiler,
                 on_text=Node.POST_RETRIEVE,
                 on_tools=Node.TOOLS,
                 max_tool_rounds=self.MAX_RETRIEVAL_ROUNDS,
                 text_is_reply=False,
             ),
+            input_schema=GradeBotState,
         )
 
         workflow.add_node(Node.TOOLS, make_tools_node(tools))

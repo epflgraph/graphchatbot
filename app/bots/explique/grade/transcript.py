@@ -16,11 +16,10 @@ ATTACHMENT_SOURCE_TAG = '<source id="'
 ATTACHMENT_END_TAG = "</context>"
 
 
-def without_attachments(search_path: tuple[Path, ...], messages: list[BaseMessage]) -> list[BaseMessage]:
-    """The conversation with every attached file's text replaced by a placeholder.
+def without_attachments(messages: list[BaseMessage], replacement: str) -> list[BaseMessage]:
+    """The conversation with every attached file's text replaced by `replacement`.
     The student's own words and photos stay."""
-    placeholder = render_prompt(search_path, ATTACHMENT_DROPPED_TEMPLATE).strip()
-    return [replace_attachments(message, placeholder) if message.type == "human" else message for message in messages]
+    return [replace_attachments(message, replacement) if message.type == "human" else message for message in messages]
 
 
 def replace_attachments(message: BaseMessage, replacement: str) -> BaseMessage:
@@ -47,8 +46,11 @@ def text_after_attachment(text: str) -> str | None:
 
 
 def graded_turns(search_path: tuple[Path, ...], topic: Topic, messages: list[BaseMessage]) -> list[BaseMessage]:
-    """The conversation as the graders read it: a jailbreak attempt is
-    left out, and so is the reply, so the instruction it carried is never scored."""
+    """The conversation as the graders read it: an attached file's text is replaced by a
+    placeholder, and a jailbreak attempt is left out, and so is the reply, so the instruction
+    it carried is never scored."""
+    placeholder = render_prompt(search_path, ATTACHMENT_DROPPED_TEMPLATE).strip()
+    messages = without_attachments(messages, placeholder)
     templates = tuple(
         render_prompt(search_path, JAILBREAK_TEMPLATE, topic=topic, lang_code=lang_code) for lang_code in LANGUAGES
     )
