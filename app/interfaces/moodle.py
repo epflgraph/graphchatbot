@@ -13,6 +13,13 @@ logger = logging.getLogger(__name__)
 
 REST_PATH = "/webservice/rest/server.php"
 
+# Client errors that say "not now" rather than "never": too many requests, and a
+# request the server gave up waiting on.
+TRANSIENT_HTTP_STATUSES = frozenset({408, 429})
+
+# Refusals Moodle itself calls temporary: a failed database write, and the site in maintenance mode.
+TRANSIENT_ERROR_CODES = frozenset({"dmlwriteexception", "sitemaintenance"})
+
 
 class MoodleError(Exception):
     """A call that did not come back with a usable answer."""
@@ -162,9 +169,10 @@ class MoodleClient:
             response.raise_for_status()
             result = response.json()
         except httpx.HTTPStatusError as error:
-            # 5xx is a server having a bad minute; 4xx means the URL, or whatever sits
+            # 5xx is a server having a bad minute; other 4xx mean the URL, or whatever sits
             # in front of it, is wrong — asking again would not change the answer.
-            exception_cls = MoodleUnavailable if error.response.is_server_error else MoodleRefused
+            is_transient = error.response.is_server_error or error.response.status_code in TRANSIENT_HTTP_STATUSES
+            exception_cls = MoodleUnavailable if is_transient else MoodleRefused
             raise exception_cls(f"{function} got HTTP {error.response.status_code}") from error
         except (httpx.HTTPError, ValueError) as error:
             # Nothing answered — DNS, TLS, a timeout — or what answered was not JSON,
@@ -173,7 +181,8 @@ class MoodleClient:
 
         # Moodle sends refusals as a 200 with an exception in the body.
         if isinstance(result, dict) and "exception" in result:
-            raise MoodleRefused(f"{function} refused: {result.get('errorcode')} — {result.get('message')}")
+            exception_cls = MoodleUnavailable if result.get("errorcode") in TRANSIENT_ERROR_CODES else MoodleRefused
+            raise exception_cls(f"{function} refused: {result.get('errorcode')} — {result.get('message')}")
 
         return result
 
