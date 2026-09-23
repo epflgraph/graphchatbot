@@ -61,10 +61,24 @@ async def derive_topic_points(bot: Bot, topic: Topic, state: Mapping[str, Any]) 
     when it teaches the topic, otherwise from the topic name alone."""
     material = await fetch_topic_material(bot.index, topic.name)
     points = await _derive_topic_points(bot, topic, state, material) if material else ()
-    if not points:
-        logger.info("No material teaching topic %r in index %r; deriving points unsourced", topic.name, bot.index)
-        points = await _derive_topic_points(bot, topic, state, material="")
-    return points
+    if points:
+        # Sourced points are the preferred standard while unsourced ones are a fallback.
+        # Given that at least one retrieval has succeeded, if a later one fails, we'll still
+        # grade on the cached sourced points.
+        _cache_as_unsourced(bot, topic, state, points)
+        return points
+
+    logger.info("No material teaching topic %r in index %r; deriving points unsourced", topic.name, bot.index)
+    return await _derive_topic_points(bot, topic, state, material="")
+
+
+def _cache_as_unsourced(bot: Bot, topic: Topic, state: Mapping[str, Any], points: tuple[str, ...]) -> None:
+    """Cache sourced points under the unsourced key."""
+    key = _cache_key(bot, UnsourcedTopicPointsCompiler, {**state, "topic_material": ""})
+    entry = json.dumps(list(points), ensure_ascii=False)
+    if cache.CACHE.get(key) != entry:
+        cache.CACHE.put(key, entry)
+        cache.PROVENANCE.put(key, _provenance(bot, topic, sourced=True))
 
 
 async def _derive_topic_points(bot: Bot, topic: Topic, state: Mapping[str, Any], material: str) -> tuple[str, ...]:
