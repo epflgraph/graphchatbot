@@ -29,10 +29,14 @@ def replace_attachments(message: BaseMessage, replacement: str) -> BaseMessage:
     if all(text is None for text in texts):
         return message
 
-    replaced = [
-        part if text is None else {**part, "text": "\n\n".join(filter(None, (replacement, text)))}
-        for part, text in zip(parts, texts)
-    ]
+    replaced = []
+    for part, text in zip(parts, texts):
+        if text is None:
+            replaced.append(part)
+        elif text and replacement:
+            replaced.append({**part, "text": f"{text}\n\n{replacement}"})
+        else:
+            replaced.append({**part, "text": text or replacement})
     content = replaced[0]["text"] if isinstance(message.content, str) else replaced
     return message.model_copy(update={"content": content})
 

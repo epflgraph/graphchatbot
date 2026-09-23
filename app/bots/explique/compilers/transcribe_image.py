@@ -10,9 +10,9 @@ from app.llms.utils import wrap_content
 
 
 class ImageTranscriptionContext(PromptContext):
-    """Context for a call that needs the target turn's content as raw parts."""
+    """Context for a call that needs the target turn's images as raw parts."""
 
-    original_parts: tuple[dict, ...]
+    image_parts: tuple[dict, ...]
 
 
 class ImageTranscriptionCompiler(ExpliqueCompiler):
@@ -30,12 +30,13 @@ class ImageTranscriptionCompiler(ExpliqueCompiler):
 
     @classmethod
     def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
+        parts = wrap_content(state["original_messages"][-1].content)
         return super().context_fields(bot, state) | {
-            "original_parts": wrap_content(state["original_messages"][-1].content)
+            "image_parts": tuple(part for part in parts if part.get("type") == "image_url")
         }
 
     @classmethod
     def closing_turns(cls, bot: Bot, context: ImageTranscriptionContext) -> tuple[BaseMessage, ...]:
-        # The turn's own parts trail the rendered task: the model has to see the image itself.
+        # The images trail the rendered task: the model has to see the image itself.
         user_prompt = cls.render(bot, cls.config.user_template, context)
-        return (HumanMessage(content=[*wrap_content(user_prompt), *context.original_parts]),)
+        return (HumanMessage(content=[*wrap_content(user_prompt), *context.image_parts]),)

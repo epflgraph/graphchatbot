@@ -3,11 +3,11 @@ from langgraph.graph.state import CompiledStateGraph
 
 from app.bots.base import Bot
 from app.bots.explique.compilers.respond import ResponseCompiler
+from app.bots.explique.compilers.transcribe_image import ImageTranscriptionCompiler
 from app.bots.explique.explique_bot import ExpliqueBot
 from app.bots.explique.grade.compilers.classify import GradeClassifyCompiler
 from app.bots.explique.grade.compilers.detect_language import GradeLanguageDetectorCompiler
 from app.bots.explique.grade.compilers.retrieve import GradeRetrieveCompiler
-from app.bots.explique.grade.compilers.transcribe_image import GradeImageTranscriptionCompiler
 from app.bots.explique.grade.completion import topic_covered
 from app.bots.explique.grade.models import GradeStudentIntent
 from app.bots.explique.grade.node_names import GradeNode
@@ -162,7 +162,7 @@ class ExpliqueGradeBot(ExpliqueBot):
             Node.TRANSCRIBE_IMAGE,
             make_transcribe_image_node(
                 make_image_transcriber_node(
-                    GradeImageTranscriptionCompiler,
+                    ImageTranscriptionCompiler,
                     on_unreadable=MessageEvent.CONTENT_UNREADABLE,
                 )
             ),

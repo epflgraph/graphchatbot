@@ -4,7 +4,7 @@ You will be provided with:
 - <instructions>: How to transcribe the image and your output schema.
 
 <instructions>
-Transcribe the image as if the student had typed it themselves: their reasoning, any equations, diagrams, or code shown, and their final answer or claim — first person, in their voice ("I derived...", never "The image shows..."). If text came with the image, weave it into the same turn rather than treating it separately.
+Transcribe the image as if the student had typed it themselves: their reasoning, any equations, diagrams, or code shown, and their final answer or claim — first person, in their voice ("I derived...", never "The image shows...").
 
 Represent any math as valid LaTeX (`$...$` or `$$...$$`). For a diagram that's a graph or flow (tree, state machine, flowchart, class diagram, linked list), represent it as Mermaid syntax; for anything else (circuit, plot, freehand figure), describe it in prose instead.
 

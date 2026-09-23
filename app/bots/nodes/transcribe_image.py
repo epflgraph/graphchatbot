@@ -14,7 +14,7 @@ from app.bots.cache import image_transcriptions
 from app.bots.cache.file_cache import CacheKey
 from app.bots.cache.llm_call_cache_key import make_cache_key
 from app.compilation.base import MessageCompiler
-from app.llms.utils import generate_structured_response, has_image_part
+from app.llms.utils import flatten_content, generate_structured_response, has_image_part
 
 logger = logging.getLogger(__name__)
 
@@ -87,8 +87,8 @@ class ImageTranscriber:
                 logger.warning("Attempt count is not a number (%r); reading the image again", attempts)
         return 0
 
-    async def run(self, message: BaseMessage) -> BaseMessage:
-        """`message` with its image transcribed, checking the cache first."""
+    async def run(self, message: BaseMessage) -> str:
+        """The transcription of `message`'s image, checking the cache first."""
         compiled_messages = self.compiler.compile(self.bot, {"messages": [message]})
         cache_key = self._cache_key(compiled_messages)
         transcription = image_transcriptions.CACHE.get(cache_key)
@@ -103,7 +103,7 @@ class ImageTranscriber:
             if result is not None:
                 image_transcriptions.CACHE.put(cache_key, transcription)
 
-        return message.model_copy(update={"content": transcription})
+        return transcription
 
     async def _read_image(self, cache_key: CacheKey, compiled: list[BaseMessage]) -> BaseModel | None:
         """Read an image the cache holds no transcription for, recording a failed attempt.
@@ -155,18 +155,23 @@ def make_image_transcriber_node(compiler: type[MessageCompiler], on_unreadable: 
 
         transcriber = ImageTranscriber(runtime.context, compiler)
         async_tasks = (transcriber.run(turn) for turn in image_turns)
-        results = await asyncio.gather(*async_tasks)
+        transcriptions = await asyncio.gather(*async_tasks)
 
         # Update only the messages that got transcribed here, not the whole dialog.
         # This happens by id: each result keeps its original turn's id, so `add_messages`
         # replaces it in place instead of appending a duplicate.
-        state_update = {"messages": list(results)}
+        # The text the student typed stays verbatim ahead of the transcription.
+        results = []
+        for turn, transcription in zip(image_turns, transcriptions):
+            typed = flatten_content(turn.content).strip()
+            content = f"{typed}\n\n{transcription}" if typed else transcription
+            results.append(turn.model_copy(update={"content": content}))
+        state_update = {"messages": results}
 
         latest_message = messages[-1]
         latest_message_has_image = has_image_part(latest_message.content)
-        latest_transcription = results[-1]
 
-        if latest_message_has_image and latest_transcription.content == UNREADABLE_IMAGE_TEXT:
+        if latest_message_has_image and transcriptions[-1] == UNREADABLE_IMAGE_TEXT:
             state_update["category"] = on_unreadable
 
         return state_update
