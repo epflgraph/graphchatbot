@@ -200,9 +200,17 @@ class CoverageRecorder:
     async def _get_or_create_group(self, topic: Topic) -> int:
         """The id of the topic's group, created on demand if this is the first student to cover it."""
         name = TOPIC_GROUP_NAME.format(topic=topic.name)
-        return await self.client.get_group_id_by_name(self.course_id, name) or await self.client.create_group(
-            self.course_id, name
-        )
+        group_id = await self.client.get_group_id_by_name(self.course_id, name)
+        if group_id is not None:
+            return group_id
+
+        try:
+            return await self.client.create_group(self.course_id, name)
+        except MoodleRefused:
+            # Check one more time, in case another student created it while we were racing to do so.
+            if (group_id := await self.client.get_group_id_by_name(self.course_id, name)) is not None:
+                return group_id
+            raise
 
     def _get_assessment_urls(self, group_id: int, modules: list[MoodleModule]) -> tuple[str, ...]:
         """Every assessment restricted to `group_id`, read from Moodle's own rules.
