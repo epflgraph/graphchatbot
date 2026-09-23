@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from operator import attrgetter
 
 from app.bots.base import Bot
@@ -45,8 +45,6 @@ class PollingReport:
 class PollingState:
     """What polling one course remembers between passes."""
 
-    # Normalized topic name -> group id, kept only once a quiz restricts to that group.
-    group_ids: dict[str, int] = field(default_factory=dict)
     # What was last logged, so a problem that stands for days is not repeated every pass.
     reported_unrestricted_topics: tuple[str, ...] = ()
 
@@ -57,10 +55,6 @@ class TaggedTopic:
 
     name: str
     activities: tuple[MoodleModule, ...]
-
-    @property
-    def normalized_name(self) -> str:
-        return casefold_and_collapse_whitespace(self.name)
 
     @property
     def visible(self) -> bool:
@@ -87,7 +81,7 @@ def _tagged_topics(modules: list[MoodleModule]) -> tuple[TaggedTopic, ...]:
     return tuple(TaggedTopic(name=name, activities=tuple(activities[key])) for key, name in topic_names.items())
 
 
-async def poll_course(bot: ExpliqueGradeBot, state: PollingState, *, client: MoodleClient = moodle) -> PollingReport:
+async def poll_course(bot: ExpliqueGradeBot, *, client: MoodleClient = moodle) -> PollingReport:
     """One pass: a group for every tagged quiz, and the setup only the teacher can finish."""
     # The whole course, narrowed to the assessments whose title carries a `[TOPIC: ...]` tag.
     tagged_topics = _tagged_topics(await client.get_course_modules(bot.course_id))
@@ -98,31 +92,22 @@ async def poll_course(bot: ExpliqueGradeBot, state: PollingState, *, client: Moo
     created = []
     unrestricted = []
 
-    needs_group_lookup = any(topic.normalized_name not in state.group_ids for topic in tagged_topics)
-    # Every group the course has, in one call rather than one call per topic. A settled
-    # topic keeps its id in `state`, so a course whose setup is finished reads no groups.
-    group_ids_by_name = await client.get_group_ids_by_name(bot.course_id) if needs_group_lookup else {}
+    # Every group the course has, in one call. Read every pass so a deleted group is recreated and reported.
+    group_ids_by_name = await client.get_group_ids_by_name(bot.course_id)
 
-    # What is left needs Moodle, one topic at a time.
     for topic in tagged_topics:
-        # A settled topic carries its id here; one still being set up is looked up again.
-        group_id = state.group_ids.get(topic.normalized_name)
+        # Named the way a finished session looks it up, so it finds this group
+        # rather than a second one spelled differently.
+        group_name = TOPIC_GROUP_NAME.format(topic=topic.name)
+        group_id = group_ids_by_name.get(casefold_and_collapse_whitespace(group_name))
         if group_id is None:
-            # Named the way a finished session looks it up, so it finds this group
-            # rather than a second one spelled differently.
-            group_name = TOPIC_GROUP_NAME.format(topic=topic.name)
-            group_id = group_ids_by_name.get(casefold_and_collapse_whitespace(group_name))
-            if group_id is None:
-                # Nobody has made it: the group is explique's own, so make it here.
-                group_id = await client.create_group(bot.course_id, group_name)
-                created.append(topic.name)
+            # Nobody has made it: the group is explique's own, so make it here.
+            group_id = await client.create_group(bot.course_id, group_name)
+            created.append(topic.name)
 
         # The professor's own step, since no Moodle API can set it: they point the quiz's
         # "Restrict access" at this group, and this is where a later pass reads that they did.
-        if any(group_id in activity.restriction_group_ids() for activity in topic.activities):
-            # Taken, so nothing about this topic can change again: stop looking it up.
-            state.group_ids[topic.normalized_name] = group_id
-        else:
+        if not any(group_id in activity.restriction_group_ids() for activity in topic.activities):
             unrestricted.append(topic.name)
 
     return PollingReport(created_groups=tuple(created), unrestricted_topics=tuple(unrestricted))
@@ -157,7 +142,7 @@ async def _poll_courses(
         for bot in bots:
             state = states[bot.name]
             try:
-                report = await poll_course(bot, state, client=client)
+                report = await poll_course(bot, client=client)
             except MoodleError:
                 logger.warning("Could not read course %s (%s)", bot.course_id, bot.name, exc_info=True)
             except Exception:
