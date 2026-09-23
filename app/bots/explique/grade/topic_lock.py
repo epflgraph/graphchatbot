@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.bots.explique.grade.prompts import INVITE_TEMPLATE, TOPIC_LIST_TEMPLATE
 from app.bots.explique.grade.topics import Topic, Topics
-from app.bots.explique.grade.transcript import text_after_attachment
+from app.bots.explique.grade.transcript import graded_turns, text_after_attachment
 from app.bots.explique.grade.utils import parse_int
 from app.bots.languages import LANGUAGES
 from app.compilation.templates import render_prompt
@@ -28,9 +28,10 @@ class TopicLock(BaseModel):
         """The turns that followed the topic lock."""
         return messages[self.position + 1 :]
 
-    def explaining_turns(self, messages: list[BaseMessage]) -> int:
+    def explaining_turns(self, search_path: tuple[Path, ...], messages: list[BaseMessage]) -> int:
         """How many turns the student has spent explaining their locked topic."""
-        return sum(1 for message in self.post_lock_turns(messages) if message.type == "human")
+        graded = graded_turns(search_path, self.topic, self.post_lock_turns(messages))
+        return sum(1 for message in graded if message.type == "human")
 
 
 def has_invitation_for_topic(search_path: tuple[Path, ...], message: BaseMessage, topic: Topic) -> bool:

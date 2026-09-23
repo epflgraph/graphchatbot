@@ -24,7 +24,6 @@ from app.bots.explique.grade.nodes.respond import make_respond_node
 from app.bots.explique.grade.nodes.transcribe_image import make_transcribe_image_node
 from app.bots.explique.grade.state import GradeBotState
 from app.bots.explique.grade.topics import Topics
-from app.bots.explique.grade.transcript import graded_turns
 from app.bots.explique.grade.tutor_action import select_tutor_action
 from app.bots.explique.models import MessageEvent, StudentIntent
 from app.bots.explique.node_names import Node
@@ -107,13 +106,10 @@ class ExpliqueGradeBot(ExpliqueBot):
         NO_ANSWER."""
         if state["student_state"] is None:
             return GradeNode.NO_ANSWER
-        topic_lock = state["topic_lock"]
-        # A jailbreak turn explained nothing, so it does not count towards the floor.
-        graded = graded_turns(self.prompt_search_path, topic_lock.topic, state["messages"])
         is_topic_covered = topic_covered(
             plan=state.get("challenge_plan"),
             student_state=state["student_state"],
-            explaining_turns=topic_lock.explaining_turns(graded),
+            explaining_turns=state["topic_lock"].explaining_turns(self.prompt_search_path, state["messages"]),
         )
         return GradeNode.FINISH if is_topic_covered else Node.RESPOND
 
