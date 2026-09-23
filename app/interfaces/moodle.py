@@ -85,7 +85,7 @@ class MoodleModule(BaseModel):
 
         try:
             return set(_group_ids(json.loads(self.availability)))
-        except ValueError:
+        except (TypeError, ValueError):
             logger.warning("Activity cmid=%s has unreadable availability rules; ignoring them", self.id)
             return set()
 
@@ -265,6 +265,9 @@ class MoodleClient:
             },
             schema=MoodleGroup,
         )
+        if not new_groups:
+            raise MoodleRefused(f"core_group_create_groups answered with no group for {group_name!r}")
+
         group_id = new_groups[0].id
         logger.info("Created group %r (id=%s) in course %s", group_name, group_id, course_id)
         return group_id
