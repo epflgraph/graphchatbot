@@ -163,6 +163,7 @@ class MoodleClient:
             "wstoken": self.config.token,
             "wsfunction": function,
             "moodlewsrestformat": "json",
+            "moodlewssettingraw": 1,
         }
         try:
             response = await self.http_client.post(url=REST_PATH, data=payload)
