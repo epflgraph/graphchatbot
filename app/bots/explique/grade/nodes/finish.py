@@ -12,6 +12,7 @@ from app.bots.explique.grade.completion import finish_marker
 from app.bots.explique.grade.coverage_record import CoverageRecorder
 from app.bots.explique.grade.prompts import (
     FINISH_CLOSED_TEMPLATE,
+    FINISH_NEW_CHAT_TEMPLATE,
     FINISH_RETRY_TEMPLATE,
     FINISH_TEMPLATE,
     STATUS_FINISHING_TEMPLATE,
@@ -57,12 +58,20 @@ async def finish_node(state: GradeBotState, runtime: Runtime[Bot]) -> StateUpdat
     # The recap reads the explanation only, as the graders do: turns before the lock are the student
     # finding a topic, not working on one, and grading them reads as grading the menu.
     session_messages = graded_turns(bot.prompt_search_path, topic, topic_lock.post_lock_turns(state["messages"]))
-    updated_state, access = await asyncio.gather(
-        summarize_node({**state, "messages": session_messages}, runtime),
-        recorder.record(topic, on_retry=partial(_announce_retry, runtime)),
-    )
+    async with asyncio.TaskGroup() as tasks:
+        summarizing = tasks.create_task(summarize_node({**state, "messages": session_messages}, runtime))
+        access = await recorder.record(topic, on_retry=partial(_announce_retry, runtime))
+        closing = render_prompt(
+            bot.prompt_search_path,
+            FINISH_TEMPLATE,
+            topic=topic,
+            access=access,
+            finish_marker=finish_marker(bot.prompt_search_path, state.get("lang_code")),
+            lang_code=state.get("lang_code"),
+        )
+        await stream_text(f"{closing}\n\n", runtime.stream_writer)
 
-    summary = updated_state["session_summary"]
+    summary = summarizing.result()["session_summary"]
 
     feedback = await text_call(
         bot,
@@ -73,16 +82,9 @@ async def finish_node(state: GradeBotState, runtime: Runtime[Bot]) -> StateUpdat
         stream_writer=runtime.stream_writer,
     )
 
-    closing = render_prompt(
-        bot.prompt_search_path,
-        FINISH_TEMPLATE,
-        topic=topic,
-        access=access,
-        finish_marker=finish_marker(bot.prompt_search_path, state.get("lang_code")),
-        lang_code=state.get("lang_code"),
-    )
-    await stream_text(f"\n\n{closing}", runtime.stream_writer)
+    new_chat = render_prompt(bot.prompt_search_path, FINISH_NEW_CHAT_TEMPLATE, lang_code=state.get("lang_code"))
+    await stream_text(f"\n\n{new_chat}" if feedback else new_chat, runtime.stream_writer)
     return {
-        "messages": [AIMessage(content=f"{feedback}\n\n{closing}".strip())],
+        "messages": [AIMessage(content="\n\n".join(part for part in (closing, feedback, new_chat) if part))],
         "session_summary": summary,
     }

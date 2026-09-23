@@ -25,6 +25,8 @@ STATUS_PLANNING_TEMPLATE = "status-planning.md"
 STATUS_FINISHING_TEMPLATE = "status-finishing.md"
 # Closes the exercise: carries the closing marker, and hands over the practice quiz the coverage opened.
 FINISH_TEMPLATE = "finish.md"
+# Ends the finish, after the recap: where to go for another topic.
+FINISH_NEW_CHAT_TEMPLATE = "finish-new-chat.md"
 # Told between tries, while recording the coverage in Moodle is retried.
 FINISH_RETRY_TEMPLATE = "finish-retry.md"
 # Answers a turn that arrives after the exercise already closed.
