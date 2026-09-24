@@ -6,7 +6,8 @@ from pydantic import BaseModel, ConfigDict
 from app.bots.explique.grade.prompts import INVITE_TEMPLATE, REDIRECT_TEMPLATE, TOPIC_LIST_TEMPLATE
 from app.bots.explique.grade.topics import Topic, Topics
 from app.bots.explique.grade.transcript import graded_turns, text_after_attachment
-from app.bots.explique.grade.utils import parse_int
+from app.bots.explique.grade.utils import parse_int, strip_trailing_punctuation
+from app.bots.explique.utils import collapse_whitespace
 from app.bots.languages import LANGUAGES
 from app.compilation.templates import render_prompt
 from app.llms.utils import flatten_content
@@ -55,6 +56,7 @@ def has_invitation_for_topic(search_path: tuple[Path, ...], message: BaseMessage
 
 def _selected_topic(topics: Topics, content: str, by_number: bool) -> Topic | None:
     """The topic this student turn selects, by name or, when `by_number`, by its number on the menu."""
+    content = strip_trailing_punctuation(collapse_whitespace(content))
     if topic := topics.get_by_name(content):
         return topic
 
