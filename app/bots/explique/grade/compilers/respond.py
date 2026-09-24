@@ -16,8 +16,9 @@ from app.bots.explique.models import StudentIntent, StudentState, TutorAction
 
 
 def follows_plan(plan: GradeChallengePlan | None, tutor_action: TutorAction) -> bool:
-    """Whether the move gets the plan's point and direction; a misconception challenge is about the claim instead."""
-    return plan is not None and tutor_action != TutorAction.CHALLENGE_MISCONCEPTION
+    """Whether the move gets the plan's point and direction; a probe or a misconception challenge is about what the
+    student said instead."""
+    return plan is not None and tutor_action not in (TutorAction.PROBE, TutorAction.CHALLENGE_MISCONCEPTION)
 
 
 class GradeResponseContext(ResponseContext, GradeContext):
