@@ -1,7 +1,7 @@
 import logging
 
 from fastapi import Request
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class Requester(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     id: str
-    email: str | None = None
+    email: str | None = Field(default=None, exclude=True, repr=False)
 
 
 def requester_from_headers(request: Request) -> Requester | None:

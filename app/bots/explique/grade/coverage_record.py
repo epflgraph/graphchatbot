@@ -110,14 +110,14 @@ class CoverageRecorder:
         except (MoodleError, TimeoutError):
             logger.warning(
                 "Could not check whether %r is enrolled in course %s",
-                self.student_email,
+                self.requester_id,
                 self.course_id,
                 exc_info=True,
             )
             return None
 
         if not is_enrolled:
-            logger.warning("%r is not enrolled in course %s", self.student_email, self.course_id)
+            logger.warning("%r is not enrolled in course %s", self.requester_id, self.course_id)
 
         return is_enrolled
 

@@ -207,7 +207,7 @@ class MoodleClient:
             schema=MoodleUser,
         )
         if not users:
-            logger.warning("Could not find user with email %r in Moodle", email)
+            logger.warning("Could not find a Moodle user for the given email")
             return None
 
         return users[0].id
