@@ -3,7 +3,7 @@ from typing import Any, Mapping
 from app.bots.base import Bot
 from app.bots.compilers.grounded import GroundedDialogContext
 from app.bots.explique.compilers.base import ExpliqueCompiler
-from app.bots.explique.grade.transcript import graded_turns
+from app.bots.explique.grade.transcript import graded_sources, graded_turns
 from app.compilation.base import PromptContext, Task
 from app.compilation.dialog import DialogTextContext
 
@@ -45,9 +45,14 @@ class GradeCompiler(ExpliqueCompiler):
 class GradedTurnsCompiler(GradeCompiler):
     """The conversation as the grader flavor reads it:
     - Attached files are replaced by a placeholder
-    - Jailbreak attempts and their replies are omitted"""
+    - Jailbreak attempts and their replies are omitted
+    - A failed or empty search reads as no retrieved material"""
 
     @classmethod
     def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
         graded = graded_turns(bot.prompt_search_path, state["topic_lock"].topic, state["messages"])
         return super().context_fields(bot, {**state, "messages": graded})
+
+    @staticmethod
+    def sources(state: Mapping[str, Any]) -> str:
+        return graded_sources(state["original_messages"])

@@ -5,8 +5,14 @@ from langchain_core.messages import BaseMessage
 from app.bots.explique.grade.prompts import ATTACHMENT_DROPPED_TEMPLATE, JAILBREAK_TEMPLATE
 from app.bots.explique.grade.topics import Topic
 from app.bots.languages import LANGUAGES
+from app.bots.nodes.tools import TOOL_FAILURE_INSTRUCTION
+from app.bots.transcript import last_tool_results
 from app.compilation.templates import render_prompt
 from app.llms.utils import flatten_content, wrap_content
+
+# Tool results that carry no material: a search that raised, and one that found nothing
+# (a graphai outage answers empty too), as a list or already stringified.
+NO_SOURCES_RESULTS = (TOOL_FAILURE_INSTRUCTION, [], "[]")
 
 # How Open WebUI encapsulates an attached file: its text in a source tag, inside a context
 # block prepended to the student's turn, whose closing tag is the last thing before the
@@ -66,3 +72,9 @@ def graded_turns(search_path: tuple[Path, ...], topic: Topic, messages: list[Bas
         for position, message in enumerate(messages)
         if not no_grade_turns[position] and not (position + 1 < len(messages) and no_grade_turns[position + 1])
     ]
+
+
+def graded_sources(messages: list[BaseMessage]) -> str:
+    """Latest turn's retrieved material as the graders read it."""
+    kept = [message for message in messages if not (message.type == "tool" and message.content in NO_SOURCES_RESULTS)]
+    return last_tool_results(kept)
