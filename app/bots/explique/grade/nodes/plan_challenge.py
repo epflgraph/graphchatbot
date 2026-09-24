@@ -4,7 +4,7 @@ from langgraph.runtime import Runtime
 
 from app.bots.base import Bot, StateUpdate
 from app.bots.explique.grade.compilers.plan_challenge import GradePlanChallengeCompiler
-from app.bots.explique.grade.models import GradeChallengePlan, PointsProgress
+from app.bots.explique.grade.models import GradeChallengePlan
 from app.bots.explique.grade.prompts import STATUS_PLANNING_TEMPLATE
 from app.bots.explique.grade.state import GradeBotState
 from app.bots.utils import announce
@@ -21,10 +21,19 @@ async def plan_challenge_node(state: GradeBotState, runtime: Runtime[Bot]) -> St
         bot=runtime.context,
         compiler=GradePlanChallengeCompiler,
         state=state,
-        fallback=PointsProgress(),
+        fallback=None,
     )
 
     all_points = state["topic_points"]
+    if progress is None:
+        # The points are ordered so each builds on the ones before it,
+        # so the last is the least likely to have been tested yet.
+        logger.warning("Planner call failed; aiming the move at the last point")
+        return {
+            "challenge_plan": GradeChallengePlan(points_remaining=list(all_points)),
+            "current_point": all_points[-1] if all_points else "",
+        }
+
     applied_points = tuple(all_points[i - 1] for i in sorted(set(progress.applied_points)) if 1 <= i <= len(all_points))
     remaining_points = tuple(point for point in all_points if point not in applied_points)
 
