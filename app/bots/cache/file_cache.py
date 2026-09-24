@@ -35,11 +35,10 @@ class FileCache:
     def get(self, key: CacheKey) -> str | None:
         """The entry stored under `key`, or None on a miss; including a corrupted or unreadable one."""
         path = self._path_for(key)
-        if not path.exists():
-            return None
-
         try:
             entry = path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            return None
         except (OSError, UnicodeDecodeError):
             logger.warning("Cache entry unreadable, treating it as a miss: %s", path)
             return None
