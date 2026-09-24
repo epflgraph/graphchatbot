@@ -17,7 +17,7 @@ JAILBREAK_TEMPLATE = "jailbreak.md"
 ATTACHMENT_DROPPED_TEMPLATE = "attachment-dropped.md"
 # Status lines shown above the reply while it is on its way: at the material fetch,
 # at the enrolment check, at the transcription of a photo, at the planning of the next move,
-# and at the finish.
+# and at the recap, after the closing message.
 STATUS_FETCHING_TEMPLATE = "status-fetching.md"
 STATUS_ENROLMENT_TEMPLATE = "status-enrolment.md"
 STATUS_TRANSCRIBING_TEMPLATE = "status-transcribing.md"

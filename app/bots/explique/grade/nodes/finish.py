@@ -50,7 +50,6 @@ async def finish_node(state: GradeBotState, runtime: Runtime[Bot]) -> StateUpdat
 
     topic = topic_lock.topic
     logger.info("Topic covered, finishing: %s", topic.name)
-    announce(STATUS_FINISHING_TEMPLATE, runtime)
     recorder = CoverageRecorder(bot.course_id, state["requester"])
     # The session recap and coverage recording share nothing, so the LLM call and the Moodle
     # round trips overlap. Only the recording decides what the student is told about
@@ -70,6 +69,7 @@ async def finish_node(state: GradeBotState, runtime: Runtime[Bot]) -> StateUpdat
             lang_code=state.get("lang_code"),
         )
         await stream_text(f"{closing}\n\n", runtime.stream_writer)
+        announce(STATUS_FINISHING_TEMPLATE, runtime)
 
     summary = summarizing.result()["session_summary"]
 
