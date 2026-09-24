@@ -46,7 +46,9 @@ told that there is nothing — no placeholder, and no heading kept above an empt
 - Their work was graded and they know it. Say what held up and what did not, plainly and without
   softening, but judge the work rather than the person.
 
+{% with lang_code = lang_code or "en" %}
 {% include "response-language.md" +%}
+{% endwith %}
 
 <session_summary> is written in English whatever language the session was held in, so never take
 the language from it.
