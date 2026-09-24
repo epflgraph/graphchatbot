@@ -3,7 +3,7 @@ from collections.abc import Iterable, Iterator
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import Self
 
-from app.bots.explique.utils import casefold_and_collapse_whitespace
+from app.bots.explique.utils import collapse_whitespace
 
 
 class Topic(BaseModel):
@@ -23,14 +23,14 @@ class Topics(BaseModel):
         by_name = {}
         for name in topic_names:
             if name.strip():
-                by_name.setdefault(casefold_and_collapse_whitespace(name), name)
+                by_name.setdefault(collapse_whitespace(name).casefold(), name)
         return cls(topics=tuple(Topic(name=name) for name in by_name.values()))
 
     @model_validator(mode="after")
     def _topic_names_are_unique(self) -> Self:
         seen = set()
         for topic in self.topics:
-            normalized_name = casefold_and_collapse_whitespace(topic.name)
+            normalized_name = collapse_whitespace(topic.name).casefold()
             if normalized_name in seen:
                 raise ValueError(f"Duplicate topic names detected: {normalized_name!r}")
             seen.add(normalized_name)
@@ -47,9 +47,9 @@ class Topics(BaseModel):
 
     def get_by_name(self, topic_name: str) -> Topic | None:
         """Seek a topic by name, case-insensitively and ignoring whitespace."""
-        topic_name = casefold_and_collapse_whitespace(topic_name)
+        topic_name = collapse_whitespace(topic_name).casefold()
         for topic in self.topics:
-            if casefold_and_collapse_whitespace(topic.name) == topic_name:
+            if collapse_whitespace(topic.name).casefold() == topic_name:
                 return topic
         return None
 

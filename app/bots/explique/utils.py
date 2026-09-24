@@ -1,3 +1,3 @@
-def casefold_and_collapse_whitespace(text: str) -> str:
-    """Casefold the input text, collapse its whitespace to single spaces and strip its ends."""
-    return " ".join(text.split()).casefold()
+def collapse_whitespace(text: str) -> str:
+    """`text` with whitespace collapsed to a single space, and none at its ends."""
+    return " ".join(text.split())

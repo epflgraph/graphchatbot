@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from enum import StrEnum
 
-from app.bots.explique.utils import casefold_and_collapse_whitespace
+from app.bots.explique.utils import collapse_whitespace
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ class ResponseEvaluator:
     @staticmethod
     def _normalize(text: str) -> str:
         """`text` with case, spacing and quote style folded."""
-        return casefold_and_collapse_whitespace(text.translate(ResponseEvaluator.CURLY_TO_STRAIGHT_QUOTES))
+        return collapse_whitespace(text.translate(ResponseEvaluator.CURLY_TO_STRAIGHT_QUOTES)).casefold()
 
     @staticmethod
     def scan_repetitions(response: str, context: EvaluatorContext) -> EvaluationTag | None:

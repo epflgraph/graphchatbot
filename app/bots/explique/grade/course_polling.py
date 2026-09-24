@@ -8,7 +8,7 @@ from app.bots.base import Bot
 from app.bots.explique.grade.coverage_record import ASSESSMENT_ACTIVITY_TYPES, TOPIC_GROUP_NAME
 from app.bots.explique.grade.explique_bot import ExpliqueGradeBot
 from app.bots.explique.grade.topics import Topics
-from app.bots.explique.utils import casefold_and_collapse_whitespace
+from app.bots.explique.utils import collapse_whitespace
 from app.interfaces.moodle import MoodleClient, MoodleError, MoodleModule, moodle
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ def topics_in_activity_title(title: str) -> tuple[str, ...]:
     lookup = set()
 
     for name in TOPIC_TAG.findall(title):
-        normalized = casefold_and_collapse_whitespace(name)
+        normalized = collapse_whitespace(name).casefold()
         if normalized and normalized not in lookup:
             lookup.add(normalized)
             names.append(name.strip())
@@ -74,7 +74,7 @@ def _tagged_topics(modules: list[MoodleModule]) -> tuple[TaggedTopic, ...]:
             continue
 
         for topic in topics_in_activity_title(module.name or ""):
-            key = casefold_and_collapse_whitespace(topic)
+            key = collapse_whitespace(topic).casefold()
             topic_names.setdefault(key, topic)
             activities.setdefault(key, []).append(module)
 
@@ -99,7 +99,7 @@ async def poll_course(bot: ExpliqueGradeBot, *, client: MoodleClient = moodle) -
         # Named the way a finished session looks it up, so it finds this group
         # rather than a second one spelled differently.
         group_name = TOPIC_GROUP_NAME.format(topic=topic.name)
-        group_id = group_ids_by_name.get(casefold_and_collapse_whitespace(group_name))
+        group_id = group_ids_by_name.get(collapse_whitespace(group_name).casefold())
         if group_id is None:
             # Nobody has made it: the group is explique's own, so make it here.
             try:

@@ -6,7 +6,7 @@ from typing import Any, TypeVar
 import httpx
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from app.bots.explique.utils import casefold_and_collapse_whitespace
+from app.bots.explique.utils import collapse_whitespace
 from app.config import MoodleConfig, config
 
 logger = logging.getLogger(__name__)
@@ -244,14 +244,14 @@ class MoodleClient:
         )
         group_ids = {}
         for group in groups:
-            group_ids.setdefault(casefold_and_collapse_whitespace(text=group.name), group.id)
+            group_ids.setdefault(collapse_whitespace(group.name).casefold(), group.id)
 
         return group_ids
 
     async def get_group_id_by_name(self, course_id: int, group_name: str) -> int | None:
         """The id of `course_id`'s group called `group_name`, or None if it has none."""
         group_ids = await self.get_group_ids_by_name(course_id)
-        return group_ids.get(casefold_and_collapse_whitespace(text=group_name))
+        return group_ids.get(collapse_whitespace(group_name).casefold())
 
     async def create_group(self, course_id: int, group_name: str) -> int:
         """Create the group `group_name` in `course_id` and return its id."""
