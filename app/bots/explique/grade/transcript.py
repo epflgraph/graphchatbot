@@ -2,8 +2,9 @@ from pathlib import Path
 
 from langchain_core.messages import BaseMessage
 
-from app.bots.explique.grade.prompts import ATTACHMENT_DROPPED_TEMPLATE, JAILBREAK_TEMPLATE
+from app.bots.explique.grade.prompts import ATTACHMENT_DROPPED_TEMPLATE, JAILBREAK_TEMPLATE, PASTED_REPLY_TEMPLATE
 from app.bots.explique.grade.topics import Topic
+from app.bots.explique.utils import collapse_whitespace
 from app.bots.languages import LANGUAGES
 from app.bots.nodes.tools import TOOL_FAILURE_INSTRUCTION
 from app.bots.transcript import last_tool_results
@@ -55,14 +56,27 @@ def text_after_attachment(text: str) -> str | None:
     return after.strip() if tag else ""
 
 
+def is_pasted_tutor_reply(messages: list[BaseMessage]) -> bool:
+    """Whether the latest turn repeats one of the tutor's earlier replies in `messages` verbatim."""
+    if not messages or messages[-1].type != "human":
+        return False
+    turn = collapse_whitespace(flatten_content(replace_attachments(messages[-1], "").content))
+    return bool(turn) and any(
+        message.type == "ai" and collapse_whitespace(flatten_content(message.content)) == turn
+        for message in messages[:-1]
+    )
+
+
 def graded_turns(search_path: tuple[Path, ...], topic: Topic, messages: list[BaseMessage]) -> list[BaseMessage]:
     """The conversation as the graders read it: an attached file's text is replaced by a
-    placeholder, and a jailbreak attempt is left out, and so is the reply, so the instruction
-    it carried is never scored."""
+    placeholder, and a jailbreak attempt or a pasted reply is left out, and so is the answer
+    to it, so neither is ever scored."""
     placeholder = render_prompt(search_path, ATTACHMENT_DROPPED_TEMPLATE).strip()
     messages = without_attachments(messages, placeholder)
     templates = tuple(
-        render_prompt(search_path, JAILBREAK_TEMPLATE, topic=topic, lang_code=lang_code) for lang_code in LANGUAGES
+        render_prompt(search_path, template, topic=topic, lang_code=lang_code)
+        for template in (JAILBREAK_TEMPLATE, PASTED_REPLY_TEMPLATE)
+        for lang_code in LANGUAGES
     )
     no_grade_turns = [
         message.type == "ai" and flatten_content(message.content).startswith(templates) for message in messages

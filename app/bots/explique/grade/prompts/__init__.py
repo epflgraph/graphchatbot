@@ -13,6 +13,8 @@ INVITE_UNRECORDED_TEMPLATE = "invite-unrecorded.md"
 REDIRECT_TEMPLATE = "redirect.md"
 # Answers a turn that tries to jailbreak the bot instead of explaining.
 JAILBREAK_TEMPLATE = "jailbreak.md"
+# Answers a turn that repeats one of the tutor's replies verbatim instead of explaining.
+PASTED_REPLY_TEMPLATE = "pasted-reply.md"
 # Stands in for an attached file's text in the student's turn, which is never read.
 ATTACHMENT_DROPPED_TEMPLATE = "attachment-dropped.md"
 # Status lines shown above the reply while it is on its way: at the material fetch,

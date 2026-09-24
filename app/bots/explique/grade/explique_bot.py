@@ -24,6 +24,7 @@ from app.bots.explique.grade.nodes.respond import make_respond_node
 from app.bots.explique.grade.nodes.transcribe_image import make_transcribe_image_node
 from app.bots.explique.grade.state import GradeBotState
 from app.bots.explique.grade.topics import Topics
+from app.bots.explique.grade.transcript import is_pasted_tutor_reply
 from app.bots.explique.grade.tutor_action import select_tutor_action
 from app.bots.explique.models import MessageEvent, StudentIntent
 from app.bots.explique.node_names import Node
@@ -82,6 +83,8 @@ class ExpliqueGradeBot(ExpliqueBot):
             return GradeNode.PRESENT_MENU
         if topic_lock.is_in_latest_turn(state["messages"]):
             return GradeNode.INVITE
+        if is_pasted_tutor_reply(topic_lock.post_lock_turns(state["messages"])):
+            return GradeNode.REDIRECT
         return None
 
     @classmethod
@@ -130,6 +133,7 @@ class ExpliqueGradeBot(ExpliqueBot):
 
         lock_topic ─► derive_topic_points ─┬─ (a direct reply) ─► detect_language ─┬─ (no topic yet) ────────► present_menu ─► END
                                            │                                      ├─ (picked in this turn) ─► invite ───────► END
+                                           │                                      ├─ (a reply pasted back) ─► redirect ─────► END
                                            │                                      └─ (already finished) ────► finish ───────► END
                                            └─ (picked earlier) ─► transcribe_image ─► … ─► evaluate_response ─► END
 
