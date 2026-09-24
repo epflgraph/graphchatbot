@@ -14,7 +14,7 @@ from app.interfaces.moodle import MoodleClient, MoodleError, MoodleModule, moodl
 logger = logging.getLogger(__name__)
 
 # What the professor writes in an activity's title to say which topic it belongs to, case ignored.
-TOPIC_TAG = re.compile(r"\[TOPIC:([^\]]*)\]", re.IGNORECASE)
+TOPIC_TAG = re.compile(r"\[TOPIC:([^\[\]]*)\]", re.IGNORECASE)
 
 
 def topics_in_activity_title(title: str) -> tuple[str, ...]:
