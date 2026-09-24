@@ -3,7 +3,7 @@ from pathlib import Path
 from langchain_core.messages import BaseMessage
 from pydantic import BaseModel, ConfigDict
 
-from app.bots.explique.grade.prompts import INVITE_TEMPLATE, TOPIC_LIST_TEMPLATE
+from app.bots.explique.grade.prompts import INVITE_TEMPLATE, REDIRECT_TEMPLATE, TOPIC_LIST_TEMPLATE
 from app.bots.explique.grade.topics import Topic, Topics
 from app.bots.explique.grade.transcript import graded_turns, text_after_attachment
 from app.bots.explique.grade.utils import parse_int
@@ -29,9 +29,19 @@ class TopicLock(BaseModel):
         return messages[self.position + 1 :]
 
     def explaining_turns(self, search_path: tuple[Path, ...], messages: list[BaseMessage]) -> int:
-        """How many turns the student has spent explaining their locked topic."""
+        """How many turns since the lock the bot has graded."""
         graded = graded_turns(search_path, self.topic, self.post_lock_turns(messages))
-        return sum(1 for message in graded if message.type == "human")
+        # Don't count redirects, as they're not part of the explanation.
+        redirects = tuple(
+            render_prompt(search_path, REDIRECT_TEMPLATE, topic=self.topic, lang_code=lang_code)
+            for lang_code in LANGUAGES
+        )
+        return sum(
+            1
+            for position, message in enumerate(graded)
+            if message.type == "human"
+            and not (position + 1 < len(graded) and flatten_content(graded[position + 1].content).startswith(redirects))
+        )
 
 
 def has_invitation_for_topic(search_path: tuple[Path, ...], message: BaseMessage, topic: Topic) -> bool:
