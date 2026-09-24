@@ -102,7 +102,14 @@ async def poll_course(bot: ExpliqueGradeBot, *, client: MoodleClient = moodle) -
         group_id = group_ids_by_name.get(casefold_and_collapse_whitespace(group_name))
         if group_id is None:
             # Nobody has made it: the group is explique's own, so make it here.
-            group_id = await client.create_group(bot.course_id, group_name)
+            try:
+                group_id = await client.create_group(bot.course_id, group_name)
+            except MoodleError:
+                # One refused topic must not stop the others.
+                logger.warning(
+                    "Could not create group for topic %r in course %s", topic.name, bot.course_id, exc_info=True
+                )
+                continue
             created.append(topic.name)
 
         # The professor's own step, since no Moodle API can set it: they point the quiz's
@@ -144,7 +151,7 @@ async def _poll_courses(
             try:
                 report = await poll_course(bot, client=client)
             except MoodleError:
-                logger.warning("Could not read course %s (%s)", bot.course_id, bot.name, exc_info=True)
+                logger.warning("Moodle failed while polling course %s (%s)", bot.course_id, bot.name, exc_info=True)
             except Exception:
                 logger.exception("Polling course %s (%s) failed", bot.course_id, bot.name)
             else:
