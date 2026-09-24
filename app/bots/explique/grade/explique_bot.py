@@ -94,11 +94,23 @@ class ExpliqueGradeBot(ExpliqueBot):
         return cls._direct_reply(state) or END
 
     @staticmethod
-    def _route_after_classify(state: GradeBotState) -> Node | GradeNode:
+    def _route_after_transcribe_image(state: GradeBotState) -> Node | tuple[Node, ...]:
+        """Retrieval runs alongside the classifier instead of after it (latency benefit in the hot path)."""
+        if state.get("category") == MessageEvent.CONTENT_UNREADABLE:
+            return Node.RESPOND
+        return (Node.CLASSIFY, Node.DETECT_LANGUAGE, Node.RETRIEVE)
+
+    @staticmethod
+    async def _post_classify(_state: GradeBotState) -> None:
+        """Junction where the classifier and the retrieval meet. Does no work itself."""
+        return None
+
+    @staticmethod
+    def _route_after_classify(state: GradeBotState) -> tuple[Node, ...] | GradeNode:
         """A graded session answers nothing but the topic it locked.
-        Every other intent is redirected without retrieving."""
+        Every other intent is redirected, and what was retrieved for it is unused."""
         if state["category"] == StudentIntent.IN_TOPIC_RESPONSE:
-            return Node.RETRIEVE
+            return (Node.EVALUATE, Node.PLAN_CHALLENGE)
         return GradeNode.REDIRECT
 
     def _route_after_select_action(self, state: GradeBotState) -> Node | GradeNode:
@@ -127,19 +139,24 @@ class ExpliqueGradeBot(ExpliqueBot):
 
         From `transcribe_image` on, the graded exchange is the tutor's without its exits:
 
-        transcribe_image ─┬─ (content unreadable) ────────────────────────────────────────────────────► respond
+        transcribe_image ─┬─ (content unreadable) ─────────────────────────────────────► respond
                           ├─ detect_language (writes `lang_code`, then ends)
-                          └─ classify ─┬─ (anything but an explanation) ─────────────────────────────► redirect ─► END
-                                       └─ retrieve ─┬─ (tool call) ────► tools ──────┐
-                                                    └─ (no tool call) ───────────────┴─► post_retrieve ─┬─ evaluate ───────┬─► select_action ─┬─ (covered) ─► finish ─► END
-                                                                                                        └─ plan_challenge ─┘                  ├─ (not evaluated) ─► no_answer ─► END
-                                                                                                                                              └─ (points left) ─► respond
+                          ├─ classify ─────────────────────────────────────────────────────┐
+                          └─ retrieve ─┬─ (tool call) ────► tools ──────┐                  │
+                                       └─ (no tool call) ───────────────┴─► post_retrieve ─┴─► post_classify ─┐
+                                                                                                              │
+            ┌─────────────────────────────────────────────────────────────────────────────────────────────────┘
+            ├─ (anything but an explanation) ─► redirect ─► END
+            └─ (an explanation) ─┬─ evaluate ───────┬─► select_action ─┬─ (covered) ─► finish ─► END
+                                 └─ plan_challenge ─┘                  ├─ (not evaluated) ─► no_answer ─► END
+                                                                       └─ (points left) ─► respond
 
             respond ─────────► evaluate_response ──(accepted, or budget spent)──► END
                ▲                       │
                └───────(rejected)──────┘
 
-        `respond` streams through a `StreamGate` and writes `candidate_response`, not `messages`;
+        `post_classify` waits for both `classify` and `post_retrieve`. `respond` streams through a
+        `StreamGate` and writes `candidate_response`, not `messages`;
         `evaluate_response` creates the message and streams what the gate held back. `finish` is
         the only way out: it runs the recap alongside the Moodle write, and covering the topic is
         what earns it. `no_answer` sends the canned apology when `evaluate` failed, since there
@@ -195,6 +212,7 @@ class ExpliqueGradeBot(ExpliqueBot):
 
         workflow.add_node(Node.TOOLS, make_tools_node(tools))
         workflow.add_node(Node.POST_RETRIEVE, self._post_retrieve)
+        workflow.add_node(GradeNode.POST_CLASSIFY, self._post_classify)
         workflow.add_node(Node.EVALUATE, evaluate_node)
         workflow.add_node(GradeNode.NO_ANSWER, no_answer_node)
         workflow.add_node(Node.PLAN_CHALLENGE, plan_challenge_node)
@@ -214,9 +232,8 @@ class ExpliqueGradeBot(ExpliqueBot):
         workflow.add_edge(GradeNode.NO_ANSWER, END)
         workflow.add_conditional_edges(Node.DETECT_LANGUAGE, self._route_after_detect_language)
         workflow.add_conditional_edges(Node.TRANSCRIBE_IMAGE, self._route_after_transcribe_image)
-        workflow.add_conditional_edges(Node.CLASSIFY, self._route_after_classify)
-        workflow.add_edge(Node.POST_RETRIEVE, Node.EVALUATE)
-        workflow.add_edge(Node.POST_RETRIEVE, Node.PLAN_CHALLENGE)
+        workflow.add_edge([Node.CLASSIFY, Node.POST_RETRIEVE], GradeNode.POST_CLASSIFY)
+        workflow.add_conditional_edges(GradeNode.POST_CLASSIFY, self._route_after_classify)
         workflow.add_edge(Node.EVALUATE, Node.SELECT_ACTION)
         workflow.add_edge(Node.PLAN_CHALLENGE, Node.SELECT_ACTION)
         workflow.add_conditional_edges(Node.SELECT_ACTION, self._route_after_select_action)

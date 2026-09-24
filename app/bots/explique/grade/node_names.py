@@ -8,6 +8,7 @@ class GradeNode(StrEnum):
     DERIVE_TOPIC_POINTS = "derive_topic_points"
     PRESENT_MENU = "present_menu"
     INVITE = "invite"
+    POST_CLASSIFY = "post_classify"
     REDIRECT = "redirect"
     FINISH = "finish"
     NO_ANSWER = "no_answer"
