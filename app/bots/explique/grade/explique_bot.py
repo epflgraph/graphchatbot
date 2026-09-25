@@ -64,9 +64,13 @@ class ExpliqueGradeBot(ExpliqueBot):
     # Listing any of them here would send that node's message a second time.
     model_nodes = ()
 
-    # The tutor's intents plus the one an exam needs: a malicious turn that instructs the
-    # bot instead of explaining, kept off the graded path so it is never scored.
-    INTENT_TOOL_CHOICES = ExpliqueBot.INTENT_TOOL_CHOICES | {GradeStudentIntent.JAILBREAK: {"tool_choice": None}}
+    # The tutor's intents plus two an exam needs: a malicious turn that instructs the
+    # bot instead of explaining, kept off the graded path so it is never scored, and a
+    # turn that asks about the tutor's question itself, which has nothing to assess.
+    INTENT_TOOL_CHOICES = ExpliqueBot.INTENT_TOOL_CHOICES | {
+        GradeStudentIntent.JAILBREAK: {"tool_choice": None},
+        GradeStudentIntent.CLARIFICATION: {"tool_choice": "auto"},
+    }
 
     # --- Graph --------------------------------------
 
@@ -109,11 +113,14 @@ class ExpliqueGradeBot(ExpliqueBot):
         return None
 
     @staticmethod
-    def _route_after_classify(state: GradeBotState) -> tuple[Node, ...] | GradeNode:
+    def _route_after_classify(state: GradeBotState) -> Node | tuple[Node, ...] | GradeNode:
         """A graded session answers nothing but the topic it locked.
+        A question about the tutor's own question is answered without grading, since it claims nothing.
         Every other intent is redirected, and what was retrieved for it is unused."""
         if state["category"] == StudentIntent.IN_TOPIC_RESPONSE:
             return (Node.EVALUATE, Node.PLAN_CHALLENGE)
+        if state["category"] == GradeStudentIntent.CLARIFICATION:
+            return Node.RESPOND
         return GradeNode.REDIRECT
 
     def _route_after_select_action(self, state: GradeBotState) -> Node | GradeNode:
@@ -151,6 +158,7 @@ class ExpliqueGradeBot(ExpliqueBot):
                                                                                                               │
             ┌─────────────────────────────────────────────────────────────────────────────────────────────────┘
             ├─ (anything but an explanation) ─► redirect ─► END
+            ├─ (a question about the tutor's question) ─► respond
             └─ (an explanation) ─┬─ evaluate ───────┬─► select_action ─┬─ (covered) ─► finish ─► END
                                  └─ plan_challenge ─┘                  ├─ (not evaluated) ─► no_answer ─► END
                                                                        └─ (points left) ─► respond

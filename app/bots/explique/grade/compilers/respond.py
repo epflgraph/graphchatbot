@@ -1,5 +1,7 @@
 from typing import Any, Mapping
 
+from langchain_core.messages import BaseMessage
+
 from app.bots.base import Bot
 from app.bots.explique.compilers.respond import (
     ContentUnreadableResponseCompiler,
@@ -11,8 +13,10 @@ from app.bots.explique.compilers.respond import (
     switch_representation,
 )
 from app.bots.explique.grade.compilers.base import GradeContext, GradedTurnsCompiler
-from app.bots.explique.grade.models import GradeChallengePlan
+from app.bots.explique.grade.models import GradeChallengePlan, GradeStudentIntent
+from app.bots.explique.grade.transcript import graded_turns
 from app.bots.explique.models import StudentIntent, StudentState, TutorAction
+from app.llms.utils import flatten_content
 
 
 def follows_plan(plan: GradeChallengePlan | None, tutor_action: TutorAction) -> bool:
@@ -78,5 +82,41 @@ class GradeContentUnreadableResponseCompiler(GradedTurnsCompiler, ContentUnreada
     context_class = GradeResponseContext
 
 
-# Only two categories reach a responder here; everything else is redirected without a model call.
-compiler_for = compiler_lookup(GradeTutoringResponseCompiler, GradeContentUnreadableResponseCompiler)
+class GradeClarificationResponseContext(GradeResponseContext):
+    """The tutor's last message and the student's request about it, quoted apart."""
+
+    last_tutor_message: str
+    last_student_message: str
+
+
+class GradeClarificationResponseCompiler(GradedTurnsCompiler, ResponseCompiler):
+    """The tutor's last question asked again differently, for a student who asked about the question itself."""
+
+    config = response_config(
+        overrides=(GradeStudentIntent.CLARIFICATION,),
+        system_template="intent-clarification.md",
+        user_template="intent-clarification-turn.md",
+    )
+    context_class = GradeClarificationResponseContext
+
+    @classmethod
+    def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
+        *_, last_tutor, last_student = graded_turns(
+            bot.prompt_search_path, state["topic_lock"].topic, state["messages"]
+        )
+        return super().context_fields(bot, state) | {
+            "last_tutor_message": flatten_content(last_tutor.content),
+            "last_student_message": flatten_content(last_student.content),
+        }
+
+    @classmethod
+    def embedded_turns(cls, bot: Bot, context: GradeClarificationResponseContext) -> tuple[BaseMessage, ...]:
+        """No conversation turns: the two last messages come quoted in the closing turn, and a rewrite needs nothing
+        earlier."""
+        return ()
+
+
+# Only these categories reach a responder here; everything else is redirected without a model call.
+compiler_for = compiler_lookup(
+    GradeTutoringResponseCompiler, GradeContentUnreadableResponseCompiler, GradeClarificationResponseCompiler
+)

@@ -8,6 +8,7 @@ class GradeStudentIntent(StrEnum):
     on top of the `StudentIntent` ones."""
 
     JAILBREAK = "jailbreak"
+    CLARIFICATION = "clarification"
 
 
 class TopicPoints(BaseModel):
