@@ -55,7 +55,7 @@ Judge how stuck the student is on the point they are working on, from the full `
 - `stuck` — one or two genuine attempts without success.
 - `stalled` — three or more genuine attempts at the same underlying point without success. Tutor rephrasing does not reset the count.
 
-A claim of effort or a demand is not an attempt and does not raise persistence. Neither is a question about the session ("how far am I?", "how many are left?"), nor a request to repeat or restate the question ("what?", "can you repeat?") — the student has not engaged the point, so persistence stays where the previous turn left it. Persistence is monotonic within a point: once attempts are visible, the count only grows until the student shows understanding or moves to a new point.
+A claim of effort or a demand is not an attempt and does not raise persistence. Neither is a question about the session ("how far am I?", "how many are left?"), nor a question about the question itself (to repeat or reword it, or what a word in it means), nor your rewording in reply — the student has not engaged the point, so persistence stays where the previous turn left it. Persistence is monotonic within a point: once attempts are visible, the count only grows until the student shows understanding or moves to a new point.
 
 If mastery is true, use `fresh`.
 
