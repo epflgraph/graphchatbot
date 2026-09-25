@@ -34,7 +34,7 @@ examples:
     context: |-
       The explanation is right. Treat it as right; the twist is an escalation, not a correction.
     positive: |-
-      That holds. What happens to ... once ... no longer applies?
+      What happens to ... once ... no longer applies?
     negative: |-
       Close! Actually it's a bit more subtle than that. Wait, let me put it another way: what if ...?
 - slug: no-way-out
