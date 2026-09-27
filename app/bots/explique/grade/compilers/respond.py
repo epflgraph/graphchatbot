@@ -20,9 +20,13 @@ from app.llms.utils import flatten_content
 
 
 def follows_plan(plan: GradeChallengePlan | None, tutor_action: TutorAction) -> bool:
-    """Whether the move gets the plan's point and direction; a probe or a misconception challenge is about what the
-    student said instead."""
-    return plan is not None and tutor_action not in (TutorAction.PROBE, TutorAction.CHALLENGE_MISCONCEPTION)
+    """Whether the move gets the plan's point and direction; a probe, a hint or a misconception challenge is about what
+    the student said instead."""
+    return plan is not None and tutor_action not in (
+        TutorAction.PROBE,
+        TutorAction.HINT,
+        TutorAction.CHALLENGE_MISCONCEPTION,
+    )
 
 
 class GradeResponseContext(ResponseContext, GradeContext):
