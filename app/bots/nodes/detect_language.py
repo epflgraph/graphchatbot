@@ -24,7 +24,7 @@ class LanguageDetection(BaseModel):
     )
     lang_code: Literal[*LANGUAGES, UNDETERMINED] = Field(
         default=UNDETERMINED,
-        description=f"The turn's ISO 639-1 code, or `{UNDETERMINED}` when no supported language can be inferred.",
+        description=f"The turn's language code, or `{UNDETERMINED}` when no supported language can be inferred.",
     )
 
 

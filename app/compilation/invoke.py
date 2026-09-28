@@ -59,6 +59,6 @@ async def text_call(
     response = flatten_content(message.content) if message is not None else ""
     if not response.strip():
         logger.warning("Text %s call produced nothing; falling back to NO_ANSWER", compiler.config.task)
-        return no_answer(state.get("lang_code"))
+        return no_answer(bot.prompt_search_path, state.get("lang_code"))
 
     return response
