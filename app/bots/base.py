@@ -80,26 +80,30 @@ class Bot(ABC):
     model_nodes: tuple[str, ...] = ("model",)
 
     @cached_property
-    def prompt_directories(self) -> tuple[Path, ...]:
+    def directory(self) -> Path:
+        """The directory this bot's own files live in."""
+        return Path(inspect.getfile(type(self))).parent
+
+    @cached_property
+    def prompt_levels(self) -> tuple[Path, ...]:
         """The levels a prompt can be defined at: this bot's own directory, then
         each parent up to and including `BOTS_ROOT`."""
-        start = Path(inspect.getfile(type(self))).parent
-        directories = []
-        for directory in [start, *start.parents]:
-            directories.append(directory)
-            if directory == BOTS_ROOT:
-                return tuple(directories)
+        levels = []
+        for level in [self.directory, *self.directory.parents]:
+            levels.append(level)
+            if level == BOTS_ROOT:
+                return tuple(levels)
 
         # A subclass defined outside BOTS_ROOT would otherwise collect every
         # ancestor up to `/`, and load any same-named template sitting in one.
-        raise ValueError(f"{type(self).__name__} is defined at {start}, which is not under {BOTS_ROOT}.")
+        raise ValueError(f"{type(self).__name__} is defined at {self.directory}, which is not under {BOTS_ROOT}.")
 
     @cached_property
     def prompt_search_path(self) -> tuple[Path, ...]:
         """Where this bot's prompt templates are looked up: each level's
         `prompts/`, innermost first. A course's own copy of a template
         shadows the family's, which shadows the shared one."""
-        return tuple(level / PROMPTS_DIRNAME for level in self.prompt_directories)
+        return tuple(level / PROMPTS_DIRNAME for level in self.prompt_levels)
 
     def model_for(self, choice: ModelChoice) -> ChatOpenAI:
         """The client a call of this choice runs on.
