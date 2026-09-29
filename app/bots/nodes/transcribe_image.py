@@ -22,6 +22,10 @@ logger = logging.getLogger(__name__)
 # Placeholder text for unreadable image.
 UNREADABLE_IMAGE_TEXT = "<user uploaded image>"
 
+# Open WebUI's mention of a turn's files.
+ATTACHED_FILES_START_TAG = "<attached_files>"
+ATTACHED_FILES_END_TAG = "</attached_files>"
+
 
 class ImageTranscription(BaseModel):
     """What an image a user sent says, rendered as if they had typed it."""
@@ -164,6 +168,9 @@ def make_image_transcriber_node(compiler: type[MessageCompiler], on_unreadable: 
         results = []
         for turn, transcription in zip(image_turns, transcriptions):
             typed = flatten_content(turn.content).strip()
+            before, end_tag, after = typed.partition(ATTACHED_FILES_END_TAG)
+            if end_tag and before.startswith(ATTACHED_FILES_START_TAG):
+                typed = after.strip()
             content = f"{typed}\n\n{transcription}" if typed else transcription
             results.append(turn.model_copy(update={"content": content}))
         state_update = {"messages": results}
