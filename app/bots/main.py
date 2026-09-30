@@ -99,7 +99,7 @@ async def agenerate_completion(chat_request: CompletionCreateParams, bot: Bot) -
         logger.exception("Streaming failed for bot %r, model %r", bot.name, model_name)
         # The 200 went out with the first chunk, so the only way left to tell the
         # user is in the reply itself: silence here reads as the bot ignoring them.
-        yield sse_chunk(model_name, content=no_answer(None))
+        yield sse_chunk(model_name, content=no_answer(bot.prompt_search_path, None))
     finally:
         # A stream ending with no finish reason reads as truncated rather than finished —
         # `@ai-sdk/openai-compatible` errors on it from 3.0.33. In `finally` so the stream

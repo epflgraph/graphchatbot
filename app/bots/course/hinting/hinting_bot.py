@@ -53,14 +53,13 @@ class HintingCourseBot(CourseBot):
             return Node.RESPOND
         return Node.RETRIEVE
 
-    @staticmethod
-    def _fallback_response() -> HintingResponse:
+    def _fallback_response(self) -> HintingResponse:
         """What to render when the structured hinting call fails."""
         return HintingResponse(
             sections=[
                 ResponseSection(
                     type="text",
-                    content=no_answer(None),
+                    content=no_answer(self.prompt_search_path, None),
                 )
             ]
         )
