@@ -13,10 +13,11 @@ from app.bots import registry as bot_registry
 from app.bots.explique.grade.course_polling import start_polling
 from app.config import config
 from app.interfaces.moodle import moodle
-from app.logging_config import setup_logging
+from app.logging_config import setup_incident_report, setup_logging
 from app.routers import public
 
 setup_logging()
+setup_incident_report(config.sentry)
 
 
 @asynccontextmanager

@@ -55,6 +55,11 @@ class LangfuseConfig(BaseConfig):
     environment: str | None = None
 
 
+class SentryConfig(BaseConfig):
+    dsn: str | None = None
+    environment: str | None = None
+
+
 class MoodleConfig(BaseConfig):
     base_url: str | None = None
     token: str | None = None
@@ -84,6 +89,7 @@ class AppConfig(BaseConfig):
     graphai: GraphaiConfig
     cache: CacheConfig = Field(default_factory=CacheConfig)
     langfuse: LangfuseConfig = Field(default_factory=LangfuseConfig)
+    sentry: SentryConfig = Field(default_factory=SentryConfig)
     moodle: MoodleConfig = Field(default_factory=MoodleConfig)
     moodle_polling: MoodlePollingConfig = Field(default_factory=MoodlePollingConfig)
 

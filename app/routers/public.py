@@ -1,6 +1,7 @@
 import logging
 from typing import Annotated
 
+import sentry_sdk
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from openai.types.chat.completion_create_params import CompletionCreateParams
@@ -27,6 +28,7 @@ async def chat(
     bot = bot_registry.get_bot(chat_request["model"])
     if bot is None:
         raise HTTPException(status_code=404, detail=f"Bot '{chat_request['model']}' not found")
+    sentry_sdk.set_tag("bot", bot.name)
 
     if chat_request.get("stream"):
         stream = bot_agenerate_completion(chat_request, bot, requester=requester)

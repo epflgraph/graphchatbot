@@ -31,6 +31,11 @@ secret_key: xxxx
 public_key: xxxx
 environment: local
 
+[sentry]
+; Empty disables error reporting.
+dsn:
+environment: local
+
 [moodle]
 ; The web-service account this app talks to Moodle through.
 base_url: https://moodle.epfl.ch

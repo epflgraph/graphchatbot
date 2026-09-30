@@ -1,6 +1,6 @@
 from typing import Annotated, Literal, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.bots.course.hinting.hinting_bot import HintingCourseBot
 
@@ -21,12 +21,32 @@ class PracticeFilters(BaseModel):
     )
     number: Optional[str] = Field(
         default=None,
-        description="Serie/exercise sheet number. Always an integer.",
+        description=(
+            "For 'serie': 'Série 13 exo 4' → '13'. For 'exercise': 'Question ouverte 4' → '4', "
+            "'Question ouverte, ex 2' → '2'."
+        ),
     )
     sub_number: Optional[str] = Field(
         default=None,
-        description="Exercise number within the serie/exercise sheet. Always an integer.",
+        description=(
+            "The exercise number within the series; for 'serie' only, never for 'exercise'. "
+            "'Série 2 exo 3' → number '2', sub_number '3'; 'Series 11 Exercise 1' → number '11', sub_number '1'."
+        ),
     )
+
+    @field_validator("number")
+    @classmethod
+    def _validate_number(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and not v.isdigit():
+            raise ValueError("number must be digits, e.g. '5'")
+        return v
+
+    @field_validator("sub_number")
+    @classmethod
+    def _validate_sub_number(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and not v.isdigit():
+            raise ValueError("sub_number must be digits, e.g. '3'")
+        return v
 
 
 class ExamFilters(BaseModel):
@@ -37,12 +57,29 @@ class ExamFilters(BaseModel):
     )
     number: Optional[str] = Field(
         default=None,
-        description="Year of the exam, e.g. 'Exam 2022' → '2022'. Always an integer.",
+        description=(
+            "Year of the exam, e.g. 'Exam 2022' → '2022'; for an academic year like '2022/2023' use the first year. "
+            "Always digits."
+        ),
     )
     sub_number: Optional[str] = Field(
         default=None,
-        description="Exercise number within the exam, e.g. 'Examen 2024 exercise 3' → '3'.",
+        description="Exercise number within the exam, e.g. 'Examen 2024 Question 8' → '8'. Always digits.",
     )
+
+    @field_validator("number")
+    @classmethod
+    def _validate_number(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and not (v.isdigit() and len(v) == 4):
+            raise ValueError("number must be a year, e.g. '2019'")
+        return v
+
+    @field_validator("sub_number")
+    @classmethod
+    def _validate_sub_number(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and not v.isdigit():
+            raise ValueError("sub_number must be digits, e.g. '3'")
+        return v
 
 
 class ToolInput(BaseModel):
