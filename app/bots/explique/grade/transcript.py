@@ -4,12 +4,12 @@ from langchain_core.messages import BaseMessage
 
 from app.bots.explique.grade.prompts import ATTACHMENT_DROPPED_TEMPLATE, JAILBREAK_TEMPLATE, PASTED_REPLY_TEMPLATE
 from app.bots.explique.grade.topics import Topic
-from app.bots.explique.utils import collapse_whitespace
 from app.bots.languages import LANGUAGES
 from app.bots.nodes.tools import TOOL_FAILURE_INSTRUCTION
 from app.bots.transcript import last_tool_results
 from app.compilation.templates import render_prompt
 from app.llms.utils import flatten_content, wrap_content
+from app.utils import collapse_whitespace
 
 # Tool results that carry no material: a search that raised, and one that found nothing
 # (a graphai outage answers empty too), as a list or already stringified.

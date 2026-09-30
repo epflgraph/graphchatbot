@@ -8,8 +8,8 @@ from app.bots.base import Bot
 from app.bots.explique.grade.coverage_record import ASSESSMENT_ACTIVITY_TYPES, TOPIC_GROUP_NAME
 from app.bots.explique.grade.explique_bot import ExpliqueGradeBot
 from app.bots.explique.grade.topics import Topics
-from app.bots.explique.utils import collapse_whitespace
 from app.interfaces.moodle import MoodleClient, MoodleError, MoodleModule, moodle
+from app.utils import collapse_whitespace
 
 logger = logging.getLogger(__name__)
 

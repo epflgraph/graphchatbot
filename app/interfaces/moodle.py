@@ -6,8 +6,8 @@ from typing import Any, TypeVar
 import httpx
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from app.bots.explique.utils import collapse_whitespace
 from app.config import MoodleConfig, config
+from app.utils import collapse_whitespace
 
 logger = logging.getLogger(__name__)
 

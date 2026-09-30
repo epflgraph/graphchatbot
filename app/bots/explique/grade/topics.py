@@ -3,7 +3,7 @@ from collections.abc import Iterable, Iterator
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import Self
 
-from app.bots.explique.utils import collapse_whitespace
+from app.utils import collapse_whitespace
 
 
 class Topic(BaseModel):

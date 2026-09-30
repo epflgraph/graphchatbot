@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from enum import StrEnum
 
-from app.bots.explique.utils import collapse_whitespace
+from app.utils import collapse_whitespace
 
 logger = logging.getLogger(__name__)
 
