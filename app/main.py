@@ -9,10 +9,12 @@ import uvicorn
 from fastapi import FastAPI
 
 from app.bots import registry as bot_registry
-from app.logging_config import setup_logging
+from app.config import config
+from app.logging_config import setup_incident_report, setup_logging
 from app.routers import public
 
 setup_logging()
+setup_incident_report(config.sentry)
 
 
 @asynccontextmanager

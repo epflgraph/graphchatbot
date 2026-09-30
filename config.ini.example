@@ -30,3 +30,8 @@ host: https://langfuse.cede-apps.ch
 secret_key: xxxx
 public_key: xxxx
 environment: local
+
+[sentry]
+; Empty disables error reporting.
+dsn:
+environment: local

@@ -55,6 +55,11 @@ class LangfuseConfig(BaseConfig):
     environment: str | None = None
 
 
+class SentryConfig(BaseConfig):
+    dsn: str | None = None
+    environment: str | None = None
+
+
 class AppConfig(BaseConfig):
     rcp: RcpConfig
     elasticsearch: ElasticsearchConfig
@@ -62,6 +67,7 @@ class AppConfig(BaseConfig):
     graphai: GraphaiConfig
     cache: CacheConfig = Field(default_factory=CacheConfig)
     langfuse: LangfuseConfig = Field(default_factory=LangfuseConfig)
+    sentry: SentryConfig = Field(default_factory=SentryConfig)
 
 
 # Overridable so the test suite can point at a placeholder config (see `tests/__init__.py`).
