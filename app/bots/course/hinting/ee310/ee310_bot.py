@@ -19,9 +19,9 @@ class PracticeFilters(BaseModel):
         default=None,
         description="Optional subtype for practice content. The course splits its practical works across both values, so omit it to search them all.",
     )
-    number: Optional[str] = Field(
+    number: Optional[int] = Field(
         default=None,
-        description="Practical work (PW / TP) number, ignoring any part letter, e.g. 'PW3A' → '3', 'TP 5C' → '5'.",
+        description="Practical work (PW / TP) number, ignoring any part letter, e.g. 'PW3A' → 3, 'TP 5C' → 5.",
     )
 
 
