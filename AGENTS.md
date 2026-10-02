@@ -5,7 +5,7 @@
 The codebase was refactored from a legacy `app/integrations/` system to the current `app/bots/` architecture.
 
 - **Current code** → `app/bots/` (active)
-- **Legacy code** → `app/integrations/` (retained for reference, do not add to it)
+- **Legacy code** → `app/integrations/` (deleted; it survives only in git history)
 - **Architecture**: Each bot is a self-contained class under `app/bots/`, discovered at runtime by scanning for `*_bot.py` files
 
 ## Architecture
@@ -14,22 +14,26 @@ The codebase was refactored from a legacy `app/integrations/` system to the curr
 app/
 ├── main.py              # FastAPI entry point
 ├── config.py            # INI loading, validated through a frozen Pydantic model
+├── logging_config.py    # Logging setup and Sentry incident reporting
+├── identity.py          # Who is asking, read from the headers the chat frontend forwards
+├── utils.py             # Small string helpers
 ├── compilation/         # Message compilation: Jinja templates, example banks, bounded model calls
 ├── bots/
 │   ├── base.py          # Bot ABC, BotState, model configuration
 │   ├── registry.py      # Auto-discovery of bot classes via filesystem scanning
 │   ├── languages.py     # Languages a bot can be instructed to reply in
 │   ├── main.py          # LLM completion / streaming helpers
+│   ├── utils.py         # Status events and text a node writes to the stream itself
 │   ├── compilers/       # Shared message compilers (classify, respond)
 │   ├── prompts/         # Shared prompt templates and macros
 │   ├── nodes/           # Reusable LangGraph nodes (classify, model, tools, transcribe_image, detect_language)
 │   ├── artifacts/       # Base for bot responses rendered as HTML
-│   ├── cache/           # Shared on-disk caches (e.g. image transcriptions)
+│   ├── cache/           # Shared on-disk caches (e.g. image transcriptions, topic points)
 │   ├── admin/           # AdminBot + concrete admin bots
 │   ├── course/          # CourseBot + pedagogical variants
-│   ├── explique/        # ExpliqueBot Socratic tutors + course variants
+│   ├── explique/        # ExpliqueBot base + its train/ and grade/ flavours
 │   └── graph_chat/      # GraphChatBot
-├── interfaces/graphai.py # GraphAI RAG client
+├── interfaces/          # Clients for external services (GraphAI RAG, Moodle)
 ├── llms/utils.py        # Message shaping helpers (flattening, image parts, timeouts)
 └── routers/             # FastAPI public routers
 ```
@@ -41,7 +45,9 @@ app/
    - `CourseBot` — course tutor with built-in message classification (greeting / theory / practice / admin / unrelated)
    - `HintingCourseBot` — course tutor that provides hints instead of direct answers
    - `DirectCourseBot` — course tutor that gives direct answers
-   - `ExpliqueBot` — Socratic tutor that has the student explain concepts back, and responds to each explanation
+   - `DebateCourseBot` — course tutor that uses a peer-debate pedagogical style
+   - `ExpliqueTrainBot` — Socratic tutor that has the student explain concepts back, and responds to each explanation
+   - `ExpliqueGradeBot` — graded flavour of explique: the student picks one topic, and covering it is recorded in Moodle (also needs `index` and `course_id`)
    - `Bot` (ABC) — fully custom LangGraph topology
 
 2. Create a directory: `app/bots/<category>/<botname>/`
@@ -69,12 +75,13 @@ Templates render under `StrictUndefined`, so a placeholder with no value raises 
 - **Type hints**: Use `list[str]`, `dict[str, ...]`, `str | None` (Python 3.12)
 - **Models**: `langchain_openai.ChatOpenAI`. Credentials (`base_url`, `api_key`) are read from `config.ini`; the shared base model name and generation parameters in `app.bots.base.Bot` are currently hardcoded.
 - **Graphs**: Stateless, compiled at startup via `@cached_property`, reused per request
-- **Streaming**: Use `stream_mode="messages"`, filter by `metadata["langgraph_node"]`
+- **Streaming**: Use `stream_mode=["messages", "custom"]`, filter tokens by `metadata["langgraph_node"]`; a node can also write a `Status` event or text to the stream itself through `runtime.stream_writer` (helpers in `app.bots.utils`)
 - **Tools**: Declare via `langchain.tools.tool`, with Pydantic `args_schema`
-- **State**: Extend `BotState` (adds `category`, `tool_choice`, `active_node`, and `tool_round` to `MessagesState`)
+- **State**: Extend `BotState` (adds `category`, `tool_choice`, `requester`, `active_node`, and `tool_round` to `MessagesState`)
+- **Requester**: `BotState.requester` is who is asking, read by `app.identity` from the headers Open WebUI forwards; unverified, and `None` when they are not forwarded
 - **Config access**: Use the typed `app.config.config` object, e.g. `config.rcp.api_key` — never hardcode credentials
 - **Logging**: Use `logging.getLogger(__name__)`; structured logs via `app.logging_config`
-- **Languages**: Reuse `app.bots.languages.LANGUAGES` and `no_answer(lang_code)` for supported reply languages and failure messages
+- **Languages**: Reuse `app.bots.languages.LANGUAGES` and `no_answer(bot.prompt_search_path, lang_code)` for supported reply languages and failure messages
 
 ## Running Locally
 
@@ -108,6 +115,8 @@ client = OpenAI(base_url="http://localhost:8000/v1", api_key="unused")
 client.chat.completions.create(model="MY-BOT-NAME", messages=[{"role": "user", "content": "Hi"}])
 ```
 
+The `X-OpenWebUI-User-Id` and `X-OpenWebUI-User-Email` headers, when forwarded, become `BotState.requester`. A streamed reply can also carry status events: chunks with an `event` object, which Open WebUI shows as a line above the reply.
+
 ## Testing a Bot
 
 ```python
@@ -135,7 +144,6 @@ make lint-fix  # auto-fix lint issues and reformat
 
 ## Important Notes
 
-- Do **not** modify `app/integrations/` — it is legacy
 - Do **not** add bots to a manual registry — discovery is automatic
 - Do **not** hardcode API keys — use `config.ini` / `.env`
 - Never commit config files or secrets

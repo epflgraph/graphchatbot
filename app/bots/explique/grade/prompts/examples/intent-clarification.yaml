@@ -1,0 +1,37 @@
+examples:
+- slug: rephrase
+  tags:
+    context: |-
+      The student asked for the tutor's last question to be said differently.
+    negative: |-
+      Sure! Basically, when the temperature rises the molecules move faster, so they push harder on the walls of the container. So what happens to the pressure?
+- slug: answer-in-the-question
+  tags:
+    context: |-
+      The tutor had asked which of three routes is the shortest and why; the student asked for it again.
+    negative: |-
+      Okay: which route has the smallest total distance once you add up every leg?
+- slug: after-an-explanation
+  tags:
+    context: |-
+      The tutor's last message explained something, then asked a question; the student asked for it again.
+    negative: |-
+      A recession is just two quarters of falling output, and a depression is a much longer and deeper one. So why would a central bank cut interest rates rather than raise taxes?
+- slug: term-meaning
+  tags:
+    context: |-
+      The student asked what a word in the tutor's last question means.
+    negative: |-
+      By "elastic" I mean that no kinetic energy is lost in the collision, which is exactly why the total speed of the two balls stays the same afterwards. Now, what about momentum?
+- slug: term-is-the-answer
+  tags:
+    context: |-
+      The tutor had asked what kinds of rock form from cooled lava; the student asked what "kinds of rock" means.
+    negative: |-
+      By "kinds of rock" I mean igneous ones, like basalt or granite. Which of those forms from lava?
+- slug: unclear-task
+  tags:
+    context: |-
+      The student said they don't see what the tutor's last message is asking of them.
+    negative: |-
+      No worries, let's look at something else then. Can you tell me how inheritance differs from composition?

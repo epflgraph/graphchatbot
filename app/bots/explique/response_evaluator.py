@@ -2,6 +2,8 @@ import logging
 from dataclasses import dataclass
 from enum import StrEnum
 
+from app.utils import collapse_whitespace
+
 logger = logging.getLogger(__name__)
 
 
@@ -42,6 +44,9 @@ class ResponseEvaluator:
     # Priority queue when there are more than one tag; most severe first.
     TAG_PRIORITY = (EvaluationTag.REPETITIVE,)
 
+    # LLMs generate curly and straight quotes interchangeably; a repeat must not hide behind them.
+    CURLY_TO_STRAIGHT_QUOTES = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"'})
+
     @staticmethod
     def get_prioritized_tag(tags: tuple[EvaluationTag, ...]) -> EvaluationTag:
         for tag in ResponseEvaluator.TAG_PRIORITY:
@@ -60,9 +65,8 @@ class ResponseEvaluator:
 
     @staticmethod
     def _normalize(text: str) -> str:
-        """Casefolded, with runs of whitespace collapsed, so a repeat differing
-        only in spacing or capitalization still counts as one."""
-        return " ".join(text.split()).casefold()
+        """`text` with case, spacing and quote style folded."""
+        return collapse_whitespace(text.translate(ResponseEvaluator.CURLY_TO_STRAIGHT_QUOTES)).casefold()
 
     @staticmethod
     def scan_repetitions(response: str, context: EvaluatorContext) -> EvaluationTag | None:
@@ -85,3 +89,9 @@ class ResponseEvaluator:
         """Every finding against `response`; `NORMAL_RESPONSE` when there are none."""
         tags = ResponseEvaluator.deterministic_metrics(response, context)
         return EvaluatorOutput(tags=tags or (EvaluationTag.NORMAL_RESPONSE,))
+
+    @staticmethod
+    def may_reject(response_prefix: str, context: EvaluatorContext) -> bool:
+        """Whether `response_prefix` could grow into a response `evaluate` rejects."""
+        response_prefix = ResponseEvaluator._normalize(response_prefix)
+        return any(ResponseEvaluator._normalize(prior).startswith(response_prefix) for prior in context.prior_turns)
