@@ -1,0 +1,53 @@
+examples:
+- slug: no-course-conventions
+  tags:
+    context: |-
+      Topic: **Mitosis**. With no material to read, the bar is the account any introductory
+      treatment shares — never one course's way of carving it up.
+    output: |-
+      {
+        "reasoning": "What a student has to have is the order of the operation and what it produces: the copying, the lining up, the separation, and the fact that the two results match the original.",
+        "points": [
+          "A cell copies its genetic material before it divides",
+          "Each copied chromosome is held together as two identical halves",
+          "The copied chromosomes line up across the middle of the cell",
+          "The two halves of each chromosome are pulled to opposite ends",
+          "The cell then splits in two",
+          "Each resulting cell carries the same genetic content as the original did",
+          "This is how a body grows and replaces cells, rather than how gametes are made"
+        ]
+      }
+    rejected_points: |-
+      - "The stages are prophase, prometaphase, metaphase, anaphase and telophase" — a naming scheme
+        rather than a claim, and courses differ on whether prometaphase is counted at all; a student
+        must not be marked against a division their own course did not use.
+      - "The spindle assembly checkpoint holds the cycle until every kinetochore is attached" — real,
+        and past what an introductory treatment of this topic asks for.
+      - "Chromosomes condense so that they can be separated cleanly" — two claims joined by "so that",
+        and the second is a purpose the first does not establish on its own.
+- slug: only-what-is-certainly-central
+  tags:
+    context: |-
+      Topic: **The greenhouse effect**. Figures, illustrations and consequences are what a list
+      drifts into when there is no material to hold it down.
+    output: |-
+      {
+        "reasoning": "The mechanism is the whole of it: what arrives, what leaves, what intercepts what is leaving, and what follows when the intercepting gases increase.",
+        "points": [
+          "Sunlight passes through the atmosphere and warms the surface",
+          "The warmed surface radiates energy back outward as heat",
+          "Certain gases in the atmosphere absorb that outgoing heat instead of letting it escape",
+          "Those gases re-radiate the absorbed energy, some of it back toward the surface",
+          "This holds the surface warmer than it would be with no atmosphere",
+          "Raising the concentration of those gases increases how much outgoing heat is intercepted",
+          "The surface warms until the energy leaving again balances the energy arriving"
+        ]
+      }
+    rejected_points: |-
+      - "Carbon dioxide has risen from about 280 ppm before industrialisation to over 420 ppm today" —
+        a figure rather than a claim about the mechanism, and one that dates; a cached bar must not go
+        stale.
+      - "The effect is why Venus is hotter than Mercury despite sitting further from the Sun" — a good
+        illustration, and not something a student has to produce to have understood the topic.
+      - "Greenhouse gases absorb outgoing infrared and re-emit it in all directions, warming the
+        surface" — three claims in one sentence, each of which a student could hold separately.

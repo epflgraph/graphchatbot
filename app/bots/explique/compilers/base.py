@@ -1,5 +1,5 @@
 from app.bots.compilers.grounded import GroundedDialogCompiler
-from app.bots.explique.transcript import summarize_quiz
+from app.bots.explique.quiz_page import summarize_quiz
 from app.bots.transcript import keep_dialog_roles
 from app.compilation.base import MessageCompiler, Task
 from app.compilation.dialog import DialogTextCompiler, DialogTurnsCompiler
@@ -7,7 +7,7 @@ from app.llms.utils import flatten_message
 
 
 class ExpliqueTask(Task):
-    """The tutor's tasks, each one with its own compiler."""
+    """The tasks both explique flavours run, each one with its own compiler."""
 
     TRANSCRIBE_IMAGE = "transcribe-image"
     DETECT_LANGUAGE = "detect-language"
@@ -15,7 +15,6 @@ class ExpliqueTask(Task):
     RETRIEVE = "retrieve"
     EVALUATE = "evaluate"
     PLAN_CHALLENGE = "plan-challenge"
-    PRACTICE = "practice"
     SUMMARIZE = "summarize"
     RESPOND = "respond"
 

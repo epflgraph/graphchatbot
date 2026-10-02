@@ -10,6 +10,7 @@ from langgraph.graph.state import CompiledStateGraph
 
 from app.compilation.base import ModelChoice
 from app.config import config
+from app.identity import Requester
 
 BOTS_ROOT = Path(__file__).parent
 
@@ -20,6 +21,9 @@ PROMPTS_DIRNAME = "prompts"
 class BotState(MessagesState):
     category: str | None
     tool_choice: str | None
+
+    # Who is asking, when the frontend forwards it. None when it does not.
+    requester: Requester | None
 
     # The tool loop, shared by every family: `active_node` is where `tools`
     # sends control back to, written by whichever model node issued the calls;
@@ -44,7 +48,8 @@ class Bot(ABC):
 
     and may override:
         model / light_model / vision_model — the streaming, deterministic, and vision clients
-        model_nodes         — which nodes' tokens reach the user
+        model_nodes         — which nodes' tokens are streamed to the user (a node can
+                              also stream text itself, through `runtime.stream_writer`)
         prompt_context()    — values every one of its prompts can use
 
     Intermediate classes that exist to share behaviour rather than to be served

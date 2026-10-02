@@ -1,17 +1,14 @@
 from app.bots.base import BotState
-from app.bots.explique.models import ChallengePlan, RejectedResponse, SessionSummary, StudentState
-from app.bots.explique.tutor_action import TutorAction
+from app.bots.explique.models import RejectedResponse, SessionSummary, StudentState, TutorAction
 
 
 class ExpliqueBotState(BotState):
-    """LangGraph state for explique tutor bots."""
+    """LangGraph state all explique flavours write."""
 
-    student_state: StudentState
+    student_state: StudentState | None
     tutor_action: TutorAction
     session_summary: SessionSummary
-    challenge_plan: ChallengePlan
 
-    practice_response: str | None
     # The language to reply in, read from the student's latest turn; None when none
     # could be read, which leaves the responder to infer it.
     lang_code: str | None
@@ -19,4 +16,7 @@ class ExpliqueBotState(BotState):
     # The candidate reply `respond` generated this turn, held out of `messages` until
     # the response evaluator clears it — a rejected one must never reach the stream.
     candidate_response: str | None
+    # What of the `candidate_response` hasn't reached the student yet,
+    # streamed once it is accepted; None when `respond` did not stream.
+    not_streamed_response: str | None
     rejected_responses: tuple[RejectedResponse, ...]
