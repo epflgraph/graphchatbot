@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.3.0] - 2026-10-02
+
+Version 2.3.0 ships the graded flavour of explique, and gathers what the 2.2.x tags added: new course bots, incident reporting and sturdier shared layers.
+
+`app/bots/explique/` now holds two flavours on one abstract `ExpliqueBot`. `train/` is the tutor that shipped in 2.1.0. `grade/` is its exam-like counterpart: the student picks a topic from a menu, the topic locks, and each explanation is graded against topic points derived once per topic. A covered topic is recorded by adding the student to that topic's Moodle group, through the new client in `app/interfaces/moodle.py`, and a polling task started with the app keeps each graded course's Moodle topic groups in step with its quizzes tagged `[TOPIC:...]`. One graded bot ships, `Explique`.
+
+The request path gains what the graded flavour needs, for every bot. `/chat/completions` reads who is asking from the headers Open WebUI forwards and hands it to the graph as `BotState.requester`. A node can write status events and text to the stream itself, so a reply can show what the bot is doing before its text arrives, and streamed responses send `X-Accel-Buffering: no` so a proxy does not hold them back.
+
+Eight course bots were added — BIO-695, CH-314, EE-310, MATH-101e, MATH-111a, MATH-310, MICRO-303 and MICRO-452. Course bots now keep retrieved documents in tool messages instead of injecting them into the system prompt, deduplicate retrieved chunks, and filter them by the course's language.
+
+Failures are reported and bounded further. Unhandled exceptions and ERROR-level logs go to Sentry when a DSN is configured. A structured-output reply that fails to parse can be retried within the call's timeout, a tool loop batches its calls and answers on its exhausted round, and every stream closes with a `finish_reason` chunk. Each photo in a conversation is transcribed on its own, and the failure apology is a template looked up per bot.
+
+**Upgrading.** The training course bots `explique-cs112g`, `explique-cs202` and `explique-cs233` are removed, so they drop out of `/models`. The `Explique` bot needs a `[moodle]` section with a web-service token in `config.ini`, without which it offers no topics, and Open WebUI must have `ENABLE_FORWARD_USER_INFO_HEADERS` on so the app knows who is asking. `config.ini.example` also gains optional `[sentry]` and `[moodle_polling]` sections. The languages a bot can be told to reply in are narrowed to English, French, German, Swiss Standard German and Italian.
+
 ## [2.1.0] - 2026-08-25
 
 Version 2.1.0 ships explique, a family of tutors that teach by having the student explain, and a broad refactor of the layers every bot shares: message compilation, graph nodes, configuration and logging.
