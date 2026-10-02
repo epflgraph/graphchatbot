@@ -9,7 +9,7 @@ from app.compilation.dialog import DialogTextContext
 
 
 class GradeTask(Task):
-    """The tasks only the grader runs, on top of the `ExpliqueTask` ones."""
+    """The tasks only the grade flavour runs, on top of the `ExpliqueTask` ones."""
 
     DERIVE_POINTS = "derive-points"
     FEEDBACK = "feedback"
@@ -32,7 +32,7 @@ class GradeGroundedDialogContext(GroundedDialogContext, GradeContext):
 
 
 class GradeCompiler(ExpliqueCompiler):
-    """Base for the grader's compilers: every call knows which topic the session is on."""
+    """Base for the grade flavour's compilers: every call knows which topic the session is on."""
 
     @classmethod
     def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
@@ -43,7 +43,7 @@ class GradeCompiler(ExpliqueCompiler):
 
 
 class GradedTurnsCompiler(GradeCompiler):
-    """The conversation as the grader flavor reads it:
+    """The conversation as the grade flavour reads it:
     - Attached files are replaced by a placeholder
     - Jailbreak attempts and their replies are omitted
     - A failed or empty search reads as no retrieved material"""

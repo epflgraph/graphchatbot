@@ -6,7 +6,7 @@ from app.bots.explique.models import SessionSummary
 from app.compilation.base import MessageCompilerConfig, ModelChoice
 
 
-class FeedbackContext(GradeContext):
+class GradeFeedbackContext(GradeContext):
     session_summary: SessionSummary
     lang_code: str | None
 
@@ -20,7 +20,7 @@ class GradeFeedbackCompiler(GradeCompiler):
         user_template="feedback-usr.md",
         model_choice=ModelChoice.LIGHT,
     )
-    context_class = FeedbackContext
+    context_class = GradeFeedbackContext
 
     @classmethod
     def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:

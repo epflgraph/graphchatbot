@@ -6,11 +6,11 @@ from app.bots.explique.grade.models import TopicPoints
 from app.compilation.base import MessageCompilerConfig, ModelChoice
 
 
-class TopicPointsContext(GradeContext):
+class GradeTopicPointsContext(GradeContext):
     topic_material: str
 
 
-class SourcedTopicPointsCompiler(GradeCompiler):
+class GradeSourcedTopicPointsCompiler(GradeCompiler):
     """Derives a topic's breakdown in points from the course material that covers it."""
 
     config = MessageCompilerConfig(
@@ -20,15 +20,15 @@ class SourcedTopicPointsCompiler(GradeCompiler):
         model_choice=ModelChoice.LIGHT,
         output_schema=TopicPoints,
     )
-    context_class = TopicPointsContext
+    context_class = GradeTopicPointsContext
 
     @classmethod
     def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
         return super().context_fields(bot, state) | {"topic_material": state["topic_material"]}
 
 
-class UnsourcedTopicPointsCompiler(GradeCompiler):
-    """Last resort: the same job as SourcedTopicPointsCompiler, but with no source material."""
+class GradeUnsourcedTopicPointsCompiler(GradeCompiler):
+    """Last resort: the same job as GradeSourcedTopicPointsCompiler, but with no source material."""
 
     config = MessageCompilerConfig(
         task=GradeTask.DERIVE_POINTS,

@@ -4,7 +4,7 @@
 
 Version 2.3.0 ships the graded flavour of explique, and gathers what the 2.2.x tags added: new course bots, incident reporting and sturdier shared layers.
 
-`app/bots/explique/` now holds two flavours on one abstract `ExpliqueBot`. `train/` is the tutor that shipped in 2.1.0. `grade/` is its exam-like counterpart: the student picks a topic from a menu, the topic locks, and each explanation is graded against topic points derived once per topic. A covered topic is recorded by adding the student to that topic's Moodle group, through the new client in `app/interfaces/moodle.py`, and a polling task started with the app keeps each graded course's Moodle topic groups in step with its quizzes tagged `[TOPIC:...]`. One graded bot ships, `Explique`.
+`app/bots/explique/` now holds two flavours on one abstract `ExpliqueBot`. `train/` is the flavour that shipped in 2.1.0. `grade/` is its exam-like counterpart: the student picks a topic from a menu, the topic locks, and each explanation is graded against topic points derived once per topic. A covered topic is recorded by adding the student to that topic's Moodle group, through the new client in `app/interfaces/moodle.py`, and a polling task started with the app keeps each graded course's Moodle topic groups in step with its quizzes tagged `[TOPIC:...]`. One graded bot ships, `Explique`.
 
 The request path gains what the graded flavour needs, for every bot. `/chat/completions` reads who is asking from the headers Open WebUI forwards and hands it to the graph as `BotState.requester`. A node can write status events and text to the stream itself, so a reply can show what the bot is doing before its text arrives, and streamed responses send `X-Accel-Buffering: no` so a proxy does not hold them back.
 

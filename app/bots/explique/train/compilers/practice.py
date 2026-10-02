@@ -8,7 +8,7 @@ from app.compilation.base import MessageCompilerConfig, ModelChoice, Task
 
 
 class TrainTask(Task):
-    """The task only the tutor runs, on top of the `ExpliqueTask` ones."""
+    """The task only the train flavour runs, on top of the `ExpliqueTask` ones."""
 
     PRACTICE = "practice"
 

@@ -15,7 +15,10 @@ from app.config import config
 
 class ExpliqueBot(Bot):
     """Abstract base for both explique flavours: the clients, the prompt context, the search
-    tool, and the routers the two graphs share. Each flavour builds its own graph."""
+    tool, and the routers the two graphs share. Each flavour builds its own graph.
+
+    The flavours are 'train' and 'grade'; 'tutor' is the bot in either. Grade's compilers and
+    contexts carry `Grade`; a bare class name is shared or train's."""
 
     # The course material to search, or None for a course with none. Declared
     # without a default, so omitting it is still an error rather than an opt-out.

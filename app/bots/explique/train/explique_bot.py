@@ -29,7 +29,7 @@ from app.bots.nodes.transcribe_image import make_image_transcriber_node
 
 class ExpliqueTrainBot(ExpliqueBot):
     """
-    Abstract base for 'explique' tutor bots.
+    Abstract base for 'train' bots: the ungraded flavour of explique.
 
     Pedagogy: the tutor asks the student to explain concepts in a domain, evaluates each
     explanation against reference material using a structured mental model, and responds

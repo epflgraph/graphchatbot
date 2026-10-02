@@ -39,7 +39,7 @@ from app.bots.nodes.transcribe_image import make_image_transcriber_node
 
 class ExpliqueGradeBot(ExpliqueBot):
     """
-    Abstract base for 'grade' bots: the exam-like flavor of explique.
+    Abstract base for 'grade' bots: the exam-like flavour of explique.
 
     A session is graded on one curriculum topic the student picks before anything else
     happens; nothing else earns a reply, and covering that topic is what ends it. Up to

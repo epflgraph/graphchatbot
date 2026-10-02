@@ -10,7 +10,10 @@ from app.bots.cache import topic_points as cache
 from app.bots.cache.file_cache import CacheKey
 from app.bots.cache.llm_call_cache_key import make_cache_key
 from app.bots.explique.compilers.base import ExpliqueCompiler
-from app.bots.explique.grade.compilers.topic_points import SourcedTopicPointsCompiler, UnsourcedTopicPointsCompiler
+from app.bots.explique.grade.compilers.topic_points import (
+    GradeSourcedTopicPointsCompiler,
+    GradeUnsourcedTopicPointsCompiler,
+)
 from app.bots.explique.grade.models import TopicPoints
 from app.bots.explique.grade.topic_retrieval import fetch_topic_material
 from app.bots.explique.grade.topics import Topic
@@ -74,7 +77,7 @@ async def derive_topic_points(bot: Bot, topic: Topic, state: Mapping[str, Any]) 
 
 def _cache_as_unsourced(bot: Bot, topic: Topic, state: Mapping[str, Any], points: tuple[str, ...]) -> None:
     """Cache sourced points under the unsourced key."""
-    key = _cache_key(bot, UnsourcedTopicPointsCompiler, {**state, "topic_material": ""})
+    key = _cache_key(bot, GradeUnsourcedTopicPointsCompiler, {**state, "topic_material": ""})
     entry = json.dumps(list(points), ensure_ascii=False)
     if cache.CACHE.get(key) != entry:
         cache.CACHE.put(key, entry)
@@ -84,7 +87,7 @@ def _cache_as_unsourced(bot: Bot, topic: Topic, state: Mapping[str, Any], points
 async def _derive_topic_points(bot: Bot, topic: Topic, state: Mapping[str, Any], material: str) -> tuple[str, ...]:
     """One derivation, sourced when there is material, read from the cache when it ran before.
     An empty verdict on material is cached too, since the material is in its key."""
-    compiler = SourcedTopicPointsCompiler if material else UnsourcedTopicPointsCompiler
+    compiler = GradeSourcedTopicPointsCompiler if material else GradeUnsourcedTopicPointsCompiler
 
     call_state = {**state, "topic_material": material}
 
