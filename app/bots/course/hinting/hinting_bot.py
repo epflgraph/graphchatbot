@@ -77,12 +77,18 @@ class HintingCourseBot(CourseBot):
                 state,
                 fallback=self._fallback_response(),
             )
-            rendered = HintingResponseArtifact(
-                course_name=bot.course_name,
-                response=response,
-            ).render()
-            await stream_text(rendered, runtime.stream_writer)
-            return Command(goto=END, update={"messages": [AIMessage(content=rendered)]})
+            rendered_sections = []
+            for section in response.sections:
+                rendered = HintingResponseArtifact(
+                    course_name=bot.course_name,
+                    response=HintingResponse(sections=[section]),
+                ).render()
+                if section.type == "hint":
+                    runtime.stream_writer(rendered)
+                else:
+                    await stream_text(rendered, runtime.stream_writer)
+                rendered_sections.append(rendered)
+            return Command(goto=END, update={"messages": [AIMessage(content="".join(rendered_sections))]})
 
         return respond_node
 
