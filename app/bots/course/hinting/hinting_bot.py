@@ -18,6 +18,7 @@ from app.bots.languages import no_answer
 from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
+from app.bots.utils import stream_text
 from app.compilation.invoke import structured_call
 
 logger = logging.getLogger(__name__)
@@ -44,7 +45,7 @@ class HintingCourseBot(CourseBot):
 
     MAX_RETRIEVAL_ROUNDS = 1
 
-    model_nodes = (Node.RESPOND,)
+    model_nodes = ()
 
     def _route_after_classify(self, state: BotState) -> Node:
         """Course-content requests retrieve material; everything else answers directly."""
@@ -80,6 +81,7 @@ class HintingCourseBot(CourseBot):
                 course_name=bot.course_name,
                 response=response,
             ).render()
+            await stream_text(rendered, runtime.stream_writer)
             return Command(goto=END, update={"messages": [AIMessage(content=rendered)]})
 
         return respond_node
