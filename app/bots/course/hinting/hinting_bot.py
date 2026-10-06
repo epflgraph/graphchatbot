@@ -45,6 +45,8 @@ class HintingCourseBot(CourseBot):
 
     MAX_RETRIEVAL_ROUNDS = 1
 
+    # The respond node writes its reply to the stream itself, section by section.
+    # Listing it here would send the reply a second time.
     model_nodes = ()
 
     def _route_after_classify(self, state: BotState) -> Node:
@@ -65,13 +67,12 @@ class HintingCourseBot(CourseBot):
             ]
         )
 
-    def _make_respond_node(self, *, status_events: bool = False):
+    def _make_respond_node(self):
         """Returns a node that produces the final response."""
 
         async def respond_node(state: BotState, runtime: Runtime[Bot]) -> Command:
             bot = runtime.context
-            if status_events:
-                announce(STATUS_RESPONDING, runtime)
+            announce(STATUS_RESPONDING, runtime)
 
             response = await structured_call(
                 bot,
@@ -115,7 +116,7 @@ class HintingCourseBot(CourseBot):
             ),
         )
         workflow.add_node(Node.TOOLS, make_tools_node(tools))
-        workflow.add_node(Node.RESPOND, self._make_respond_node(status_events=True))
+        workflow.add_node(Node.RESPOND, self._make_respond_node())
 
         workflow.set_entry_point(Node.CLASSIFY)
         workflow.add_conditional_edges(Node.CLASSIFY, self._route_after_classify)
