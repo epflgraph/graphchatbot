@@ -54,8 +54,8 @@ class ModelNode:
         is_first_round = tool_rounds_made == 0
 
         if self._config.status_events:
-            has_tools = state.get("tool_choice") is not None
-            if is_first_round and has_tools:
+            will_search = is_first_round and bool(self._tools) and state.get("tool_choice") is not None
+            if will_search:
                 announce(STATUS_FETCHING, runtime)
             elif is_first_round or self._config.text_is_reply:
                 announce(STATUS_RESPONDING, runtime)
