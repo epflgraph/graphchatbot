@@ -1,9 +1,7 @@
-import functools
 import logging
 from enum import StrEnum
 
 from langchain_core.messages import AIMessage
-from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.runtime import Runtime
@@ -18,15 +16,12 @@ from app.bots.course.hinting.compilers import HintingResponseCompiler
 from app.bots.course.hinting.models import HintingResponse, ResponseSection
 from app.bots.languages import no_answer
 from app.bots.nodes.classify import make_classify_node
-from app.bots.nodes.model import ModelNode, make_model_node
+from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
-from app.bots.utils import announce, stream_text
+from app.bots.utils import STATUS_RESPONDING, announce, stream_text
 from app.compilation.invoke import structured_call
 
 logger = logging.getLogger(__name__)
-
-STATUS_FETCHING_TEMPLATE = "status-fetching.md"
-STATUS_RESPONDING_TEMPLATE = "status-responding.md"
 
 
 class Node(StrEnum):
@@ -59,14 +54,6 @@ class HintingCourseBot(CourseBot):
             return Node.RESPOND
         return Node.RETRIEVE
 
-    @staticmethod
-    async def _fetch_material(
-        retrieve: ModelNode, state: BotState, runtime: Runtime[Bot], config: RunnableConfig
-    ) -> Command:
-        """The retrieval node, with a status event written at its start."""
-        announce(STATUS_FETCHING_TEMPLATE, runtime)
-        return await retrieve(state, runtime, config)
-
     def _fallback_response(self) -> HintingResponse:
         """What to render when the structured hinting call fails."""
         return HintingResponse(
@@ -78,12 +65,13 @@ class HintingCourseBot(CourseBot):
             ]
         )
 
-    def _make_respond_node(self):
+    def _make_respond_node(self, *, status_events: bool = False):
         """Returns a node that produces the final response."""
 
         async def respond_node(state: BotState, runtime: Runtime[Bot]) -> Command:
             bot = runtime.context
-            announce(STATUS_RESPONDING_TEMPLATE, runtime)
+            if status_events:
+                announce(STATUS_RESPONDING, runtime)
 
             response = await structured_call(
                 bot,
@@ -116,20 +104,18 @@ class HintingCourseBot(CourseBot):
         )
         workflow.add_node(
             Node.RETRIEVE,
-            functools.partial(
-                self._fetch_material,
-                make_model_node(
-                    tools,
-                    compiler=RetrieveCompiler,
-                    on_text=Node.RESPOND,
-                    on_tools=Node.TOOLS,
-                    text_is_reply=False,
-                    max_tool_rounds=self.MAX_RETRIEVAL_ROUNDS,
-                ),
+            make_model_node(
+                tools,
+                compiler=RetrieveCompiler,
+                on_text=Node.RESPOND,
+                on_tools=Node.TOOLS,
+                text_is_reply=False,
+                max_tool_rounds=self.MAX_RETRIEVAL_ROUNDS,
+                status_events=True,
             ),
         )
         workflow.add_node(Node.TOOLS, make_tools_node(tools))
-        workflow.add_node(Node.RESPOND, self._make_respond_node())
+        workflow.add_node(Node.RESPOND, self._make_respond_node(status_events=True))
 
         workflow.set_entry_point(Node.CLASSIFY)
         workflow.add_conditional_edges(Node.CLASSIFY, self._route_after_classify)

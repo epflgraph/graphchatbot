@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.bots.base import Bot, BotState
 from app.bots.languages import no_answer
+from app.bots.utils import STATUS_FETCHING, STATUS_RESPONDING, announce
 from app.compilation.base import MessageCompiler
 from app.llms.utils import flatten_content, generate_response
 
@@ -34,6 +35,8 @@ class ModelNodeConfig(BaseModel):
     on_tools: str = "tools"
     max_tool_rounds: int = Field(default=8, ge=1)
 
+    status_events: bool = False
+
 
 class ModelNode:
     """Calls the bot's LLM client with its tools bound, and routes on what came back.
@@ -49,6 +52,13 @@ class ModelNode:
         bot = runtime.context
         tool_rounds_made = state.get("tool_round", 0)
         is_first_round = tool_rounds_made == 0
+
+        if self._config.status_events:
+            has_tools = state.get("tool_choice") is not None
+            if is_first_round and has_tools:
+                announce(STATUS_FETCHING, runtime)
+            elif is_first_round or self._config.text_is_reply:
+                announce(STATUS_RESPONDING, runtime)
 
         # A forced `tool_choice` happens on the first round: once the model has
         # searched, whether to search again is up to it, not the

@@ -63,7 +63,9 @@ class DebateCourseBot(CourseBot):
         workflow.add_conditional_edges("classify", lambda s: f"model-{s['category']}")
 
         for stage in DebateStage:
-            workflow.add_node(f"model-{stage}", make_model_node(tools, compiler=compiler_for(stage)))
+            workflow.add_node(
+                f"model-{stage}", make_model_node(tools, compiler=compiler_for(stage), status_events=True)
+            )
 
         workflow.add_node("tools", make_tools_node(tools))
 
