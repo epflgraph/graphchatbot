@@ -59,12 +59,13 @@ class DirectCourseBot(CourseBot):
                 on_tools=Node.TOOLS,
                 text_is_reply=False,
                 max_tool_rounds=self.MAX_RETRIEVAL_ROUNDS,
+                status_events=True,
             ),
         )
         workflow.add_node(Node.TOOLS, make_tools_node(tools))
         workflow.add_node(
             Node.RESPOND,
-            make_model_node([], compiler=DirectResponseCompiler),
+            make_model_node([], compiler=DirectResponseCompiler, status_events=True),
         )
 
         workflow.set_entry_point(Node.CLASSIFY)

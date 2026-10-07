@@ -11,6 +11,9 @@ from app.compilation.templates import render_prompt
 STREAM_CHUNK_WORDS = 3
 STREAM_CHUNK_DELAY_SECONDS = 0.02
 
+STATUS_FETCHING = "status-fetching.md"
+STATUS_RESPONDING = "status-responding.md"
+
 
 @dataclass(frozen=True)
 class Status:

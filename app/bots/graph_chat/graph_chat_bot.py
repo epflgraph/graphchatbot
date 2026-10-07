@@ -117,7 +117,7 @@ class GraphChatBot(Bot):
             "classify",
             make_classify_node(self.CATEGORIES, fallback=RequestType.GREETING, compiler=ClassifyCompiler),
         )
-        workflow.add_node("model", make_model_node(tools, compiler=ResponseCompiler))
+        workflow.add_node("model", make_model_node(tools, compiler=ResponseCompiler, status_events=True))
         workflow.add_node("tools", make_tools_node(tools))
         workflow.set_entry_point("classify")
         workflow.add_edge("classify", "model")

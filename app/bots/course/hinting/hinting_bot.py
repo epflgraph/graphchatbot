@@ -18,6 +18,7 @@ from app.bots.languages import no_answer
 from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
+from app.bots.utils import STATUS_RESPONDING, announce, stream_text
 from app.compilation.invoke import structured_call
 
 logger = logging.getLogger(__name__)
@@ -44,7 +45,9 @@ class HintingCourseBot(CourseBot):
 
     MAX_RETRIEVAL_ROUNDS = 1
 
-    model_nodes = (Node.RESPOND,)
+    # The respond node writes its reply to the stream itself, section by section.
+    # Listing it here would send the reply a second time.
+    model_nodes = ()
 
     def _route_after_classify(self, state: BotState) -> Node:
         """Course-content requests retrieve material; everything else answers directly."""
@@ -69,6 +72,7 @@ class HintingCourseBot(CourseBot):
 
         async def respond_node(state: BotState, runtime: Runtime[Bot]) -> Command:
             bot = runtime.context
+            announce(STATUS_RESPONDING, runtime)
 
             response = await structured_call(
                 bot,
@@ -76,11 +80,18 @@ class HintingCourseBot(CourseBot):
                 state,
                 fallback=self._fallback_response(),
             )
-            rendered = HintingResponseArtifact(
-                course_name=bot.course_name,
-                response=response,
-            ).render()
-            return Command(goto=END, update={"messages": [AIMessage(content=rendered)]})
+            rendered_sections = []
+            for section in response.sections:
+                rendered = HintingResponseArtifact(
+                    course_name=bot.course_name,
+                    response=HintingResponse(sections=[section]),
+                ).render()
+                if section.type == "hint":
+                    runtime.stream_writer(rendered)
+                else:
+                    await stream_text(rendered, runtime.stream_writer)
+                rendered_sections.append(rendered)
+            return Command(goto=END, update={"messages": [AIMessage(content="".join(rendered_sections))]})
 
         return respond_node
 
@@ -101,6 +112,7 @@ class HintingCourseBot(CourseBot):
                 on_tools=Node.TOOLS,
                 text_is_reply=False,
                 max_tool_rounds=self.MAX_RETRIEVAL_ROUNDS,
+                status_events=True,
             ),
         )
         workflow.add_node(Node.TOOLS, make_tools_node(tools))
