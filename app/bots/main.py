@@ -36,8 +36,7 @@ GRAPH_RECURSION_LIMIT = 25
 def agent_config(bot: Bot) -> RunnableConfig:
     """The config one turn runs under, built per request for its own trace."""
     trace_id = langfuse.create_trace_id()
-    if config.langfuse.host:
-        sentry_sdk.set_tag("langfuse_trace_url", f"{config.langfuse.host}/trace/{trace_id}")
+    sentry_sdk.set_tag("langfuse_trace_id", trace_id)
     return {
         "callbacks": [CallbackHandler(trace_context={"trace_id": trace_id})],
         "metadata": {"langfuse_tags": [bot.name]},
