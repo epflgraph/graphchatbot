@@ -39,7 +39,7 @@ def init_bots() -> None:
                 instance = attr()
                 if instance.name in _registry:
                     logger.error(
-                        f"Duplicate bot name `{instance.name}` from {module_path}, overwriting previous registration"
+                        "Duplicate bot name `%s` from %s, overwriting previous registration", instance.name, module_path
                     )
                 _registry[instance.name] = instance
                 logger.info(f"Registered bot: {instance.name}")

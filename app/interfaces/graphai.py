@@ -212,7 +212,7 @@ class GraphAIClient:
         # Return empty if there is no response (a timed-out request answers None)
         # or it is not marked as successful
         if not response or not response.get("successful"):
-            logger.error(f"Unsuccessful retrieval of chunks: {truncate(response and response.get('result', []))}")
+            logger.error("Unsuccessful retrieval of chunks: %s", truncate(response and response.get("result", [])))
             return EMPTY_RAG_RESULT
 
         return RAGResult(chunks=response.get("result", []))
