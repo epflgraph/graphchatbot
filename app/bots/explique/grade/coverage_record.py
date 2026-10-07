@@ -169,11 +169,11 @@ class CoverageRecorder:
     async def _record(self, topic: Topic) -> CoverageResult:
         """The Moodle side of `record`: add the student to the topic's group, and find the activity restricted to it."""
         if not self.client.configured:
-            logger.warning("No Moodle to record against; %r goes unrecorded for %r", topic.name, self.requester_id)
+            logger.error("No Moodle to record against; %r goes unrecorded for %r", topic.name, self.requester_id)
             return CoverageResult(outcome=CoverageOutcome.NOT_CONFIGURED)
 
         if self.student_email is None:
-            logger.warning("Request carried no email; %r goes unrecorded by %r", topic.name, self.requester_id)
+            logger.error("Request carried no email; %r goes unrecorded by %r", topic.name, self.requester_id)
             return CoverageResult(outcome=CoverageOutcome.UNIDENTIFIED)
 
         user_id = await self.client.get_user_id_by_email(self.student_email)

@@ -52,14 +52,14 @@ class ResponseEvaluator:
         for tag in ResponseEvaluator.TAG_PRIORITY:
             if tag in tags:
                 return tag
-        logger.warning("No priority set for %s; falling back to the first tag, which should not happen", tags)
+        logger.error("No priority set for %s; falling back to the first tag, which should not happen", tags)
         return tags[0]
 
     @staticmethod
     def get_resolution_action(tag: EvaluationTag) -> ResolutionAction:
         resolution = ResponseEvaluator.RESOLUTIONS_MAP.get(tag)
         if resolution is None:
-            logger.warning("No resolution set for %s; falling back to delivering it", tag)
+            logger.error("No resolution set for %s; falling back to delivering it", tag)
             return ResolutionAction.DELIVER
         return resolution
 

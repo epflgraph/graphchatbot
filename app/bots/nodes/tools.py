@@ -70,7 +70,7 @@ def dedupe_tool_results(messages: list[BaseMessage]) -> list[BaseMessage]:
 
         filtered = _unique_chunks(parsed, seen)
         if len(filtered) < len(parsed):
-            logger.info(f"Dropped {len(parsed) - len(filtered)} duplicate chunk(s).")
+            logger.info("Dropped %d duplicate chunk(s).", len(parsed) - len(filtered))
             message = message.model_copy(update={"content": json.dumps(filtered)})
         deduped.append(message)
     return deduped
@@ -100,11 +100,11 @@ def make_tools_node(tools: list):
             if tc["name"] not in tool_names:
                 for name in tool_names:
                     if name in tc["name"]:
-                        logger.warning(f"Fixing repeated tool name `{tc['name']}` → `{name}`.")
+                        logger.warning("Fixing repeated tool name `%s` → `%s`.", tc["name"], name)
                         state["messages"][-1].tool_calls[i]["name"] = name
                         break
 
-        logger.info(f"Executing {len(tool_calls)} tool call(s) in parallel")
+        logger.info("Executing %d tool call(s) in parallel", len(tool_calls))
         result = await _tool_node.ainvoke(state)
 
         return Command(goto=state["active_node"], update={"messages": dedupe_tool_results(result["messages"])})

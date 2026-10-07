@@ -4,6 +4,7 @@ import logging
 import time
 from typing import AsyncGenerator, AsyncIterator
 
+import sentry_sdk
 from langchain_core.messages import convert_to_messages
 from langchain_core.runnables import RunnableConfig
 from langfuse import Langfuse
@@ -34,8 +35,10 @@ GRAPH_RECURSION_LIMIT = 25
 
 def agent_config(bot: Bot) -> RunnableConfig:
     """The config one turn runs under, built per request for its own trace."""
+    trace_id = langfuse.create_trace_id()
+    sentry_sdk.set_tag("langfuse_trace_id", trace_id)
     return {
-        "callbacks": [CallbackHandler()],
+        "callbacks": [CallbackHandler(trace_context={"trace_id": trace_id})],
         "metadata": {"langfuse_tags": [bot.name]},
         "recursion_limit": GRAPH_RECURSION_LIMIT,
     }
@@ -43,7 +46,7 @@ def agent_config(bot: Bot) -> RunnableConfig:
 
 async def generate_completion(chat_request: CompletionCreateParams, bot: Bot, *, requester: Requester | None) -> dict:
     messages = drop_system_messages(convert_to_messages(chat_request["messages"]))
-    logger.info(f"Received non-streaming request for bot `{bot.name}` with {len(messages)} message(s)")
+    logger.info("Received non-streaming request for bot `%s` with %d message(s)", bot.name, len(messages))
 
     agent_input = {"messages": messages, "requester": requester}
     try:
@@ -126,7 +129,7 @@ async def agenerate_completion(
 ) -> AsyncGenerator:
     messages = drop_system_messages(convert_to_messages(chat_request["messages"]))
     model_name = chat_request["model"]
-    logger.info(f"Received streaming request for bot `{bot.name}` with {len(messages)} message(s)")
+    logger.info("Received streaming request for bot `%s` with %d message(s)", bot.name, len(messages))
 
     agent_input = {"messages": messages, "requester": requester}
     try:

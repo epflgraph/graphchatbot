@@ -172,7 +172,7 @@ def start_polling(bots: list[Bot], *, interval_seconds: float, client: MoodleCli
         return None
 
     if not client.configured:
-        logger.warning(
+        logger.error(
             "Moodle is not configured, so %s graded bot(s) will offer no topics: %s",
             len(grade_bots),
             ", ".join(bot.name for bot in grade_bots),

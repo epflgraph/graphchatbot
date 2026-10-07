@@ -71,7 +71,7 @@ class RAGResult(BaseModel):
             try:
                 chunks.append(RAGChunk.model_validate(item))
             except ValidationError as error:
-                logger.warning(f"Dropping RAG result that failed validation: {truncate(error)}")
+                logger.warning("Dropping RAG result that failed validation: %s", truncate(error))
         return chunks
 
     def to_dict(self) -> dict:
@@ -113,7 +113,7 @@ class GraphAIClient:
 
                 self.bearer_token = result.get("access_token")
                 if not self.bearer_token:
-                    logger.error(f"Unexpected authentication response: {truncate(result)}")
+                    logger.error("Unexpected authentication response: %s", truncate(result))
 
         except httpx.TimeoutException:
             logger.warning("Request to authenticate timed out, subsequent requests will more likely fail.")
@@ -150,12 +150,12 @@ class GraphAIClient:
 
                 # If status is FAILURE, return immediately
                 if response.get("task_status") == "FAILURE":
-                    logger.error(f"Task failed: {truncate(response)}")
+                    logger.error("Task failed: %s", truncate(response))
                     return None
 
                 # Stop if timeout is reached
                 if time.time() > limit_time:
-                    logger.warning(f"Timeout reached for payload {truncate(payload)}")
+                    logger.warning("Timeout reached for payload %s", truncate(payload))
                     break
 
                 # Wait before next iteration
@@ -179,7 +179,7 @@ class GraphAIClient:
 
                 return response
         except httpx.TimeoutException:
-            logger.warning(f"Request to {endpoint} timed out after {timeout} seconds, returning None")
+            logger.warning("Request to %s timed out after %s seconds, returning None", endpoint, timeout)
             return None
 
     async def rag_retrieve(
@@ -206,13 +206,13 @@ class GraphAIClient:
         try:
             response = await self.call_sync_endpoint(endpoint="/rag/retrieve", payload=payload)
         except Exception as error:
-            logger.exception(f"Error retrieving document chunks: {error}")
+            logger.exception("Error retrieving document chunks: %s", error)
             return EMPTY_RAG_RESULT
 
         # Return empty if there is no response (a timed-out request answers None)
         # or it is not marked as successful
         if not response or not response.get("successful"):
-            logger.warning(f"Unsuccessful retrieval of chunks: {truncate(response and response.get('result', []))}")
+            logger.error("Unsuccessful retrieval of chunks: %s", truncate(response and response.get("result", [])))
             return EMPTY_RAG_RESULT
 
         return RAGResult(chunks=response.get("result", []))

@@ -73,7 +73,7 @@ async def text_call(
 
     response = flatten_content(message.content) if message is not None else ""
     if not response.strip():
-        logger.warning("Text %s call produced nothing; using fallback response", compiler.config.task)
+        logger.error("Text %s call produced nothing; using fallback response", compiler.config.task)
         return no_answer(bot.prompt_search_path, state.get("lang_code")) if fallback is None else fallback
 
     return response

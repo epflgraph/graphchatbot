@@ -57,9 +57,9 @@ class AdminBot(Bot):
         return super().prompt_context() | {"categories": self.CATEGORIES}
 
     async def _search(self, query: str) -> list[dict]:
-        logger.info(f"Called `{self.tool_name}`")
+        logger.info("Called `%s`", self.tool_name)
         result = await graphai.rag_retrieve(index=self.index, texts=[query])
-        logger.info(f"Retrieved {len(result.chunks)} chunks.")
+        logger.info("Retrieved %d chunks.", len(result.chunks))
         return [chunk.to_dict() for chunk in result.chunks]
 
     def build_tools(self) -> list:

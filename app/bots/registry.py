@@ -25,7 +25,7 @@ def init_bots() -> None:
         try:
             module = importlib.import_module(module_path)
         except Exception:
-            logger.exception(f"Failed to import {module_path}")
+            logger.exception("Failed to import %s", module_path)
             continue
 
         for attr_name in dir(module):
@@ -38,11 +38,11 @@ def init_bots() -> None:
             ):
                 instance = attr()
                 if instance.name in _registry:
-                    logger.warning(
-                        f"Duplicate bot name `{instance.name}` from {module_path}, overwriting previous registration"
+                    logger.error(
+                        "Duplicate bot name `%s` from %s, overwriting previous registration", instance.name, module_path
                     )
                 _registry[instance.name] = instance
-                logger.info(f"Registered bot: {instance.name}")
+                logger.info("Registered bot: %s", instance.name)
 
 
 def get_bot(name: str) -> Bot | None:

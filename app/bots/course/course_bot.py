@@ -145,7 +145,7 @@ class CourseBot(Bot):
         return formatted
 
     async def search_course_material(self, query: str, filters: BaseModel | None = None) -> list:
-        logger.info(f"filters=`{filters}`")
+        logger.info("filters=`%s`", filters)
 
         result = await graphai.rag_retrieve(index=self.index, texts=[query], filters=filters)
 
@@ -155,7 +155,7 @@ class CourseBot(Bot):
             logger.info("No theory material retrieved; adding a theory round.")
             result = result + await graphai.rag_retrieve(index=self.index, texts=[query], filters={"type": "theory"})
 
-        logger.info(f"Retrieved {len(result.chunks)} chunks.")
+        logger.info("Retrieved %d chunks.", len(result.chunks))
 
         return self._format_results(result)
 

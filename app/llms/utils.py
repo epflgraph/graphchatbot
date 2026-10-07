@@ -150,7 +150,7 @@ async def generate_response(runnable: Runnable, messages: list[BaseMessage]) -> 
     try:
         return await asyncio.wait_for(runnable.ainvoke(input=messages), timeout=wall_clock_timeout(runnable))
     except asyncio.TimeoutError:
-        logger.warning("Response timed out")
+        logger.error("Response timed out")
     except (AuthenticationError, PermissionDeniedError):
         logger.critical("Response call failed with invalid credentials or access")
     except Exception:
@@ -173,14 +173,22 @@ async def generate_structured_response(
 
     try:
         async with asyncio.timeout(wall_clock_timeout(model)):
-            for _ in range(max_retries + 1):
+            attempts = max_retries + 1
+            for attempt in range(1, attempts + 1):
                 try:
                     return await structured_model.ainvoke(input=messages)
-                # Only a bad parse is retried.
+                # Only a bad parse is retried, so only the last one is an error.
                 except (OutputParserException, ValidationError):
-                    logger.exception("Structured response failed to parse/validate")
+                    level = logging.ERROR if attempt == attempts else logging.WARNING
+                    logger.log(
+                        level,
+                        "Structured response failed to parse/validate (attempt %d of %d)",
+                        attempt,
+                        attempts,
+                        exc_info=True,
+                    )
     except asyncio.TimeoutError:
-        logger.warning("Structured response timed out")
+        logger.error("Structured response timed out")
     except (AuthenticationError, PermissionDeniedError):
         logger.critical("Structured response call failed with invalid credentials or access")
     except Exception:
