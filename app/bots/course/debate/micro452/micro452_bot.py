@@ -64,7 +64,7 @@ class MICRO452DebateBot(DebateCourseBot):
         keywords = keywords or []
         if case_study_number and case_study_number.strip().lower() in {"", "none", "null"}:
             case_study_number = None
-        logger.info(f"case_study_number={case_study_number!r}")
+        logger.info("case_study_number=%r", case_study_number)
 
         if case_study_number is not None:
             questions, solution_and_misconceptions, theory_result = await asyncio.gather(
@@ -91,7 +91,7 @@ class MICRO452DebateBot(DebateCourseBot):
                 result = questions + solution_and_misconceptions + theory_result
                 logger.info(f"Retrieved {len(result.chunks)} chunks.")
                 return self._format_results(result)
-            logger.info(f"No case study numbered {case_study_number!r}; listing all questions instead.")
+            logger.info("No case study numbered %r; listing all questions instead.", case_study_number)
 
         result = await graphai.rag_retrieve(
             index=self.index,

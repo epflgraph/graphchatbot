@@ -145,7 +145,7 @@ class CourseBot(Bot):
         return formatted
 
     async def search_course_material(self, query: str, filters: BaseModel | None = None) -> list:
-        logger.info(f"filters=`{filters}`")
+        logger.info("filters=`%s`", filters)
 
         result = await graphai.rag_retrieve(index=self.index, texts=[query], filters=filters)
 

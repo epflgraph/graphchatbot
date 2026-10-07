@@ -54,13 +54,13 @@ def make_search_tool(index: str, args_schema: type[BaseModel], description: str)
 
     async def search_course_material(query: str, filters: BaseModel | None = None) -> list:
         """Retrieve reference material for the student's query."""
-        logger.info(f"Retrieving explique material: query={query!r}, filters={filters!r}")
+        logger.info("Retrieving explique material: query=%r, filters=%r", query, filters)
         result = await graphai.rag_retrieve(
             index=index,
             texts=[query],
             filters=filters,
         )
-        logger.info(f"Retrieved {len(result.chunks)} chunks for query={query!r}")
+        logger.info("Retrieved %d chunks for query=%r", len(result.chunks), query)
 
         return _format_results(result)
 
