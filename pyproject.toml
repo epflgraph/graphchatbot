@@ -69,6 +69,8 @@ select = [
     "I",
     # Ban inline imports
     "PLC0415",
+    # Ban log messages formatted before the call: Sentry masks only the arguments
+    "G001", "G002", "G003", "G004",
 ]
 ignore = [
     # E501: line length handled by the formatter

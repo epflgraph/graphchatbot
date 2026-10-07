@@ -23,11 +23,14 @@ def setup_logging():
     warnings.filterwarnings("ignore", message=PYDANTIC_PARSED_FIELD_WARNING, category=UserWarning)
 
 
-def mask_log_arguments(breadcrumb: dict, hint: dict) -> dict:
-    """Send Sentry the log line without its values: `"Query: %s"`, not `"Query: what is entropy?"`."""
-    if (record := hint.get("log_record")) is not None:
-        breadcrumb["message"] = record.msg
-    return breadcrumb
+def strip_event_values(event: dict, hint: dict) -> dict:
+    """Send Sentry an error's shape — log template, exception types, stack — but none of its values."""
+    if (logentry := event.get("logentry")) is not None:
+        event["logentry"] = {"message": logentry["message"]}
+    for exception in event.get("exception", {}).get("values", []):
+        exception.pop("value", None)
+    event.pop("extra", None)
+    return event
 
 
 def setup_incident_report(config: SentryConfig):
@@ -41,7 +44,8 @@ def setup_incident_report(config: SentryConfig):
         # Open WebUI forwards the student's name and email as request headers, which
         # Sentry attaches to error events and does not scrub by default.
         event_scrubber=EventScrubber(denylist=[*DEFAULT_DENYLIST, "x-openwebui-user-name", "x-openwebui-user-email"]),
-        before_breadcrumb=mask_log_arguments,
+        max_breadcrumbs=0,
+        before_send=strip_event_values,
         disabled_integrations=[LangchainIntegration(), LanggraphIntegration(), OpenAIIntegration()],
     )
 

@@ -89,7 +89,7 @@ class MICRO452DebateBot(DebateCourseBot):
             )
             if questions.chunks:
                 result = questions + solution_and_misconceptions + theory_result
-                logger.info(f"Retrieved {len(result.chunks)} chunks.")
+                logger.info("Retrieved %d chunks.", len(result.chunks))
                 return self._format_results(result)
             logger.info("No case study numbered %r; listing all questions instead.", case_study_number)
 
@@ -99,6 +99,6 @@ class MICRO452DebateBot(DebateCourseBot):
             limit=9999,
             filters=PracticeFilters(subtype="case_study", is_solution=False),
         )
-        logger.info(f"Retrieved {len(result.chunks)} chunks.")
+        logger.info("Retrieved %d chunks.", len(result.chunks))
 
         return self._format_results(result)

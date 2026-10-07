@@ -155,7 +155,7 @@ class CourseBot(Bot):
             logger.info("No theory material retrieved; adding a theory round.")
             result = result + await graphai.rag_retrieve(index=self.index, texts=[query], filters={"type": "theory"})
 
-        logger.info(f"Retrieved {len(result.chunks)} chunks.")
+        logger.info("Retrieved %d chunks.", len(result.chunks))
 
         return self._format_results(result)
 
