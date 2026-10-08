@@ -93,6 +93,7 @@ async def finish_node(state: GradeBotState, runtime: Runtime[Bot]) -> StateUpdat
         FINISH_REVISION_TEMPLATE,
         revision=revision,
         review_model=GraphChatBot.name,
+        course_name=bot.course_name,
         lang_code=state.get("lang_code"),
     )
     new_chat = render_prompt(bot.prompt_search_path, FINISH_NEW_CHAT_TEMPLATE, lang_code=state.get("lang_code"))

@@ -12,6 +12,6 @@
 {% if points %}
 **{{ heading }}**
 {% for point in points %}
-- {{ point.next_step }}{% if point.question %} [{{ review }} ↗](/?{{ {"models": review_model, "q": point.question} | urlencode }}){% endif +%}
+- {{ point.next_step }}{% if point.question %} [{{ review }} ↗](/?{{ {"models": review_model, "q": course_name ~ ": " ~ point.question} | urlencode }}){% endif +%}
 {% endfor %}
 {% endif %}
