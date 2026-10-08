@@ -22,7 +22,6 @@ from app.bots.explique.grade.prompts import (
 from app.bots.explique.grade.state import GradeBotState
 from app.bots.explique.grade.transcript import graded_turns
 from app.bots.explique.nodes.summarize import summarize_node
-from app.bots.graph_chat.graph_chat_bot import GraphChatBot
 from app.bots.utils import announce, stream_text
 from app.compilation.invoke import text_call
 from app.compilation.templates import render_prompt
@@ -92,8 +91,7 @@ async def finish_node(state: GradeBotState, runtime: Runtime[Bot]) -> StateUpdat
         bot.prompt_search_path,
         FINISH_REVISION_TEMPLATE,
         revision=revision,
-        review_model=GraphChatBot.name,
-        course_name=bot.course_name,
+        revision_model=bot.course_bot,
         lang_code=state.get("lang_code"),
     )
     new_chat = render_prompt(bot.prompt_search_path, FINISH_NEW_CHAT_TEMPLATE, lang_code=state.get("lang_code"))

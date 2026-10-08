@@ -46,7 +46,7 @@ class ExpliqueGradeBot(ExpliqueBot):
     the pick, no model runs but the language detector: the menu is the poller's list,
     the pick is string comparison, and the reply is a template.
 
-    Subclasses must define: name, index, course_id, groups.
+    Subclasses must define: name, index, course_id, course_bot, groups.
     """
 
     # Course index (RAG).
@@ -55,6 +55,9 @@ class ExpliqueGradeBot(ExpliqueBot):
     # The Moodle course this bot's gates live in. Not optional: the menu comes from that
     # course's quizzes, so a bot without one has no exercise to run.
     course_id: int
+
+    # The name of the course's own chatbot: the Open WebUI model the explique feedback revision links open.
+    course_bot: str
 
     # The topics this course's quizzes are tagged with, republished by every polling pass.
     topics: Topics = Topics()

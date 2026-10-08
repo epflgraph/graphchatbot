@@ -27,7 +27,7 @@ STATUS_PLANNING_TEMPLATE = "status-planning.md"
 STATUS_FINISHING_TEMPLATE = "status-finishing.md"
 # Closes the exercise: carries the closing marker, and hands over the practice quiz the coverage opened.
 FINISH_TEMPLATE = "finish.md"
-# Lists the recap's weak points, each linking to a graph-chat conversation that reviews it.
+# Lists the recap's weak points, each linking to a conversation with the course's chatbot that reviews it.
 FINISH_REVISION_TEMPLATE = "finish-revision.md"
 # Ends the finish, after the recap: where to go for another topic.
 FINISH_NEW_CHAT_TEMPLATE = "finish-new-chat.md"
