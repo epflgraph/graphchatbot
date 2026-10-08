@@ -13,6 +13,7 @@ class GradeTask(Task):
 
     DERIVE_POINTS = "derive-points"
     FEEDBACK = "feedback"
+    REVISION = "revision"
 
 
 class GradeContext(PromptContext):
