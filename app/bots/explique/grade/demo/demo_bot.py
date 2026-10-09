@@ -5,4 +5,5 @@ class DemoGradeBot(ExpliqueGradeBot):
     name = "Explique"
     index = "course_swissunidemo"
     course_id = 19162
+    course_bot = "statistics"
     groups = ["graph-chatbot-admins", "graph-rag-vip", "explique-admins"]

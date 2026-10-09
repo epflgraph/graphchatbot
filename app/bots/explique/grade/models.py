@@ -1,6 +1,6 @@
 from enum import StrEnum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class GradeStudentIntent(StrEnum):
@@ -70,3 +70,41 @@ class GradeChallengePlan(BaseModel):
         # `points_applied` is checked too because a failed call falls back to both lists
         # empty, and a dropped request must not read as a finished topic.
         return bool(self.points_applied and not self.points_remaining)
+
+
+class RevisionTopic(BaseModel):
+    """A topic the student needs to revise: what to work on, and how they should ask about it."""
+
+    next_step: str = Field(
+        description=(
+            "One sentence to the student, as 'you', in their language: the gap as something to work on next, "
+            "never a verdict."
+        ),
+    )
+    question: str = Field(
+        description=(
+            "The question the student would type into a course assistant to close this gap: first person, "
+            "in their language. It names the concept outright, since the assistant has not seen this session."
+        ),
+    )
+
+    @field_validator("next_step", "question")
+    @classmethod
+    def _collapse_whitespace(cls, value: str) -> str:
+        return " ".join(value.split())
+
+
+class Revision(BaseModel):
+    """What a graded session left open, for the student to revise."""
+
+    reasoning: str = Field(
+        default="",
+        description="One or two sentences on which gaps the session showed. Never shown to the student.",
+    )
+    points: list[RevisionTopic] = Field(
+        default_factory=list,
+        description=(
+            "One per slip the student made in the session, recovered from or not. Empty when they made none; "
+            "never something they simply did not mention."
+        ),
+    )

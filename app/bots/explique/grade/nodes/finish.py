@@ -10,10 +10,12 @@ from app.bots.base import Bot, StateUpdate
 from app.bots.explique.grade.compilers.feedback import GradeFeedbackCompiler
 from app.bots.explique.grade.completion import finish_marker
 from app.bots.explique.grade.coverage_record import CoverageRecorder
+from app.bots.explique.grade.nodes.revision import revision_node
 from app.bots.explique.grade.prompts import (
     FINISH_CLOSED_TEMPLATE,
     FINISH_NEW_CHAT_TEMPLATE,
     FINISH_RETRY_TEMPLATE,
+    FINISH_REVISION_TEMPLATE,
     FINISH_TEMPLATE,
     STATUS_FINISHING_TEMPLATE,
 )
@@ -51,14 +53,16 @@ async def finish_node(state: GradeBotState, runtime: Runtime[Bot]) -> StateUpdat
     topic = topic_lock.topic
     logger.info("Topic covered, finishing: %s", topic.name)
     recorder = CoverageRecorder(bot.course_id, state["requester"])
-    # The session recap and coverage recording share nothing, so the LLM call and the Moodle
+    # The session recap and coverage recording share nothing, so the LLM calls and the Moodle
     # round trips overlap. Only the recording decides what the student is told about
     # the quiz; the recap is decorative.
     # The recap reads the explanation only, as the graders do: turns before the lock are the student
     # finding a topic, not working on one, and grading them reads as grading the menu.
     session_messages = graded_turns(bot.prompt_search_path, topic, topic_lock.post_lock_turns(state["messages"]))
+    session_state = {**state, "messages": session_messages}
     async with asyncio.TaskGroup() as tasks:
-        summarizing = tasks.create_task(summarize_node({**state, "messages": session_messages}, runtime))
+        summarizing = tasks.create_task(summarize_node(session_state, runtime))
+        revising = tasks.create_task(revision_node(session_state, runtime))
         access = await recorder.record(topic, on_retry=partial(_announce_retry, runtime))
         closing = render_prompt(
             bot.prompt_search_path,
@@ -72,6 +76,7 @@ async def finish_node(state: GradeBotState, runtime: Runtime[Bot]) -> StateUpdat
         announce(STATUS_FINISHING_TEMPLATE, runtime)
 
     summary = summarizing.result()["session_summary"]
+    revision = revising.result()["revision"]
 
     feedback = await text_call(
         bot,
@@ -82,9 +87,20 @@ async def finish_node(state: GradeBotState, runtime: Runtime[Bot]) -> StateUpdat
         stream_writer=runtime.stream_writer,
     )
 
+    revision_section = render_prompt(
+        bot.prompt_search_path,
+        FINISH_REVISION_TEMPLATE,
+        revision=revision,
+        revision_model=bot.course_bot,
+        lang_code=state.get("lang_code"),
+    )
     new_chat = render_prompt(bot.prompt_search_path, FINISH_NEW_CHAT_TEMPLATE, lang_code=state.get("lang_code"))
-    await stream_text(f"\n\n{new_chat}" if feedback else new_chat, runtime.stream_writer)
+    after_feedback = "\n\n".join(part for part in (revision_section, new_chat) if part)
+    await stream_text(f"\n\n{after_feedback}" if feedback else after_feedback, runtime.stream_writer)
     return {
-        "messages": [AIMessage(content="\n\n".join(part for part in (closing, feedback, new_chat) if part))],
+        "messages": [
+            AIMessage(content="\n\n".join(part for part in (closing, feedback, revision_section, new_chat) if part))
+        ],
         "session_summary": summary,
+        "revision": revision,
     }
