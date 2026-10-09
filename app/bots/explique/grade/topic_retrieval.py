@@ -1,5 +1,6 @@
 import logging
 
+from app.bots.explique.retrieval import Filters
 from app.interfaces.graphai import graphai
 
 logger = logging.getLogger(__name__)
@@ -9,8 +10,10 @@ MATERIAL_LIMIT = 30
 
 
 async def fetch_topic_material(index: str, topic_name: str) -> str:
-    """The course material `index` holds for `topic_name`, as one block of text."""
-    result = await graphai.rag_retrieve(index=index, texts=[topic_name], limit=MATERIAL_LIMIT)
+    """The teaching material `index` holds for `topic_name`, as one block of text."""
+    result = await graphai.rag_retrieve(
+        index=index, texts=[topic_name], limit=MATERIAL_LIMIT, filters=Filters(type="theory")
+    )
 
     if len(result.chunks) == MATERIAL_LIMIT:
         logger.debug(
