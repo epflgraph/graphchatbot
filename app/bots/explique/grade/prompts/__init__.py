@@ -9,6 +9,8 @@ MENU_UNAVAILABLE_TEMPLATE = "menu-unavailable.md"
 INVITE_TEMPLATE = "invite.md"
 # The same invitation, warning that this course has no enrolment to record against.
 INVITE_UNRECORDED_TEMPLATE = "invite-unrecorded.md"
+# Answers instead of the invitation when the topic has no points to grade against.
+DECLINE_TOPIC_TEMPLATE = "decline-topic.md"
 # Points a turn that is not about the locked topic back at it.
 REDIRECT_TEMPLATE = "redirect.md"
 # Answers a turn that tries to jailbreak the bot instead of explaining.

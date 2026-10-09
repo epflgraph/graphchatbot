@@ -11,6 +11,7 @@ from app.bots.explique.grade.compilers.retrieve import GradeRetrieveCompiler
 from app.bots.explique.grade.completion import topic_covered
 from app.bots.explique.grade.models import GradeStudentIntent
 from app.bots.explique.grade.node_names import GradeNode
+from app.bots.explique.grade.nodes.decline_topic import decline_topic_node
 from app.bots.explique.grade.nodes.derive_topic_points import derive_topic_points_node
 from app.bots.explique.grade.nodes.evaluate import evaluate_node
 from app.bots.explique.grade.nodes.finish import finish_node
@@ -62,6 +63,9 @@ class ExpliqueGradeBot(ExpliqueBot):
     # The topics this course's quizzes are tagged with, republished by every polling pass.
     topics: Topics = Topics()
 
+    # Whether to derive points from the topic name when the course material yields no points.
+    allow_unsourced_points: bool = True
+
     # Every node that speaks to the student writes its own text to the stream,
     # canned messages included, so the student sees one pacing throughout.
     # Listing any of them here would send that node's message a second time.
@@ -88,6 +92,8 @@ class ExpliqueGradeBot(ExpliqueBot):
         topic_lock = state["topic_lock"]
         if topic_lock is None:
             return GradeNode.PRESENT_MENU
+        if state.get("topic_unavailable"):
+            return GradeNode.DECLINE_TOPIC
         if topic_lock.is_in_latest_turn(state["messages"]):
             return GradeNode.INVITE
         if is_pasted_tutor_reply(topic_lock.post_lock_turns(state["messages"])):
@@ -142,6 +148,7 @@ class ExpliqueGradeBot(ExpliqueBot):
         """Compile the graded flow:
 
         lock_topic ─► derive_topic_points ─┬─ (a direct reply) ─► detect_language ─┬─ (no topic yet) ────────► present_menu ─► END
+                                           │                                      ├─ (topic unavailable) ───► decline_topic ─► END
                                            │                                      ├─ (picked in this turn) ─► invite ───────► END
                                            │                                      ├─ (a reply pasted back) ─► redirect ─────► END
                                            │                                      └─ (already finished) ────► finish ───────► END
@@ -149,7 +156,8 @@ class ExpliqueGradeBot(ExpliqueBot):
 
         `lock_topic` is the entry point, so nothing is fetched or transcribed before a topic is
         picked. `derive_topic_points` runs before the branches so every turn past the lock reads a
-        warm cache; the standard is keyed on the topic's material and shared across students.
+        warm cache; the standard is keyed on the topic's material and shared across students. A topic
+        with no points to grade against is unavailable.
 
         From `transcribe_image` on, the graded exchange is the tutor's without its exits:
 
@@ -184,6 +192,7 @@ class ExpliqueGradeBot(ExpliqueBot):
         workflow.add_node(GradeNode.DERIVE_TOPIC_POINTS, derive_topic_points_node)
         workflow.add_node(GradeNode.PRESENT_MENU, present_menu_node)
         workflow.add_node(GradeNode.INVITE, invite_node)
+        workflow.add_node(GradeNode.DECLINE_TOPIC, decline_topic_node)
         workflow.add_node(GradeNode.REDIRECT, redirect_node)
         workflow.add_node(GradeNode.FINISH, finish_node)
         workflow.add_node(
@@ -242,6 +251,7 @@ class ExpliqueGradeBot(ExpliqueBot):
         workflow.add_conditional_edges(GradeNode.DERIVE_TOPIC_POINTS, self._route_after_derive_topic_points)
         workflow.add_edge(GradeNode.PRESENT_MENU, END)
         workflow.add_edge(GradeNode.INVITE, END)
+        workflow.add_edge(GradeNode.DECLINE_TOPIC, END)
         workflow.add_edge(GradeNode.REDIRECT, END)
         workflow.add_edge(GradeNode.FINISH, END)
         workflow.add_edge(GradeNode.NO_ANSWER, END)

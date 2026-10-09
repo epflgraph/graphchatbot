@@ -14,7 +14,7 @@ from app.bots.explique.grade.compilers.topic_points import (
     GradeSourcedTopicPointsCompiler,
     GradeUnsourcedTopicPointsCompiler,
 )
-from app.bots.explique.grade.models import TopicPoints
+from app.bots.explique.grade.models import PointsProvenance, TopicPoints
 from app.bots.explique.grade.topic_retrieval import fetch_topic_material
 from app.bots.explique.grade.topics import Topic
 from app.compilation.invoke import structured_call
@@ -23,6 +23,104 @@ from app.logging_config import truncate
 logger = logging.getLogger(__name__)
 
 _TOPIC_POINTS_SCHEMA = TypeAdapter(list[str])
+
+# Max number of attempts to derive points from the course material,
+# on a bot that doesn't allow unsourced points.
+MAX_SOURCED_ATTEMPTS = 2
+
+
+class TopicPointsUnavailable(Exception):
+    """No points to grade the topic against."""
+
+
+async def derive_topic_points(bot: Bot, topic: Topic, state: Mapping[str, Any]) -> tuple[str, ...]:
+    """The points `topic` is graded against: from its material, else from its name if the bot allows it."""
+    max_sourced_attempts = 1 if bot.allow_unsourced_points else MAX_SOURCED_ATTEMPTS
+    if points := await _derive_sourced_points(bot, topic, state, max_sourced_attempts):
+        return points
+
+    if bot.allow_unsourced_points and (points := await _derive_unsourced_points(bot, topic, state)):
+        return points
+
+    raise TopicPointsUnavailable(topic.name)
+
+
+async def _derive_sourced_points(
+    bot: Bot, topic: Topic, state: Mapping[str, Any], max_attempts: int
+) -> tuple[str, ...]:
+    """Points from fresh material, tried up to `max_attempts` times, else the ones cached earlier."""
+    for attempt in range(1, max_attempts + 1):
+        material = await fetch_topic_material(bot.index, topic.name)
+        points = await _derive_points_once(bot, topic, state, material) if material else None
+        if points:
+            _cache_sourced_as_unsourced(bot, topic, state, points)
+            return points
+        if points == ():
+            logger.warning("The material in index %r doesn't teach topic %r", bot.index, topic.name)
+            return ()
+        if attempt < max_attempts:
+            logger.warning(
+                "No sourced points for topic %r in index %r on attempt %s of %s; trying again",
+                topic.name,
+                bot.index,
+                attempt,
+                max_attempts,
+            )
+
+    if cached := _cached_sourced_as_unsourced(bot, topic, state):
+        logger.warning(
+            "No fresh points for topic %r in index %r; grading on the sourced ones cached earlier",
+            topic.name,
+            bot.index,
+        )
+    return cached or ()
+
+
+async def _derive_unsourced_points(bot: Bot, topic: Topic, state: Mapping[str, Any]) -> tuple[str, ...]:
+    """Points from the topic name alone."""
+    logger.info("Deriving points for topic %r in index %r from its name alone", topic.name, bot.index)
+    return await _derive_points_once(bot, topic, state, material="") or ()
+
+
+async def _derive_points_once(
+    bot: Bot, topic: Topic, state: Mapping[str, Any], material: str
+) -> tuple[str, ...] | None:
+    """One derivation, sourced when there is material, read from the cache when it ran before.
+    An empty verdict on material is cached too, since the material is in its key. None when the call failed."""
+    compiler = GradeSourcedTopicPointsCompiler if material else GradeUnsourcedTopicPointsCompiler
+
+    call_state = {**state, "topic_material": material}
+
+    key = _cache_key(bot, compiler, call_state)
+    if (cached := _cached_points(topic, key)) is not None:
+        return cached
+
+    fallback = TopicPoints()
+    derived = await structured_call(bot=bot, compiler=compiler, state=call_state, fallback=fallback)
+    if derived is fallback:
+        return None
+
+    log_level = logging.INFO if derived.points else logging.WARNING
+    logger.log(
+        log_level, "Derived points for topic %r (%s): %s", topic.name, truncate(derived.reasoning), derived.points
+    )
+    points = tuple(derived.points)
+    if points or material:
+        _cache_points(bot, topic, key, points, sourced=bool(material))
+    return points
+
+
+def _cache_sourced_as_unsourced(bot: Bot, topic: Topic, state: Mapping[str, Any], points: tuple[str, ...]) -> None:
+    """Cache sourced points under the unsourced key, as the fallback for a later turn that derives none."""
+    if _cached_sourced_as_unsourced(bot, topic, state) != points:
+        _cache_points(bot, topic, _unsourced_cache_key(bot, state), points, sourced=True)
+
+
+def _cached_sourced_as_unsourced(bot: Bot, topic: Topic, state: Mapping[str, Any]) -> tuple[str, ...] | None:
+    """The points `_cache_sourced_as_unsourced` cached, or None when the unsourced key holds unsourced ones."""
+    key = _unsourced_cache_key(bot, state)
+    provenance = _cached_provenance(topic, key)
+    return _cached_points(topic, key) if provenance and provenance.sourced else None
 
 
 def _cache_key(bot: Bot, compiler: type[ExpliqueCompiler], call_state: Mapping[str, Any]) -> CacheKey:
@@ -45,69 +143,39 @@ def _cache_key(bot: Bot, compiler: type[ExpliqueCompiler], call_state: Mapping[s
     )
 
 
-def _provenance(bot: Bot, topic: Topic, *, sourced: bool) -> str:
-    """The provenance of a cache record: what it was derived for, and from what."""
-    return json.dumps(
-        {
-            "index": bot.index,
-            "topic": topic.name,
-            "sourced": sourced,
-            "derived_at": datetime.now().isoformat(timespec="seconds"),
-        },
-        ensure_ascii=False,
+def _unsourced_cache_key(bot: Bot, state: Mapping[str, Any]) -> CacheKey:
+    """Where unsourced points are cached, and where `_cache_sourced_as_unsourced` caches sourced ones."""
+    return _cache_key(bot, GradeUnsourcedTopicPointsCompiler, {**state, "topic_material": ""})
+
+
+def _cache_points(bot: Bot, topic: Topic, key: CacheKey, points: tuple[str, ...], *, sourced: bool) -> None:
+    """Cache `points` under `key`, with their provenance: what they were derived for, and from what."""
+    cache.CACHE.put(key, json.dumps(list(points), ensure_ascii=False))
+    provenance = PointsProvenance(
+        index=bot.index, topic=topic.name, sourced=sourced, derived_at=datetime.now().replace(microsecond=0)
     )
+    cache.PROVENANCE.put(key, provenance.model_dump_json())
 
 
-async def derive_topic_points(bot: Bot, topic: Topic, state: Mapping[str, Any]) -> tuple[str, ...]:
-    """The points `topic` has to cover, derived once and cached: the standard is shared across
-    students so two equal explanations grade the same. Points are derived from the course material
-    when it teaches the topic, otherwise from the topic name alone."""
-    material = await fetch_topic_material(bot.index, topic.name)
-    points = await _derive_topic_points(bot, topic, state, material) if material else ()
-    if points:
-        # Sourced points are the preferred standard while unsourced ones are a fallback.
-        # Given that at least one retrieval has succeeded, if a later one fails, we'll still
-        # grade on the cached sourced points.
-        _cache_as_unsourced(bot, topic, state, points)
-        return points
-
-    logger.info("No material teaching topic %r in index %r; deriving points unsourced", topic.name, bot.index)
-    return await _derive_topic_points(bot, topic, state, material="")
+def _cached_points(topic: Topic, key: CacheKey) -> tuple[str, ...] | None:
+    """The points cached under `key`, or None on a miss or an unreadable entry."""
+    if (cached := cache.CACHE.get(key)) is None:
+        return None
+    try:
+        return tuple(_TOPIC_POINTS_SCHEMA.validate_json(cached))
+    except ValidationError:
+        logger.warning(
+            "Cached points for topic %r at %s are not a list of strings; ignoring them", topic.name, key.value
+        )
+        return None
 
 
-def _cache_as_unsourced(bot: Bot, topic: Topic, state: Mapping[str, Any], points: tuple[str, ...]) -> None:
-    """Cache sourced points under the unsourced key."""
-    key = _cache_key(bot, GradeUnsourcedTopicPointsCompiler, {**state, "topic_material": ""})
-    entry = json.dumps(list(points), ensure_ascii=False)
-    if cache.CACHE.get(key) != entry:
-        cache.CACHE.put(key, entry)
-        cache.PROVENANCE.put(key, _provenance(bot, topic, sourced=True))
-
-
-async def _derive_topic_points(bot: Bot, topic: Topic, state: Mapping[str, Any], material: str) -> tuple[str, ...]:
-    """One derivation, sourced when there is material, read from the cache when it ran before.
-    An empty verdict on material is cached too, since the material is in its key."""
-    compiler = GradeSourcedTopicPointsCompiler if material else GradeUnsourcedTopicPointsCompiler
-
-    call_state = {**state, "topic_material": material}
-
-    key = _cache_key(bot, compiler, call_state)
-    if (cached := cache.CACHE.get(key)) is not None:
-        try:
-            return tuple(_TOPIC_POINTS_SCHEMA.validate_json(cached))
-        except ValidationError:
-            logger.warning(
-                "Cached points for topic %r at %s are not a list of strings; deriving them again", topic.name, key.value
-            )
-
-    fallback = TopicPoints()
-    derived = await structured_call(bot=bot, compiler=compiler, state=call_state, fallback=fallback)
-    log_level = logging.INFO if derived.points else logging.WARNING
-    logger.log(
-        log_level, "Derived points for topic %r (%s): %s", topic.name, truncate(derived.reasoning), derived.points
-    )
-
-    if derived is not fallback and (derived.points or material):
-        cache.CACHE.put(key, json.dumps(derived.points, ensure_ascii=False))
-        cache.PROVENANCE.put(key, _provenance(bot, topic, sourced=bool(material)))
-    return tuple(derived.points)
+def _cached_provenance(topic: Topic, key: CacheKey) -> PointsProvenance | None:
+    """The provenance cached under `key`, or None on a miss or an unreadable entry."""
+    if (cached := cache.PROVENANCE.get(key)) is None:
+        return None
+    try:
+        return PointsProvenance.model_validate_json(cached)
+    except ValidationError:
+        logger.warning("Cached provenance for topic %r at %s is unreadable; ignoring it", topic.name, key.value)
+        return None

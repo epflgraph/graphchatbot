@@ -1,6 +1,7 @@
+from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class GradeStudentIntent(StrEnum):
@@ -22,6 +23,17 @@ class TopicPoints(BaseModel):
         default_factory=list,
         description="The topic's points, in the order a student would build them up.",
     )
+
+
+class PointsProvenance(BaseModel):
+    """What a cached record was derived for, and from what."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    index: str
+    topic: str
+    sourced: bool
+    derived_at: datetime
 
 
 class PointsProgress(BaseModel):
