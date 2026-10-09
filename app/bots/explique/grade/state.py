@@ -10,6 +10,7 @@ class GradeBotState(ExpliqueBotState):
     topics: Topics
     topic_lock: TopicLock | None
     topic_points: tuple[str, ...]
+    topic_unavailable: bool
     session_finished: bool
     challenge_plan: GradeChallengePlan
     current_point: str
