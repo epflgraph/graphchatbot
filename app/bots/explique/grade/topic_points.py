@@ -28,6 +28,9 @@ _TOPIC_POINTS_SCHEMA = TypeAdapter(list[str])
 # on a bot that doesn't allow unsourced points.
 MAX_SOURCED_ATTEMPTS = 2
 
+# Max number of points a topic is graded against.
+MAX_POINTS = 10
+
 
 class TopicPointsUnavailable(Exception):
     """No points to grade the topic against."""
@@ -37,12 +40,20 @@ async def derive_topic_points(bot: Bot, topic: Topic, state: Mapping[str, Any]) 
     """The points `topic` is graded against: from its material, else from its name if the bot allows it."""
     max_sourced_attempts = 1 if bot.allow_unsourced_points else MAX_SOURCED_ATTEMPTS
     if points := await _derive_sourced_points(bot, topic, state, max_sourced_attempts):
-        return points
+        return _cap_points(points)
 
     if bot.allow_unsourced_points and (points := await _derive_unsourced_points(bot, topic, state)):
-        return points
+        return _cap_points(points)
 
     raise TopicPointsUnavailable(topic.name)
+
+
+def _cap_points(points: tuple[str, ...]) -> tuple[str, ...]:
+    """`points` as they are, or `MAX_POINTS` of them spread evenly from the first to the last, when there are more."""
+    if len(points) <= MAX_POINTS:
+        return points
+    last_idx = len(points) - 1
+    return tuple(points[slot * last_idx // (MAX_POINTS - 1)] for slot in range(MAX_POINTS))
 
 
 async def _derive_sourced_points(
