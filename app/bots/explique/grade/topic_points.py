@@ -113,7 +113,13 @@ async def _derive_points_once(
 
     log_level = logging.INFO if derived.points else logging.WARNING
     logger.log(
-        log_level, "Derived points for topic %r (%s): %s", topic.name, truncate(derived.reasoning), derived.points
+        log_level,
+        "Derived %s points for topic %r, grading on %s (%s): %s",
+        len(derived.points),
+        topic.name,
+        min(len(derived.points), MAX_POINTS),
+        truncate(derived.reasoning),
+        derived.points,
     )
     points = tuple(derived.points)
     if points or material:
