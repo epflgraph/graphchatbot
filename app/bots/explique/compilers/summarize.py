@@ -9,7 +9,7 @@ class SummarizeCompiler(ExpliqueTextCompiler):
 
     config = MessageCompilerConfig(
         task=ExpliqueTask.SUMMARIZE,
-        model_choice=ModelChoice.LIGHT,
+        model_choice=ModelChoice.FAST,
         system_template="summarize-sys.md",
         user_template="summarize-usr.md",
         output_schema=SessionSummary,

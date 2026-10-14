@@ -43,9 +43,6 @@ class ExpliqueBot(Bot):
         StudentIntent.END_SESSION: {"tool_choice": "any"},
     }
 
-    _TEXT_MODEL_ID = "Qwen/Qwen3.6-35B-A3B-fp8"
-    _VISION_MODEL_ID = "Qwen/Qwen3.5-397B-A17B-int4"
-
     _DETERMINISTIC_KWARGS = {
         "temperature": 0.0,
         "top_p": 1.0,
@@ -58,38 +55,44 @@ class ExpliqueBot(Bot):
         },
     }
 
-    model = ChatOpenAI(
+    reply_model = ChatOpenAI(
         base_url=config.rcp.base_url,
         api_key=config.rcp.api_key,
-        model=_TEXT_MODEL_ID,
+        model="deepseek-ai/DeepSeek-V4.1-Flash-fp8",
         timeout=30,
         max_retries=1,
         stream_usage=True,
-        temperature=0.8,
-        top_p=0.9,
+        temperature=1.0,
+        top_p=0.95,
         max_tokens=1024,
-        presence_penalty=1.0,
-        frequency_penalty=0.0,
-        extra_body={
-            "top_k": 20,
-            "chat_template_kwargs": {"enable_thinking": False},
-        },
+        extra_body={"chat_template_kwargs": {"thinking": False}},
     )
 
-    light_model = ChatOpenAI(
+    fast_model = ChatOpenAI(
         base_url=config.rcp.base_url,
         api_key=config.rcp.api_key,
-        model=_TEXT_MODEL_ID,
+        model="Qwen/Qwen3.6-35B-A3B-fp8",
         timeout=30,
         max_retries=1,
         stream_usage=False,
         **_DETERMINISTIC_KWARGS,
     )
 
+    careful_model = ChatOpenAI(
+        base_url=config.rcp.base_url,
+        api_key=config.rcp.api_key,
+        model="deepseek-ai/DeepSeek-V4.1-Flash-fp8",
+        timeout=30,
+        max_retries=1,
+        stream_usage=False,
+        temperature=0.0,
+        extra_body={"chat_template_kwargs": {"thinking": False}},
+    )
+
     vision_model = ChatOpenAI(
         base_url=config.rcp.base_url,
         api_key=config.rcp.api_key,
-        model=_VISION_MODEL_ID,
+        model="Qwen/Qwen3.5-397B-A17B-int4",
         timeout=60,
         max_retries=1,
         stream_usage=False,

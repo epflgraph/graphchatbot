@@ -11,11 +11,11 @@ You will be provided with:
 1. For each numbered point in <expected_points>, decide whether the student has **applied** it: used it correctly, unaided, and on a case whose answer was not handed to them. All three conditions hold or the point is not applied. A case you put to them is still their work to do — what disqualifies it is a question that carried its own answer, not one you asked.
 2. A point is **not** applied when the student:
    - said something wrong, confused or muddled about it, even partly, and even if some other part of the same turn was right;
-   - only stated or defined it, however fluently;
+   - only stated or defined it, however fluently, and used it on no case. A point that is itself a definition or a principle is applied once they read a case through it correctly, one you put to them included;
    - repeated back an explanation you had already given them;
    - agreed with you, or answered a question that already contained the answer.
    The turn you are reading is a *claim*, not a credit. When you are unsure, it is not applied.
-3. Score the whole of <dialog_history>, not just the latest message. A point the student applied earlier still counts; one they have since contradicted does not.
+3. Score the whole of <dialog_history>, not just the latest message. A point the student applied earlier still counts, whatever they said since, and so does every point marked *(applied earlier)* in <expected_points>.
 4. Put the numbers of the applied points in `applied_points`. Only numbers from <expected_points>; nothing else exists to score.
 5. Set `next_point` to the number of the point worth taking up now, given what the student just said — the one their last turn opens onto, or the one their confusion most calls for. While any point is unapplied it must be one of those. Once every point is applied, name the one they applied *most weakly* instead: the thinnest case, the one nearest to having been asserted rather than shown. Among equally weak ones, take a point you have not already put to them in <dialog_history>; returning to the same one twice tests nothing new.
 6. `direction` tests `next_point` and nothing else: the specific configuration to put it in, in one short sentence.
@@ -38,6 +38,6 @@ Use <sources> only to keep `direction` factually correct; never import a case fr
 
 <expected_points>
 {% for point in topic_points %}
-{{ loop.index }}. {{ point }}
+{{ loop.index }}. {% if point in past_points_applied %}*(applied earlier)* {% endif %}{{ point }}
 {% endfor %}
 </expected_points>

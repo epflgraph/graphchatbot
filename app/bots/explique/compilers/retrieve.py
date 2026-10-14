@@ -9,7 +9,7 @@ class RetrieveCompiler(ExpliqueTextCompiler):
 
     config = MessageCompilerConfig(
         task=ExpliqueTask.RETRIEVE,
-        model_choice=ModelChoice.LIGHT,
+        model_choice=ModelChoice.FAST,
         system_template="retrieve-sys.md",
         user_template="retrieve-usr.md",
     )

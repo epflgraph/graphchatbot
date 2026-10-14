@@ -12,7 +12,7 @@ class ClassifyCompiler(DialogTextCompiler):
 
     config = MessageCompilerConfig(
         task=BotTask.CLASSIFY,
-        model_choice=ModelChoice.LIGHT,
+        model_choice=ModelChoice.FAST,
         system_template="classify-sys.md",
         user_template="classify-usr.md",
     )

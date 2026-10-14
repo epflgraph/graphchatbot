@@ -1,5 +1,10 @@
+import asyncio
+import hashlib
+import json
 import logging
 
+from cachetools import LRUCache
+from langchain_core.messages import BaseMessage
 from langgraph.runtime import Runtime
 
 from app.bots.base import Bot, StateUpdate
@@ -7,62 +12,111 @@ from app.bots.explique.grade.compilers.plan_challenge import GradePlanChallengeC
 from app.bots.explique.grade.models import GradeChallengePlan
 from app.bots.explique.grade.prompts import STATUS_PLANNING_TEMPLATE
 from app.bots.explique.grade.state import GradeBotState
+from app.bots.explique.grade.transcript import graded_history_per_turn
 from app.bots.utils import announce
 from app.compilation.invoke import structured_call
 from app.logging_config import truncate
 
 logger = logging.getLogger(__name__)
 
+# Keyed by the conversation up to each turn, so a point once applied is never taken back.
+_APPLIED_POINTS_BY_TURN: LRUCache[str, tuple[str, ...]] = LRUCache(maxsize=25_000)
+
 
 async def plan_challenge_node(state: GradeBotState, runtime: Runtime[Bot]) -> StateUpdate:
     """Plan the next tutoring move, and record progress against the topic's expected points."""
     announce(STATUS_PLANNING_TEMPLATE, runtime)
+    bot = runtime.context
+    all_points = state["topic_points"]
+    topic_lock = state["topic_lock"]
+    *past_turns, last_turn = graded_history_per_turn(
+        bot.prompt_search_path, topic_lock.topic, state["messages"], topic_lock.position
+    )
+
+    applied_per_past_turn = await asyncio.gather(*(_points_applied_on(bot, state, turn) for turn in past_turns))
+    past_points_applied = tuple(point for point in all_points if point in set().union(*applied_per_past_turn))
     progress = await structured_call(
-        bot=runtime.context,
+        bot=bot,
         compiler=GradePlanChallengeCompiler,
-        state=state,
+        state={**state, "past_points_applied": past_points_applied},
         fallback=None,
     )
 
-    all_points = state["topic_points"]
     if progress is None:
-        # The points are ordered so each builds on the ones before it,
-        # so the last is the least likely to have been tested yet.
-        logger.warning("Planner call failed; aiming the move at the last point")
+        points_remaining = tuple(point for point in all_points if point not in past_points_applied)
+        logger.warning("Planner call failed; aiming the move at the next point not yet applied")
         return {
-            "challenge_plan": GradeChallengePlan(points_remaining=list(all_points)),
-            "current_point": all_points[-1] if all_points else "",
+            "challenge_plan": GradeChallengePlan(
+                points_applied=list(past_points_applied), points_remaining=list(points_remaining)
+            ),
+            "current_point": points_remaining[0] if points_remaining else past_points_applied[-1],
         }
 
-    applied_points = tuple(all_points[i - 1] for i in sorted(set(progress.applied_points)) if 1 <= i <= len(all_points))
-    remaining_points = tuple(point for point in all_points if point not in applied_points)
+    applied_on_last_turn = tuple(point for idx, point in enumerate(all_points, 1) if idx in progress.applied_points)
+    _APPLIED_POINTS_BY_TURN[_turn_cache_key(state, last_turn)] = applied_on_last_turn
+    points_applied = tuple(
+        point for point in all_points if point in past_points_applied or point in applied_on_last_turn
+    )
+    points_remaining = tuple(point for point in all_points if point not in points_applied)
 
     next_point = all_points[progress.next_point - 1] if 1 <= progress.next_point <= len(all_points) else None
     # An applied point is a legal pick only once the topic is covered: there are no new
     # available points left, so the move stress-tests the weakest thing the student said instead.
-    if next_point in applied_points and remaining_points:
+    if next_point in points_applied and points_remaining:
         next_point = None
 
     if not next_point and progress.direction:
         logger.warning("Planner picked point %s and cannot be followed; dropping its direction", progress.next_point)
 
     logger.info(
-        "Planned challenge applied=%s/%s; next=%r; direction=%s; reasoning=%s",
-        len(applied_points),
+        "Planned challenge applied=%s/%s (past %s); next=%r; direction=%s; reasoning=%s",
+        len(points_applied),
         len(all_points),
+        len(past_points_applied),
         next_point,
         truncate(progress.direction),
         truncate(progress.reasoning),
     )
 
     plan = GradeChallengePlan(
-        points_applied=list(applied_points),
+        points_applied=list(points_applied),
         reasoning=progress.reasoning if next_point else "",
-        points_remaining=list(remaining_points),
+        points_remaining=list(points_remaining),
         direction=progress.direction if next_point else "",
     )
     # Falls back to the course's own order when the pick could not be followed,
     # and on a covered topic to the last point claimed.
-    fallback = remaining_points[0] if remaining_points else (applied_points[-1] if applied_points else "")
+    fallback = points_remaining[0] if points_remaining else (points_applied[-1] if points_applied else "")
     current_point = next_point or fallback
     return {"challenge_plan": plan, "current_point": current_point}
+
+
+async def _points_applied_on(bot: Bot, state: GradeBotState, turn: list[BaseMessage]) -> tuple[str, ...]:
+    """The points the planner finds applied up to `turn`, scored once and then remembered."""
+    key = _turn_cache_key(state, turn)
+    if key in _APPLIED_POINTS_BY_TURN:
+        return _APPLIED_POINTS_BY_TURN[key]
+
+    logger.debug("Re-scoring a past turn missing from the cache")
+    progress = await structured_call(
+        bot=bot,
+        compiler=GradePlanChallengeCompiler,
+        state={**state, "messages": turn},
+        fallback=None,
+    )
+    if progress is None:
+        return ()
+    points_applied = tuple(
+        point for idx, point in enumerate(state["topic_points"], 1) if idx in progress.applied_points
+    )
+    _APPLIED_POINTS_BY_TURN[key] = points_applied
+    return points_applied
+
+
+def _turn_cache_key(state: GradeBotState, turn: list[BaseMessage]) -> str:
+    """SHA-256 of the canonical JSON of the topic, its points, and the conversation up to `turn`."""
+    conversation = [[message.type, message.content] for message in turn]  # not `id`, which varies per request
+    dump = json.dumps(
+        [state["topic_lock"].topic.name, state["topic_points"], conversation], sort_keys=True, ensure_ascii=True
+    )
+    return hashlib.sha256(dump.encode("utf-8")).hexdigest()

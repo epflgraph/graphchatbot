@@ -182,36 +182,6 @@ examples:
         "next_point": 6,
         "direction": "Put a flat two-franc tax on it and have them say what the buyer hands over and what the seller keeps."
       }
-- slug: credited-then-contradicted
-  tags:
-    example_expected_points: |-
-      1. A demand curve relates the quantity buyers want to the price
-      2. A supply curve relates the quantity sellers offer to the price
-      3. A change in price moves along a curve; a change in any other condition shifts the curve
-      4. Equilibrium is the price at which the quantity offered and the quantity wanted are equal
-      5. A supply shock shifts the supply curve and moves the equilibrium along the demand curve
-      6. A tax drives a wedge between the price the buyer pays and the price the seller keeps
-      7. The side a tax is levied on does not determine who bears it
-      8. The burden falls more on whichever side is less able to change its quantity in response
-    example_dialog_history: |-
-      ----AI----
-      A tax goes on sellers of insulin. Who bears it?
-
-      ----HUMAN----
-      Mostly the buyers. People who need insulin can't cut back much when the price rises, so sellers can pass nearly all of it on.
-
-      ----AI----
-      Now the same tax on one brand of cola, with dozens of others on the shelf.
-
-      ----HUMAN----
-      Same thing — sellers add it to the price and buyers pay it. The tax is on the seller but it always lands on whoever's buying.
-    output: |-
-      {
-        "reasoning": "Point 8 was applied on the insulin case and is withdrawn by the cola turn, which makes the burden independent of elasticity; point 7 survives in their own wording, so 8 is what has to be rebuilt.",
-        "applied_points": [7],
-        "next_point": 8,
-        "direction": "Take them back to the cola and have them say what a buyer there can do that an insulin buyer cannot."
-      }
 - slug: every-point-applied
   tags:
     example_expected_points: |-

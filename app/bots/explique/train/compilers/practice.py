@@ -24,7 +24,7 @@ class PracticeCompiler(ExpliqueGroundedCompiler):
 
     config = MessageCompilerConfig(
         task=TrainTask.PRACTICE,
-        model_choice=ModelChoice.LIGHT,
+        model_choice=ModelChoice.FAST,
         system_template="practice-sys.md",
         user_template="practice-usr.md",
         output_schema=PracticeMaterial,

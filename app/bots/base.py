@@ -47,7 +47,8 @@ class Bot(ABC):
         build_graph()      — the compiled LangGraph a turn runs through
 
     and may override:
-        model / light_model / vision_model — the streaming, deterministic, and vision clients
+        reply_model / fast_model / careful_model / vision_model — the clients for the reply,
+                              quick calls, calls where accuracy beats speed, and images
         model_nodes         — which nodes' tokens are streamed to the user (a node can
                               also stream text itself, through `runtime.stream_writer`)
         prompt_context()    — values every one of its prompts can use
@@ -60,7 +61,7 @@ class Bot(ABC):
     name: str
     groups: list[str]
 
-    model: ChatOpenAI = ChatOpenAI(
+    reply_model: ChatOpenAI = ChatOpenAI(
         base_url=config.rcp.base_url,
         model="Qwen/Qwen3.6-35B-A3B",
         api_key=config.rcp.api_key,
@@ -78,8 +79,9 @@ class Bot(ABC):
         },
     )
 
-    light_model: ChatOpenAI = model
-    # Unlike light_model, no fallback client — see `model_for` for why.
+    fast_model: ChatOpenAI = reply_model
+    # Unlike fast_model, these have no fallback client — see `model_for` for why.
+    careful_model: ChatOpenAI | None = None
     vision_model: ChatOpenAI | None = None
 
     model_nodes: tuple[str, ...] = ("model",)
@@ -114,14 +116,17 @@ class Bot(ABC):
         """The client a call of this choice runs on.
 
         Looked up rather than branched, so a new `ModelChoice` no bot serves
-        raises instead of quietly getting the light one. A bot that declares no
-        `vision_model` raises too: unlike `light_model`, whose default is the
+        raises instead of quietly getting the fast one. A bot that declares no
+        `vision_model` raises too: unlike `fast_model`, whose default is the
         same modality and so harmless, silently answering a vision call with a
         text client sends image parts to an endpoint that cannot read them.
+        So does one with no `careful_model`: a call that asked for the careful
+        client would otherwise run, unnoticed, on a less accurate one.
         """
         model = {
-            ModelChoice.MAIN: self.model,
-            ModelChoice.LIGHT: self.light_model,
+            ModelChoice.REPLY: self.reply_model,
+            ModelChoice.FAST: self.fast_model,
+            ModelChoice.CAREFUL: self.careful_model,
             ModelChoice.VISION: self.vision_model,
         }[choice]
 

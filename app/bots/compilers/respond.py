@@ -30,7 +30,7 @@ class ResponseCompiler(DialogTurnsCompiler):
 
     config = MessageCompilerConfig(
         task=BotTask.RESPOND,
-        model_choice=ModelChoice.MAIN,
+        model_choice=ModelChoice.REPLY,
         system_template="prompt.md",
     )
 

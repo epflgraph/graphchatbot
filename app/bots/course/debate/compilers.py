@@ -20,7 +20,7 @@ class DebateStage(StrEnum):
 def stage_config(stage: DebateStage) -> MessageCompilerConfig:
     return MessageCompilerConfig(
         task=BotTask.RESPOND,
-        model_choice=ModelChoice.MAIN,
+        model_choice=ModelChoice.REPLY,
         overrides=(stage,),
         system_template=f"prompt-{stage}.md",
     )

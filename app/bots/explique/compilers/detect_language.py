@@ -25,7 +25,7 @@ class LanguageDetectorCompiler(ExpliqueCompiler):
 
     config = MessageCompilerConfig(
         task=ExpliqueTask.DETECT_LANGUAGE,
-        model_choice=ModelChoice.LIGHT,
+        model_choice=ModelChoice.FAST,
         system_template="detect-language-sys.md",
         user_template="detect-language-usr.md",
         output_schema=LanguageDetection,
