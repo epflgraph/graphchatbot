@@ -17,7 +17,7 @@ class GradeSourcedTopicPointsCompiler(GradeCompiler):
         task=GradeTask.DERIVE_POINTS,
         system_template="topic-points-sys.md",
         user_template="topic-points-usr.md",
-        model_choice=ModelChoice.LIGHT,
+        model_choice=ModelChoice.FAST,
         output_schema=TopicPoints,
     )
     context_class = GradeTopicPointsContext
@@ -34,7 +34,7 @@ class GradeUnsourcedTopicPointsCompiler(GradeCompiler):
         task=GradeTask.DERIVE_POINTS,
         system_template="topic-points-unsourced-sys.md",
         user_template="topic-points-usr.md",
-        model_choice=ModelChoice.LIGHT,
+        model_choice=ModelChoice.FAST,
         output_schema=TopicPoints,
     )
     context_class = GradeContext

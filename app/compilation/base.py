@@ -14,8 +14,9 @@ if TYPE_CHECKING:
 class ModelChoice(StrEnum):
     """Which of a bot's clients runs a call."""
 
-    MAIN = "main"
-    LIGHT = "light"
+    REPLY = "reply"
+    FAST = "fast"
+    CAREFUL = "careful"
     VISION = "vision"
 
 

@@ -62,7 +62,6 @@ async def finish_node(state: GradeBotState, runtime: Runtime[Bot]) -> StateUpdat
     session_state = {**state, "messages": session_messages}
     async with asyncio.TaskGroup() as tasks:
         summarizing = tasks.create_task(summarize_node(session_state, runtime))
-        revising = tasks.create_task(revision_node(session_state, runtime))
         access = await recorder.record(topic, on_retry=partial(_announce_retry, runtime))
         closing = render_prompt(
             bot.prompt_search_path,
@@ -76,16 +75,18 @@ async def finish_node(state: GradeBotState, runtime: Runtime[Bot]) -> StateUpdat
         announce(STATUS_FINISHING_TEMPLATE, runtime)
 
     summary = summarizing.result()["session_summary"]
-    revision = revising.result()["revision"]
 
-    feedback = await text_call(
-        bot,
-        GradeFeedbackCompiler,
-        {**state, "session_summary": summary},
-        tags=(TAG_NOSTREAM,),
-        fallback="",
-        stream_writer=runtime.stream_writer,
-    )
+    async with asyncio.TaskGroup() as tasks:
+        revising = tasks.create_task(revision_node({**session_state, "session_summary": summary}, runtime))
+        feedback = await text_call(
+            bot,
+            GradeFeedbackCompiler,
+            {**state, "session_summary": summary},
+            tags=(TAG_NOSTREAM,),
+            fallback="",
+            stream_writer=runtime.stream_writer,
+        )
+    revision = revising.result()["revision"]
 
     revision_section = render_prompt(
         bot.prompt_search_path,

@@ -88,6 +88,22 @@ def graded_turns(search_path: tuple[Path, ...], topic: Topic, messages: list[Bas
     ]
 
 
+def graded_history_per_turn(
+    search_path: tuple[Path, ...], topic: Topic, messages: list[BaseMessage], lock_position: int
+) -> list[list[BaseMessage]]:
+    """The graded conversation up to each student turn since the topic lock, the latest last."""
+    last_student_idx = max(idx for idx, message in enumerate(messages) if message.type == "human")
+    graded_messages = graded_turns(search_path, topic, messages[: last_student_idx + 1])
+    # Not `lock_position + 1`: that counts raw messages, and the loop walks graded ones. In an edited
+    # history, grading can drop messages before the lock, which moves the lock to an earlier index.
+    first_after_lock = len(graded_turns(search_path, topic, messages[: lock_position + 1]))
+    return [
+        graded_messages[: idx + 1]
+        for idx in range(first_after_lock, len(graded_messages))
+        if graded_messages[idx].type == "human"
+    ]
+
+
 def graded_sources(messages: list[BaseMessage]) -> str:
     """Latest turn's retrieved material as the graders read it."""
     kept = [message for message in messages if not (message.type == "tool" and message.content in NO_SOURCES_RESULTS)]

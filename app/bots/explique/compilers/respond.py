@@ -38,7 +38,7 @@ class PlanDirective(BaseModel):
 
 def response_config(**declared) -> MessageCompilerConfig:
     """Every responder shares the same task and model; only what differs gets written out."""
-    return MessageCompilerConfig(task=ExpliqueTask.RESPOND, model_choice=ModelChoice.MAIN, **declared)
+    return MessageCompilerConfig(task=ExpliqueTask.RESPOND, model_choice=ModelChoice.REPLY, **declared)
 
 
 class ResponseCompiler(ExpliqueTurnsCompiler):

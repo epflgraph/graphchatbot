@@ -18,7 +18,7 @@ class GradeFeedbackCompiler(GradeCompiler):
         task=GradeTask.FEEDBACK,
         system_template="feedback-sys.md",
         user_template="feedback-usr.md",
-        model_choice=ModelChoice.LIGHT,
+        model_choice=ModelChoice.CAREFUL,
     )
     context_class = GradeFeedbackContext
 
