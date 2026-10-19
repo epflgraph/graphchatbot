@@ -39,12 +39,12 @@ class ToolInput(BaseModel):
     Search schema for MICRO-452 case study material.
     """
 
-    keywords: Optional[list[str]] = Field(
-        default=None,
+    keywords: list[str] = Field(
+        default_factory=list,
         description="Keywords to search for in the theory material.",
     )
-    case_study_number: Optional[str] = Field(
-        default=None,
+    case_study_number: str = Field(
+        default="",
         description="Case study number in LNCM format, e.g. 'L3C2' for Lecture 3 Case study 2.",
     )
 
@@ -62,7 +62,7 @@ class MICRO452DebateBot(DebateCourseBot):
         case_study_number: Optional[str] = None,
     ) -> list:
         keywords = keywords or []
-        if case_study_number and case_study_number.strip().lower() in {"", "none", "null"}:
+        if case_study_number is not None and case_study_number.strip().lower() in {"", "none", "null"}:
             case_study_number = None
         logger.info("case_study_number=%r", case_study_number)
 
