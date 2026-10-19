@@ -37,7 +37,13 @@ class TopicPointsUnavailable(Exception):
 
 
 async def derive_topic_points(bot: Bot, topic: Topic, state: Mapping[str, Any]) -> tuple[str, ...]:
-    """The points `topic` is graded against: from its material, else from its name if the bot allows it."""
+    """The points `topic` is graded against: from its material, else from its name if the bot allows it.
+    Later turns reuse the points saved when the topic was picked."""
+    topic_picked_this_turn = state["topic_lock"].is_in_latest_turn(state["messages"])
+    saved_points = None if topic_picked_this_turn else _cached_sourced_as_unsourced(bot, topic, state)
+    if saved_points:
+        return _cap_points(saved_points)
+
     max_sourced_attempts = 1 if bot.allow_unsourced_points else MAX_SOURCED_ATTEMPTS
     if points := await _derive_sourced_points(bot, topic, state, max_sourced_attempts):
         return _cap_points(points)

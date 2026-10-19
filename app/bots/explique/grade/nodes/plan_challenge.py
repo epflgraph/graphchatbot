@@ -3,11 +3,13 @@ import hashlib
 import json
 import logging
 
-from cachetools import LRUCache
 from langchain_core.messages import BaseMessage
 from langgraph.runtime import Runtime
+from pydantic import TypeAdapter, ValidationError
 
 from app.bots.base import Bot, StateUpdate
+from app.bots.cache import points_applied as cache
+from app.bots.cache.file_cache import CacheKey
 from app.bots.explique.grade.compilers.plan_challenge import GradePlanChallengeCompiler
 from app.bots.explique.grade.models import GradeChallengePlan
 from app.bots.explique.grade.prompts import STATUS_PLANNING_TEMPLATE
@@ -19,8 +21,7 @@ from app.logging_config import truncate
 
 logger = logging.getLogger(__name__)
 
-# Keyed by the conversation up to each turn, so a point once applied is never taken back.
-_APPLIED_POINTS_BY_TURN: LRUCache[str, tuple[str, ...]] = LRUCache(maxsize=25_000)
+_POINTS_APPLIED_SCHEMA = TypeAdapter(list[str])
 
 
 async def plan_challenge_node(state: GradeBotState, runtime: Runtime[Bot]) -> StateUpdate:
@@ -53,7 +54,7 @@ async def plan_challenge_node(state: GradeBotState, runtime: Runtime[Bot]) -> St
         }
 
     applied_on_last_turn = tuple(point for idx, point in enumerate(all_points, 1) if idx in progress.applied_points)
-    _APPLIED_POINTS_BY_TURN[_turn_cache_key(state, last_turn)] = applied_on_last_turn
+    cache.CACHE.put(_turn_cache_key(state, last_turn), json.dumps(applied_on_last_turn, ensure_ascii=False))
     points_applied = tuple(
         point for point in all_points if point in past_points_applied or point in applied_on_last_turn
     )
@@ -94,8 +95,9 @@ async def plan_challenge_node(state: GradeBotState, runtime: Runtime[Bot]) -> St
 async def _points_applied_on(bot: Bot, state: GradeBotState, turn: list[BaseMessage]) -> tuple[str, ...]:
     """The points the planner finds applied up to `turn`, scored once and then remembered."""
     key = _turn_cache_key(state, turn)
-    if key in _APPLIED_POINTS_BY_TURN:
-        return _APPLIED_POINTS_BY_TURN[key]
+    cached_points = _cached_points_applied(key)
+    if cached_points is not None:
+        return cached_points
 
     logger.debug("Re-scoring a past turn missing from the cache")
     progress = await structured_call(
@@ -109,14 +111,26 @@ async def _points_applied_on(bot: Bot, state: GradeBotState, turn: list[BaseMess
     points_applied = tuple(
         point for idx, point in enumerate(state["topic_points"], 1) if idx in progress.applied_points
     )
-    _APPLIED_POINTS_BY_TURN[key] = points_applied
+    cache.CACHE.put(key, json.dumps(points_applied, ensure_ascii=False))
     return points_applied
 
 
-def _turn_cache_key(state: GradeBotState, turn: list[BaseMessage]) -> str:
+def _cached_points_applied(key: CacheKey) -> tuple[str, ...] | None:
+    """The points cached as applied under `key`, or None on a miss or an unreadable entry."""
+    cached_points = cache.CACHE.get(key)
+    if cached_points is None:
+        return None
+    try:
+        return tuple(_POINTS_APPLIED_SCHEMA.validate_json(cached_points))
+    except ValidationError:
+        logger.warning("Cached applied points at %s are not a list of strings; scoring the turn again", key.value)
+        return None
+
+
+def _turn_cache_key(state: GradeBotState, turn: list[BaseMessage]) -> CacheKey:
     """SHA-256 of the canonical JSON of the topic, its points, and the conversation up to `turn`."""
     conversation = [[message.type, message.content] for message in turn]  # not `id`, which varies per request
     dump = json.dumps(
         [state["topic_lock"].topic.name, state["topic_points"], conversation], sort_keys=True, ensure_ascii=True
     )
-    return hashlib.sha256(dump.encode("utf-8")).hexdigest()
+    return CacheKey(hashlib.sha256(dump.encode("utf-8")).hexdigest())
