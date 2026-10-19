@@ -11,6 +11,7 @@ from langgraph.graph.state import CompiledStateGraph
 from app.compilation.base import ModelChoice
 from app.config import config
 from app.identity import Requester
+from app.interfaces.rcp import rcp_http_client
 
 BOTS_ROOT = Path(__file__).parent
 
@@ -65,6 +66,7 @@ class Bot(ABC):
         base_url=config.rcp.base_url,
         model="Qwen/Qwen3.6-35B-A3B",
         api_key=config.rcp.api_key,
+        http_async_client=rcp_http_client,
         timeout=60,
         max_retries=1,
         stream_usage=True,

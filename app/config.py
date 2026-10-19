@@ -15,6 +15,7 @@ class BaseConfig(BaseModel):
 class RcpConfig(BaseConfig):
     base_url: str
     api_key: str
+    max_parallel_requests: int = Field(default=5, ge=1)
 
 
 class ElasticsearchConfig(BaseConfig):
