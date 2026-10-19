@@ -11,6 +11,7 @@ from app.bots.explique.state import ExpliqueBotState
 from app.bots.languages import LANGUAGES
 from app.compilation.templates import render_prompt
 from app.config import config
+from app.interfaces.rcp import rcp_http_client
 
 
 class ExpliqueBot(Bot):
@@ -58,6 +59,7 @@ class ExpliqueBot(Bot):
     reply_model = ChatOpenAI(
         base_url=config.rcp.base_url,
         api_key=config.rcp.api_key,
+        http_async_client=rcp_http_client,
         model="deepseek-ai/DeepSeek-V4.1-Flash-fp8",
         timeout=30,
         max_retries=1,
@@ -71,6 +73,7 @@ class ExpliqueBot(Bot):
     fast_model = ChatOpenAI(
         base_url=config.rcp.base_url,
         api_key=config.rcp.api_key,
+        http_async_client=rcp_http_client,
         model="Qwen/Qwen3.6-35B-A3B-fp8",
         timeout=30,
         max_retries=1,
@@ -81,6 +84,7 @@ class ExpliqueBot(Bot):
     careful_model = ChatOpenAI(
         base_url=config.rcp.base_url,
         api_key=config.rcp.api_key,
+        http_async_client=rcp_http_client,
         model="deepseek-ai/DeepSeek-V4.1-Flash-fp8",
         timeout=30,
         max_retries=1,
@@ -92,6 +96,7 @@ class ExpliqueBot(Bot):
     vision_model = ChatOpenAI(
         base_url=config.rcp.base_url,
         api_key=config.rcp.api_key,
+        http_async_client=rcp_http_client,
         model="Qwen/Qwen3.5-397B-A17B-int4",
         timeout=60,
         max_retries=1,

@@ -91,6 +91,21 @@ class GraphAIClient:
         self.password = config.graphai.password
 
         self.bearer_token = None
+        self._http_client: httpx.AsyncClient | None = None
+
+    @property
+    def http_client(self) -> httpx.AsyncClient:
+        """The connection pool, created on first use and again after `aclose`."""
+        if self._http_client is None:
+            self._http_client = httpx.AsyncClient(base_url=self.url)
+
+        return self._http_client
+
+    async def aclose(self) -> None:
+        """Close the pool. Called once, on shutdown."""
+        if self._http_client is not None:
+            await self._http_client.aclose()
+            self._http_client = None
 
     async def authenticate(self):
         headers = {
@@ -107,13 +122,12 @@ class GraphAIClient:
         }
 
         try:
-            async with httpx.AsyncClient() as client:
-                resp = await client.post(f"{self.url}/token", headers=headers, data=data)
-                result = resp.json()
+            resp = await self.http_client.post("/token", headers=headers, data=data)
+            result = resp.json()
 
-                self.bearer_token = result.get("access_token")
-                if not self.bearer_token:
-                    logger.error("Unexpected authentication response: %s", truncate(result))
+            self.bearer_token = result.get("access_token")
+            if not self.bearer_token:
+                logger.error("Unexpected authentication response: %s", truncate(result))
 
         except httpx.TimeoutException:
             logger.warning("Request to authenticate timed out, subsequent requests will more likely fail.")
@@ -164,23 +178,28 @@ class GraphAIClient:
         return None
 
     async def call_sync_endpoint(self, endpoint, payload, timeout=30, verbose=False):
-        # Make sure we are authenticated
-        await self.authenticate()
-
-        headers = {"Authorization": f"Bearer {self.bearer_token}"}
-
         try:
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                resp = await client.post(f"{self.url}{endpoint}", headers=headers, json=payload)
-                response = resp.json()
+            if self.bearer_token is None:
+                await self.authenticate()
 
-                if verbose:
-                    logger.debug(response)
+            resp = await self._post(endpoint, payload, timeout)
+            if resp.status_code == httpx.codes.UNAUTHORIZED:
+                await self.authenticate()
+                resp = await self._post(endpoint, payload, timeout)
 
-                return response
+            response = resp.json()
+
+            if verbose:
+                logger.debug(response)
+
+            return response
         except httpx.TimeoutException:
             logger.warning("Request to %s timed out after %s seconds, returning None", endpoint, timeout)
             return None
+
+    async def _post(self, endpoint: str, payload: dict, timeout: float) -> httpx.Response:
+        headers = {"Authorization": f"Bearer {self.bearer_token}"}
+        return await self.http_client.post(endpoint, headers=headers, json=payload, timeout=timeout)
 
     async def rag_retrieve(
         self, index: str, texts: list[str], limit: int = 10, filters: BaseModel | None = None
@@ -218,5 +237,5 @@ class GraphAIClient:
         return RAGResult(chunks=response.get("result", []))
 
 
-# Shared singleton — re-authenticates before each request so it never goes stale
+# Shared singleton — logs in once, and again whenever its token is rejected
 graphai = GraphAIClient()

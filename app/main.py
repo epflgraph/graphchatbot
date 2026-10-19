@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from app.bots import registry as bot_registry
 from app.bots.explique.grade.course_polling import start_polling
 from app.config import config
+from app.interfaces.graphai import graphai
 from app.interfaces.moodle import moodle
 from app.logging_config import setup_incident_report, setup_logging
 from app.routers import public
@@ -50,6 +51,7 @@ async def lifespan(app: FastAPI):
             await polling
 
     await moodle.aclose()
+    await graphai.aclose()
 
 
 app = FastAPI(

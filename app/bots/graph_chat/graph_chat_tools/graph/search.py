@@ -1,3 +1,5 @@
+import asyncio
+
 from graphes.core.graphes import GraphES
 
 from app.bots.graph_chat.graph_chat_tools.graph.clean import clean_nodes
@@ -10,7 +12,7 @@ async def search_graph(query: str) -> list:
     """
     client = GraphES()
 
-    nodes = client.search(query=query, index_name=config.elasticsearch.index, limit=5)
+    nodes = await asyncio.to_thread(client.search, query=query, index_name=config.elasticsearch.index, limit=5)
     nodes = clean_nodes(nodes)
 
     return nodes
