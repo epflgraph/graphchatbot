@@ -1,5 +1,6 @@
 import logging
 
+from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
@@ -10,6 +11,8 @@ from app.bots.course.debate.compilers import DebateStage, compiler_for
 from app.bots.nodes.classify import make_classify_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
+from app.config import config
+from app.interfaces.rcp import rcp_http_client
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +50,20 @@ class DebateCourseBot(CourseBot):
     model_nodes: tuple[str, ...] = tuple(f"model-{stage}" for stage in DebateStage)
 
     CATEGORIES: dict = CATEGORIES
+
+    reply_model = ChatOpenAI(
+        base_url=config.rcp.base_url,
+        api_key=config.rcp.api_key,
+        http_async_client=rcp_http_client,
+        model="deepseek-ai/DeepSeek-V4.1-Flash-fp8",
+        timeout=60,
+        max_retries=1,
+        stream_usage=True,
+        temperature=1.0,
+        top_p=0.95,
+        max_tokens=2048,
+        extra_body={"chat_template_kwargs": {"thinking": False}},
+    )
 
     def build_graph(self) -> CompiledStateGraph:
         """Unlike the other families, the reply is not one node: each stage of the

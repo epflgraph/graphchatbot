@@ -1,0 +1,1 @@
+(Not from the student: a reminder for your reply.) Until you have summarised the discussion, the student has agreed with that summary, and then asked for the solution, do not reveal which options are correct or incorrect in any form: no verdict, bet, rating or elimination.
