@@ -56,12 +56,12 @@ class DebateCourseBot(CourseBot):
         api_key=config.rcp.api_key,
         http_async_client=rcp_http_client,
         model="deepseek-ai/DeepSeek-V4.1-Flash-fp8",
-        timeout=30,
+        timeout=60,
         max_retries=1,
         stream_usage=True,
         temperature=1.0,
         top_p=0.95,
-        max_tokens=1024,
+        max_tokens=2048,
         extra_body={"chat_template_kwargs": {"thinking": False}},
     )
 
