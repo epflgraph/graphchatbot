@@ -23,6 +23,7 @@ def stage_config(stage: DebateStage) -> MessageCompilerConfig:
         model_choice=ModelChoice.REPLY,
         overrides=(stage,),
         system_template=f"prompt-{stage}.md",
+        user_template="respond-usr.md",
     )
 
 
