@@ -2,12 +2,13 @@ import asyncio
 import logging
 import re
 from dataclasses import dataclass
+from datetime import datetime
 from operator import attrgetter
 
 from app.bots.base import Bot
 from app.bots.explique.grade.coverage_record import ASSESSMENT_ACTIVITY_TYPES, TOPIC_GROUP_NAME
 from app.bots.explique.grade.explique_bot import ExpliqueGradeBot
-from app.bots.explique.grade.topics import Topics
+from app.bots.explique.grade.topics import Topic, Topics
 from app.interfaces.moodle import MoodleClient, MoodleError, MoodleModule, moodle
 from app.utils import collapse_whitespace
 
@@ -61,6 +62,14 @@ class TaggedTopic:
         """Whether a student can see any of the activities carrying this topic."""
         return any(activity.visible for activity in self.activities)
 
+    @property
+    def closes_at(self) -> datetime | None:
+        """When the last visible activity carrying this topic closes; None while any of them stays open."""
+        close_dates = [activity.closes_at for activity in self.activities if activity.visible]
+        if not close_dates or None in close_dates:
+            return None
+        return max(close_dates)
+
 
 def _tagged_topics(modules: list[MoodleModule]) -> tuple[TaggedTopic, ...]:
     """Every topic the course's assessment activities are tagged with, in ascending order of creation."""
@@ -87,7 +96,9 @@ async def poll_course(bot: ExpliqueGradeBot, *, client: MoodleClient = moodle) -
     tagged_topics = _tagged_topics(await client.get_course_modules(bot.course_id))
     # Published to the bot, and only once the read above succeeded: a failed pass raises
     # before here, so an outage leaves the last good menu standing rather than nuking it.
-    bot.topics = Topics.from_names(topic.name for topic in tagged_topics if topic.visible)
+    bot.topics = Topics(
+        topics=tuple(Topic(name=topic.name, deadline=topic.closes_at) for topic in tagged_topics if topic.visible)
+    )
 
     created = []
     unrestricted = []
