@@ -1,6 +1,7 @@
 import json
 import logging
 from collections.abc import Iterator
+from datetime import UTC, datetime
 from typing import Any, TypeVar
 
 import httpx
@@ -58,6 +59,15 @@ class MoodleGroup(BaseModel):
     name: str
 
 
+class MoodleDate(BaseModel):
+    """One of an activity's dates; `dataid` says which one, like `timeclose` for a quiz's close date."""
+
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+    timestamp: int
+    dataid: str | None = None
+
+
 class MoodleModule(BaseModel):
     """One activity, according to `core_course_get_contents`.
 
@@ -74,6 +84,14 @@ class MoodleModule(BaseModel):
     url: str | None = None
     availability: str | None = None
     visible: bool = True
+    dates: tuple[MoodleDate, ...] = ()
+
+    @property
+    def closes_at(self) -> datetime | None:
+        """When this activity closes, or None if it never does."""
+        return next(
+            (datetime.fromtimestamp(date.timestamp, UTC) for date in self.dates if date.dataid == "timeclose"), None
+        )
 
     def restriction_group_ids(self) -> set[int]:
         """Every group in this activity's restrict-access rules.

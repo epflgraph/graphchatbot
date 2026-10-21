@@ -1,4 +1,5 @@
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import Self
@@ -10,21 +11,18 @@ class Topic(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     name: str = Field(min_length=1)
+    deadline: datetime | None = None
+
+    @property
+    def is_past_deadline(self) -> bool:
+        """Whether this topic's deadline has passed, so covering it opens nothing."""
+        return self.deadline is not None and self.deadline <= datetime.now(UTC)
 
 
 class Topics(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     topics: tuple[Topic, ...] = ()
-
-    @classmethod
-    def from_names(cls, topic_names: Iterable[str]) -> Self:
-        """Deduped on case and spacing, blanks ignored — the first spelling of each wins."""
-        by_name = {}
-        for name in topic_names:
-            if name.strip():
-                by_name.setdefault(collapse_whitespace(name).casefold(), name)
-        return cls(topics=tuple(Topic(name=name) for name in by_name.values()))
 
     @model_validator(mode="after")
     def _topic_names_are_unique(self) -> Self:

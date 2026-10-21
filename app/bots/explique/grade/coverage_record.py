@@ -36,6 +36,8 @@ class CoverageOutcome(StrEnum):
     REFUSED = "refused"
     # No answer from Moodle, and retrying changed nothing.
     UNAVAILABLE = "unavailable"
+    # The topic's deadline has passed, so nothing was written.
+    PAST_DEADLINE = "past_deadline"
 
 
 class CoverageResult(BaseModel):
@@ -123,7 +125,12 @@ class CoverageRecorder:
         return is_enrolled
 
     async def record(self, topic: Topic, *, on_retry: OnRetry | None = None) -> CoverageResult:
-        """Record that this student covered `topic`, and retry if Moodle gives no answer."""
+        """Record that this student covered `topic`, unless it is past its deadline, and retry if Moodle gives
+        no answer."""
+        if topic.is_past_deadline:
+            logger.info("%r is past its deadline; nothing is recorded for %r", topic.name, self.requester_id)
+            return CoverageResult(outcome=CoverageOutcome.PAST_DEADLINE)
+
         try:
             async with asyncio.timeout(self.RETRY_MAX_SECONDS):
                 for attempt in range(self.NUM_RETRIES + 1):
