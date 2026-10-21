@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import random
 from collections.abc import Callable
 from enum import StrEnum
 
@@ -70,9 +71,9 @@ class CoverageRecorder:
     MOODLE_REQUEST_TIMEOUT_SECONDS = 20.0
 
     # Coverage recording retry configuration (for unresponsive Moodle).
-    NUM_RETRIES = 3
+    NUM_RETRIES = 4
     RETRY_INTERVAL_SECONDS = 3.0
-    RETRY_MAX_SECONDS = 30.0
+    RETRY_MAX_SECONDS = 55.0
 
     def __init__(self, course_id: int, requester: Requester | None, *, client: MoodleClient = moodle):
         self.course_id = course_id
@@ -140,7 +141,8 @@ class CoverageRecorder:
                     if attempt < self.NUM_RETRIES:
                         if on_retry:
                             on_retry(attempt + 1)
-                        await asyncio.sleep(self.RETRY_INTERVAL_SECONDS)
+                        # Spread around the doubled interval, so sessions that failed together don't retry together.
+                        await asyncio.sleep(self.RETRY_INTERVAL_SECONDS * 2**attempt * random.uniform(0.5, 1.5))
         except TimeoutError:
             logger.warning("Recording %r exceeded the %ss limit", topic.name, self.RETRY_MAX_SECONDS)
 
