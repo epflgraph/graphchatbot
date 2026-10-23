@@ -25,6 +25,15 @@ class TopicPoints(BaseModel):
     )
 
 
+class ExtractedPoints(BaseModel):
+    """The points a professor's text lists for a topic."""
+
+    points: list[str] = Field(
+        default_factory=list,
+        description="Every point in the text, copied verbatim, in its order.",
+    )
+
+
 class PointsProvenance(BaseModel):
     """What a cached record was derived for, and from what."""
 

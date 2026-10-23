@@ -21,6 +21,9 @@ TRANSIENT_HTTP_STATUSES = frozenset({408, 429})
 # Refusals Moodle itself calls temporary: a failed database write, and the site in maintenance mode.
 TRANSIENT_ERROR_CODES = frozenset({"dmlwriteexception", "sitemaintenance"})
 
+# Moodle's code for the plain-text format of a text field, such as a grouping's description.
+PLAIN_TEXT_FORMAT_CODE = 2
+
 
 class MoodleError(Exception):
     """A call that did not come back with a usable answer."""
@@ -57,6 +60,16 @@ class MoodleGroup(BaseModel):
 
     id: int
     name: str
+
+
+class MoodleGrouping(BaseModel):
+    """A grouping according to `core_group_get_course_groupings` and `core_group_create_groupings`."""
+
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+    id: int
+    name: str
+    description: str = ""
 
 
 class MoodleDate(BaseModel):
@@ -140,7 +153,8 @@ class MoodleClient:
     """The gate exercise's Moodle calls, over its REST web services.
 
     Resolves a student, checks the course they are enrolled in, puts them in a topic's
-    group, and reads the course's activity list to find which quizzes it opens. What the
+    group, reads the course's activities to find the quizzes tagged with a topic, and
+    keeps each topic's points in a grouping its professors can edit. What the
     reward *is* — who may see it, when it opens — stays a restriction rule
     configured in Moodle itself, so it is not this client's business.
     """
@@ -297,6 +311,52 @@ class MoodleClient:
             params={"members[0][groupid]": group_id, "members[0][userid]": user_id},
         )
         logger.info("User %s added to group %s", user_id, group_id)
+
+    async def get_groupings_by_name(self, course_id: int) -> dict[str, MoodleGrouping]:
+        """Every grouping in `course_id`, keyed by its name normalized for matching."""
+        groupings = await self._call_and_validate(
+            function="core_group_get_course_groupings",
+            params={"courseid": course_id},
+            schema=MoodleGrouping,
+        )
+        groupings_by_name = {}
+        for grouping in groupings:
+            groupings_by_name.setdefault(collapse_whitespace(grouping.name).casefold(), grouping)
+
+        return groupings_by_name
+
+    async def create_grouping(self, course_id: int, name: str, description: str) -> int:
+        """Create the grouping `name` in `course_id`, with the plain-text `description`, and return its id."""
+        new_groupings = await self._call_and_validate(
+            function="core_group_create_groupings",
+            params={
+                "groupings[0][courseid]": course_id,
+                "groupings[0][name]": name,
+                "groupings[0][description]": description,
+                "groupings[0][descriptionformat]": PLAIN_TEXT_FORMAT_CODE,
+                "groupings[0][idnumber]": "",
+            },
+            schema=MoodleGrouping,
+        )
+        if not new_groupings:
+            raise MoodleRefused(f"core_group_create_groupings answered with no grouping for {name!r}")
+
+        grouping_id = new_groupings[0].id
+        logger.info("Created grouping %r (id=%s) in course %s", name, grouping_id, course_id)
+        return grouping_id
+
+    async def update_grouping_description(self, grouping: MoodleGrouping, description: str) -> None:
+        """Replace `grouping`'s description with a given one."""
+        await self._call(
+            function="core_group_update_groupings",
+            params={
+                "groupings[0][id]": grouping.id,
+                "groupings[0][name]": grouping.name,
+                "groupings[0][description]": description,
+                "groupings[0][descriptionformat]": PLAIN_TEXT_FORMAT_CODE,
+            },
+        )
+        logger.info("Updated the description of grouping %r (id=%s)", grouping.name, grouping.id)
 
 
 moodle = MoodleClient(config=config.moodle)

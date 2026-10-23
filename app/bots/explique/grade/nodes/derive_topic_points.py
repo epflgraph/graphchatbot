@@ -19,8 +19,11 @@ async def derive_topic_points_node(state: GradeBotState, runtime: Runtime[Bot]) 
 
     announce(STATUS_FETCHING_TEMPLATE, runtime)
     bot = runtime.context
+    topic_picked_earlier = not topic_lock.is_in_latest_turn(state["messages"])
     try:
-        return {"topic_points": await derive_topic_points(bot, topic_lock.topic, state)}
+        topic_points = await derive_topic_points(bot, topic_lock.topic, reuse_saved=topic_picked_earlier)
     except TopicPointsUnavailable:
         logger.error("No points for topic %r in index %r", topic_lock.topic.name, bot.index)
         return {"topic_unavailable": True}
+
+    return {"topic_points": topic_points}

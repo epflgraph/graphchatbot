@@ -12,6 +12,7 @@ class GradeTask(Task):
     """The tasks only the grade flavour runs, on top of the `ExpliqueTask` ones."""
 
     DERIVE_POINTS = "derive-points"
+    EXTRACT_POINTS = "extract-points"
     FEEDBACK = "feedback"
     REVISION = "revision"
 
