@@ -38,7 +38,7 @@ class PointsGroupings:
         """Put `points` in `topic_name`'s grouping, one per line behind a dash, creating the grouping when it has
         none."""
         description = "\n".join(f"- {point}" for point in points)
-        if grouping := self._find_topic_grouping(topic_name):
+        if grouping := self.find_topic_grouping(topic_name):
             await self.client.update_grouping_description(grouping, description)
         else:
             await self.client.create_grouping(self.bot.course_id, self.NAME.format(topic=topic_name), description)
@@ -46,11 +46,11 @@ class PointsGroupings:
         # So the next pass reads `points` back without a model.
         cache_extracted_points(self.bot, Topic(name=topic_name), description, points)
 
-    def _get_description(self, topic_name: str) -> str:
-        """What `topic_name`'s grouping says; nothing when it has no grouping."""
-        grouping = self._find_topic_grouping(topic_name)
-        return grouping.description if grouping else ""
-
-    def _find_topic_grouping(self, topic_name: str) -> MoodleGrouping | None:
+    def find_topic_grouping(self, topic_name: str) -> MoodleGrouping | None:
         """`topic_name`'s grouping, matched the way `get_groupings_by_name` keys it."""
         return self.groupings_by_name.get(collapse_whitespace(self.NAME.format(topic=topic_name)).casefold())
+
+    def _get_description(self, topic_name: str) -> str:
+        """What `topic_name`'s grouping says; nothing when it has no grouping."""
+        grouping = self.find_topic_grouping(topic_name)
+        return grouping.description if grouping else ""

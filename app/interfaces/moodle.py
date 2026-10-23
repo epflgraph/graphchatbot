@@ -63,13 +63,15 @@ class MoodleGroup(BaseModel):
 
 
 class MoodleGrouping(BaseModel):
-    """A grouping according to `core_group_get_course_groupings` and `core_group_create_groupings`."""
+    """A grouping according to `core_group_get_course_groupings`, `core_group_get_groupings` and
+    `core_group_create_groupings`. Only `core_group_get_groupings` sends its `groups`, and only when asked to."""
 
     model_config = ConfigDict(frozen=True, extra="ignore")
 
     id: int
     name: str
     description: str = ""
+    groups: tuple[MoodleGroup, ...] = ()
 
 
 class MoodleDate(BaseModel):
@@ -357,6 +359,24 @@ class MoodleClient:
             },
         )
         logger.info("Updated the description of grouping %r (id=%s)", grouping.name, grouping.id)
+
+    async def get_group_ids_by_grouping(self, grouping_ids: list[int]) -> dict[int, set[int]]:
+        """The ids of the groups in each of `grouping_ids`, keyed by grouping id."""
+        groupings = await self._call_and_validate(
+            function="core_group_get_groupings",
+            params={f"groupingids[{index}]": grouping_id for index, grouping_id in enumerate(grouping_ids)}
+            | {"returngroups": 1},
+            schema=MoodleGrouping,
+        )
+        return {grouping.id: {group.id for group in grouping.groups} for grouping in groupings}
+
+    async def add_group_to_grouping(self, group_id: int, grouping_id: int) -> None:
+        """Add `group_id` to `grouping_id`, regardless of whether it is in it already."""
+        await self._call(
+            function="core_group_assign_grouping",
+            params={"assignments[0][groupingid]": grouping_id, "assignments[0][groupid]": group_id},
+        )
+        logger.info("Group %s added to grouping %s", group_id, grouping_id)
 
 
 moodle = MoodleClient(config=config.moodle)

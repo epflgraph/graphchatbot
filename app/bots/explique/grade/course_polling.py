@@ -55,6 +55,10 @@ class TaggedTopic:
             return None
         return max(close_dates)
 
+    def is_restricted_to(self, group_id: int) -> bool:
+        """Whether any activity carrying this topic is restricted to `group_id`."""
+        return any(group_id in activity.restriction_group_ids() for activity in self.activities)
+
 
 def _tagged_topics(modules: list[MoodleModule]) -> tuple[TaggedTopic, ...]:
     """Every topic the course's assessment activities are tagged with, in ascending order of creation."""
@@ -77,22 +81,26 @@ def _tagged_topics(modules: list[MoodleModule]) -> tuple[TaggedTopic, ...]:
 
 class CoursePoller:
     """Keeps one graded bot's course set up, one pass at a time: its topics published to the bot, each with a group
-    for its quiz to restrict to and a points grouping its professors can edit."""
+    for its quiz to restrict to and a points grouping its professors can edit, holding that group."""
 
     def __init__(self, bot: ExpliqueGradeBot, *, client: MoodleClient = moodle):
         self.bot = bot
         self.client = client
         # What was last logged.
         self._reported_points_groupings_error: str | None = None
+        self._reported_groups_in_groupings_error: str | None = None
+        self._reported_fill_errors: dict[str, str] = {}
         self._reported_unrestricted_topics: tuple[str, ...] = ()
 
     async def run(self) -> None:
         tagged_topics = await self._fetch_tagged_topics()
         points_groupings = await self._fetch_points_groupings()
         await self._publish_topics(tagged_topics, points_groupings)
-        await self._set_up_groups(tagged_topics)
+        group_ids_by_topic = await self._find_or_create_groups(tagged_topics)
+        self._report_unrestricted_topics(tagged_topics, group_ids_by_topic)
         if points_groupings is not None:
             await self._fill_points_groupings(tagged_topics, points_groupings)
+            await self._add_groups_to_points_groupings(group_ids_by_topic, points_groupings)
 
     async def _fetch_tagged_topics(self) -> tuple[TaggedTopic, ...]:
         """The whole course, narrowed to the assessments whose title carries a `[TOPIC: ...]` tag."""
@@ -116,21 +124,19 @@ class CoursePoller:
             ]
         )
 
-    async def _set_up_groups(self, tagged_topics: tuple[TaggedTopic, ...]) -> None:
-        """Give every tagged topic its group, and report the ones whose quiz is not restricted to it yet."""
+    async def _find_or_create_groups(self, tagged_topics: tuple[TaggedTopic, ...]) -> dict[str, int]:
+        """The id of every tagged topic's group by topic name, creating the ones nobody has made; a topic whose group
+        Moodle refuses to create is left out."""
         # Every group the course has, in one call. Read every pass so a deleted group is recreated and reported.
         group_ids_by_name = await self.client.get_group_ids_by_name(self.bot.course_id)
 
-        unrestricted_topics = []
+        group_ids_by_topic = {}
         for topic in tagged_topics:
             group_id = await self._find_or_create_group(topic, group_ids_by_name)
-            if group_id is None:
-                continue
+            if group_id is not None:
+                group_ids_by_topic[topic.name] = group_id
 
-            if not any(group_id in activity.restriction_group_ids() for activity in topic.activities):
-                unrestricted_topics.append(topic.name)
-
-        self._report_unrestricted_topics(tuple(unrestricted_topics))
+        return group_ids_by_topic
 
     async def _find_or_create_group(self, topic: TaggedTopic, group_ids_by_name: dict[str, int]) -> int | None:
         """The id of `topic`'s group, created when nobody has made it; None when Moodle refuses to create it."""
@@ -154,8 +160,15 @@ class CoursePoller:
         logger.info("Created group for topic %r in course %s (%s)", topic.name, self.bot.course_id, self.bot.name)
         return group_id
 
-    def _report_unrestricted_topics(self, unrestricted_topics: tuple[str, ...]) -> None:
+    def _report_unrestricted_topics(
+        self, tagged_topics: tuple[TaggedTopic, ...], group_ids_by_topic: dict[str, int]
+    ) -> None:
         """Log the topics whose quiz is not restricted to their group yet, when they changed since last logged."""
+        unrestricted_topics = tuple(
+            topic.name
+            for topic in tagged_topics
+            if topic.name in group_ids_by_topic and not topic.is_restricted_to(group_ids_by_topic[topic.name])
+        )
         if unrestricted_topics == self._reported_unrestricted_topics:
             return
 
@@ -217,6 +230,7 @@ class CoursePoller:
     ) -> None:
         """Put the generated points in every tagged topic's grouping that is blank, so what its professors see is what
         grades. Hidden quizzes count too, so the points can be reviewed before students see the topic."""
+        fill_errors = {}
         for topic in tagged_topics:
             if not points_groupings.is_blank(topic.name):
                 continue
@@ -229,14 +243,67 @@ class CoursePoller:
                 )
                 await points_groupings.write_points(topic.name, points)
             except (TopicPointsUnavailable, MoodleError) as error:
-                # One topic must not stop the others; the next pass tries it again. No traceback, since this
-                # repeats every pass and the reason is in the error.
-                logger.warning(
-                    "Could not fill the points grouping for topic %r in course %s: %s",
-                    topic.name,
-                    self.bot.course_id,
-                    truncate(repr(error)),
-                )
+                # One topic must not stop the others; the next pass tries it again. Logged when the reason changes,
+                # with no traceback, since the reason is in the error.
+                fill_errors[topic.name] = repr(error)
+                if fill_errors[topic.name] != self._reported_fill_errors.get(topic.name):
+                    logger.warning(
+                        "Could not fill the points grouping for topic %r in course %s: %s",
+                        topic.name,
+                        self.bot.course_id,
+                        truncate(fill_errors[topic.name]),
+                    )
+
+        self._reported_fill_errors = fill_errors
+
+    async def _add_groups_to_points_groupings(
+        self, group_ids_by_topic: dict[str, int], points_groupings: PointsGroupings
+    ) -> None:
+        """Put every topic's group in its points grouping where it isn't, so Moodle shows the two together. A grouping
+        created this pass gets its group on the next."""
+        grouping_ids_by_topic = {
+            topic_name: grouping.id
+            for topic_name in group_ids_by_topic
+            if (grouping := points_groupings.find_topic_grouping(topic_name))
+        }
+        if not grouping_ids_by_topic:
+            return
+
+        try:
+            group_ids_by_grouping = await self.client.get_group_ids_by_grouping(list(grouping_ids_by_topic.values()))
+        except MoodleError as error:
+            self._report_groups_in_groupings_error(str(error))
+            return
+
+        add_error = None
+        for topic_name, grouping_id in grouping_ids_by_topic.items():
+            if group_ids_by_topic[topic_name] in group_ids_by_grouping.get(grouping_id, set()):
+                continue
+
+            try:
+                await self.client.add_group_to_grouping(group_ids_by_topic[topic_name], grouping_id)
+            except MoodleError as error:
+                # One topic must not stop the others; the next pass tries it again.
+                add_error = str(error)
+
+        self._report_groups_in_groupings_error(add_error)
+
+    def _report_groups_in_groupings_error(self, error: str | None) -> None:
+        """Log why the topic groups can't be put in their points groupings, or that they can again, when it changed
+        since last logged."""
+        if error == self._reported_groups_in_groupings_error:
+            return
+
+        if error:
+            logger.warning(
+                "Could not put the topic groups in the points groupings of course %s (%s): %s",
+                self.bot.course_id,
+                self.bot.name,
+                truncate(error),
+            )
+        else:
+            logger.info("Course %s has its topic groups put in its points groupings again", self.bot.course_id)
+        self._reported_groups_in_groupings_error = error
 
 
 async def _poll_courses(
