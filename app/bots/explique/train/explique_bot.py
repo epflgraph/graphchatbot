@@ -2,6 +2,8 @@ from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from app.bots.base import Bot
+from app.bots.callbacks.base import ToolRoundCallbacks
+from app.bots.callbacks.dedupe import dedupe_tool_results
 from app.bots.explique.compilers.classify import ClassifyCompiler
 from app.bots.explique.compilers.detect_language import LanguageDetectorCompiler
 from app.bots.explique.compilers.respond import ResponseCompiler
@@ -141,7 +143,9 @@ class ExpliqueTrainBot(ExpliqueBot):
             ),
         )
 
-        workflow.add_node(Node.TOOLS, make_tools_node(tools))
+        workflow.add_node(
+            Node.TOOLS, make_tools_node(tools, tool_round_callbacks=ToolRoundCallbacks(after=(dedupe_tool_results,)))
+        )
         workflow.add_node(Node.POST_RETRIEVE, self._post_retrieve)
         workflow.add_node(Node.EVALUATE, evaluate_node)
         workflow.add_node(Node.PLAN_CHALLENGE, plan_challenge_node)

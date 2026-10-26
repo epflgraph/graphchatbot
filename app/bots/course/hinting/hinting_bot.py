@@ -8,6 +8,9 @@ from langgraph.runtime import Runtime
 from langgraph.types import Command
 
 from app.bots.base import Bot, BotState
+from app.bots.callbacks.base import ModelCallbacks, ToolRoundCallbacks
+from app.bots.callbacks.dedupe import dedupe_tool_results
+from app.bots.callbacks.status import announce_status
 from app.bots.compilers.classify import ClassifyCompiler
 from app.bots.course.compilers.retrieve import RetrieveCompiler
 from app.bots.course.course_bot import CourseBot, RequestType
@@ -112,10 +115,12 @@ class HintingCourseBot(CourseBot):
                 on_tools=Node.TOOLS,
                 text_is_reply=False,
                 max_tool_rounds=self.MAX_RETRIEVAL_ROUNDS,
-                status_events=True,
+                model_callbacks=ModelCallbacks(before=(announce_status,)),
             ),
         )
-        workflow.add_node(Node.TOOLS, make_tools_node(tools))
+        workflow.add_node(
+            Node.TOOLS, make_tools_node(tools, tool_round_callbacks=ToolRoundCallbacks(after=(dedupe_tool_results,)))
+        )
         workflow.add_node(Node.RESPOND, self._make_respond_node())
 
         workflow.set_entry_point(Node.CLASSIFY)

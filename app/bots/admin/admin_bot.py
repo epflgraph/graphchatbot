@@ -5,6 +5,9 @@ from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from app.bots.base import Bot, BotState
+from app.bots.callbacks.base import ModelCallbacks, ToolRoundCallbacks
+from app.bots.callbacks.dedupe import dedupe_tool_results
+from app.bots.callbacks.status import announce_status
 from app.bots.compilers.classify import ClassifyCompiler
 from app.bots.compilers.respond import ResponseCompiler
 from app.bots.nodes.classify import make_classify_node
@@ -73,8 +76,15 @@ class AdminBot(Bot):
         workflow.add_node(
             "classify", make_classify_node(self.CATEGORIES, fallback="greeting", compiler=ClassifyCompiler)
         )
-        workflow.add_node("model", make_model_node(tools, compiler=ResponseCompiler, status_events=True))
-        workflow.add_node("tools", make_tools_node(tools))
+        workflow.add_node(
+            "model",
+            make_model_node(
+                tools, compiler=ResponseCompiler, model_callbacks=ModelCallbacks(before=(announce_status,))
+            ),
+        )
+        workflow.add_node(
+            "tools", make_tools_node(tools, tool_round_callbacks=ToolRoundCallbacks(after=(dedupe_tool_results,)))
+        )
         workflow.set_entry_point("classify")
         workflow.add_edge("classify", "model")
 
