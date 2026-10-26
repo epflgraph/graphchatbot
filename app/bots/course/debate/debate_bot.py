@@ -55,13 +55,13 @@ class DebateCourseBot(CourseBot):
         base_url=config.rcp.base_url,
         api_key=config.rcp.api_key,
         http_async_client=rcp_http_client,
-        model="deepseek-ai/DeepSeek-V4.1-Flash-fp8",
+        model="deepseek-ai/DeepSeek-V4.1-Flash-1017-fp8",
         timeout=60,
         max_retries=1,
         stream_usage=True,
         temperature=1.0,
-        top_p=0.95,
-        max_tokens=2048,
+        top_p=1.0,
+        max_tokens=2048,  # includes reasoning tokens: raise if thinking is enabled
         extra_body={"chat_template_kwargs": {"thinking": False}},
     )
 
