@@ -9,6 +9,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.bots.base import Bot, BotState
 from app.bots.callbacks.base import CallbackContext, LLMRequest, ModelCallbacks, run_callbacks
+from app.bots.callbacks.return_direct import (
+    keep_only_return_direct_tools_past_budget,
+    withhold_return_direct_tools_when_forced,
+)
 from app.bots.callbacks.tool_call_repairs import fill_missing_call_ids, fix_repeated_tool_names
 from app.bots.languages import no_answer
 from app.compilation.base import MessageCompiler
@@ -16,7 +20,10 @@ from app.llms.utils import flatten_content, generate_response
 
 logger = logging.getLogger(__name__)
 
-BUILT_IN_MODEL_CALLBACKS = ModelCallbacks(after=(fill_missing_call_ids, fix_repeated_tool_names))
+BUILT_IN_MODEL_CALLBACKS = ModelCallbacks(
+    before=(withhold_return_direct_tools_when_forced, keep_only_return_direct_tools_past_budget),
+    after=(fill_missing_call_ids, fix_repeated_tool_names),
+)
 
 
 class ModelNodeConfig(BaseModel):
@@ -87,7 +94,7 @@ class ModelNode:
         call_failed = response is None
 
         if not call_failed and response.tool_calls:
-            return self._called_tools(response, tool_rounds_made, config)
+            return self._called_tools(state, response, tool_rounds_made, config)
 
         # Past the tool branch, so whatever came back was meant to be text.
         answered_with_nothing = not call_failed and not flatten_content(response.content).strip()
@@ -97,7 +104,7 @@ class ModelNode:
             logger.error("Model call produced nothing; falling back to NO_ANSWER")
             response = AIMessage(content=no_answer(bot.prompt_search_path, state.get("lang_code")))
 
-        return self._answered(response)
+        return self._answered(state, response)
 
     async def _respond(self, bot: Bot, callback_context: CallbackContext, llm_request: LLMRequest) -> AIMessage | None:
         """The response, from a callback or the model, or `None` if the model call failed."""
@@ -122,12 +129,19 @@ class ModelNode:
             return model
         return model.bind_tools(llm_request.tools, tool_choice=llm_request.tool_choice, parallel_tool_calls=True)
 
-    def _answered(self, response: AIMessage) -> Command:
-        """The model responded with text instead of calling a tool."""
-        update = {"messages": [response]} if self._config.text_is_reply else None
+    def _answered(self, state: BotState, response: AIMessage) -> Command:
+        """The model responded with text instead of calling a tool, so this node is done."""
+        # Reset the tool fields for the next node, skipping any already at their default:
+        # writing one could collide with a parallel node's write.
+        defaults = {"tool_round": 0, "tool_choice": None}
+        update = {key: default for key, default in defaults.items() if state.get(key, default) != default}
+        if self._config.text_is_reply:
+            update["messages"] = [response]
         return Command(goto=self._config.on_text, update=update)
 
-    def _called_tools(self, response: AIMessage, tool_rounds_made: int, runnable_config: RunnableConfig) -> Command:
+    def _called_tools(
+        self, state: BotState, response: AIMessage, tool_rounds_made: int, runnable_config: RunnableConfig
+    ) -> Command:
         """The model asked for one or more tool calls, so `tools` runs them and comes back here."""
         tool_round = tool_rounds_made + 1
 
@@ -140,14 +154,16 @@ class ModelNode:
         # graph registered the node under.
         this_node = runnable_config["metadata"]["langgraph_node"]
 
-        return Command(
-            goto=self._config.on_tools,
-            update={
-                "messages": [response],
-                "tool_round": tool_round,
-                "active_node": self._config.on_text if handover else this_node,
-            },
-        )
+        update = {
+            "messages": [response],
+            # Handing over, the next node starts its own rounds.
+            "tool_round": 0 if handover else tool_round,
+            "active_node": self._config.on_text if handover else this_node,
+        }
+        # A forced choice is spent, so the next node isn't forced too.
+        if state.get("tool_choice") is not None:
+            update["tool_choice"] = None
+        return Command(goto=self._config.on_tools, update=update)
 
 
 def make_model_node(tools: list, **config) -> ModelNode:
@@ -155,4 +171,7 @@ def make_model_node(tools: list, **config) -> ModelNode:
 
     Keywords are `ModelNodeConfig` fields; the defaults describe the node that answers the user.
     """
-    return ModelNode(tools, ModelNodeConfig(**config))
+    node_config = ModelNodeConfig(**config)
+    if not node_config.text_is_reply and any(tool.return_direct for tool in tools):
+        raise ValueError("A tool whose output is the reply (`return_direct`) needs a node whose text is the reply.")
+    return ModelNode(tools, node_config)

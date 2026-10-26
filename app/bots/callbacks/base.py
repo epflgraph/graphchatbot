@@ -36,13 +36,22 @@ class LLMRequest:
     tool_choice: str | None
 
 
+@dataclass
+class ToolRoundActions:
+    """What a tool round callback asks the node to do, other than replace the round's results."""
+
+    # The results are the reply, so the turn ends instead of going back to the model.
+    skip_summarization: bool = False
+
+
 @dataclass(frozen=True)
 class ToolRoundContext:
-    """What a tool round callback can read about the node and the turn."""
+    """What a tool round callback can read about the node and the turn, and the actions it may set."""
 
     state: BotState
     runtime: Runtime[Bot]
     tools_by_name: Mapping[str, BaseTool]
+    actions: ToolRoundActions = field(default_factory=ToolRoundActions)
 
 
 @dataclass
