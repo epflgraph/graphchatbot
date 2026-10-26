@@ -223,18 +223,16 @@ class ExpliqueGradeBot(ExpliqueBot):
             ),
             input_schema=GradeBotState,
         )
-        workflow.add_node(
-            Node.RETRIEVE,
-            make_model_node(
-                tools,
-                compiler=GradeRetrieveCompiler,
-                on_text=Node.POST_RETRIEVE,
-                on_tools=Node.TOOLS,
-                max_tool_rounds=self.MAX_RETRIEVAL_ROUNDS,
-                text_is_reply=False,
-            ),
-            input_schema=GradeBotState,
+        retrieve_node = make_model_node(
+            tools,
+            name=Node.RETRIEVE,
+            compiler=GradeRetrieveCompiler,
+            on_text=Node.POST_RETRIEVE,
+            on_tools=Node.TOOLS,
+            max_tool_rounds=self.MAX_RETRIEVAL_ROUNDS,
+            text_is_reply=False,
         )
+        workflow.add_node(retrieve_node.name, retrieve_node, input_schema=GradeBotState)
 
         workflow.add_node(
             Node.TOOLS, make_tools_node(tools, tool_round_callbacks=ToolRoundCallbacks(after=(dedupe_tool_results,)))

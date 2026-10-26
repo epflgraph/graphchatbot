@@ -1,7 +1,7 @@
 import logging
 
 from langchain_core.messages import AIMessage
-from langchain_core.runnables import Runnable, RunnableConfig
+from langchain_core.runnables import Runnable
 from langgraph.graph import END
 from langgraph.runtime import Runtime
 from langgraph.types import Command
@@ -31,6 +31,7 @@ class ModelNodeConfig(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
+    name: str = "model"
     compiler: type[MessageCompiler]
 
     # The text branch: where a plain answer goes, and whether it is this node's
@@ -51,7 +52,7 @@ class ModelNodeConfig(BaseModel):
 class ModelNode:
     """Calls the bot's LLM client with its tools bound, and routes on what came back.
 
-    Callable as a LangGraph node: `await node(state, runtime, config)`.
+    Callable as a LangGraph node: `await node(state, runtime)`.
     """
 
     def __init__(self, tools: list, config: ModelNodeConfig):
@@ -60,15 +61,20 @@ class ModelNode:
         self._before = (*BUILT_IN_MODEL_CALLBACKS.before, *config.model_callbacks.before)
         self._after = (*BUILT_IN_MODEL_CALLBACKS.after, *config.model_callbacks.after)
 
-    async def __call__(self, state: BotState, runtime: Runtime[Bot], config: RunnableConfig) -> Command:
-        bot = runtime.context
-        tool_rounds_made = state.get("tool_round", 0)
-        is_first_round = tool_rounds_made == 0
+    @property
+    def name(self) -> str:
+        """The name the graph registers this node under."""
+        return self._config.name
 
-        # A forced `tool_choice` happens on the first round: once the model has
-        # called a tool, whether to call another is up to it, not the
-        # classifier. Without this, the forced choice would fire on every pass.
-        tool_choice = state.get("tool_choice") if is_first_round else None
+    async def __call__(self, state: BotState, runtime: Runtime[Bot]) -> Command:
+        bot = runtime.context
+        tool_rounds = state.get("tool_rounds", {})
+        tool_rounds_made = tool_rounds.get(self.name, 0)
+
+        # A forced `tool_choice` is for the turn's first tool round, whichever node
+        # takes it: once the model has called a tool, whether to call another is up
+        # to it, not the classifier. Without this, the forced choice would fire on every pass.
+        tool_choice = None if tool_rounds else state.get("tool_choice")
 
         # Past the budget the tools stay bound but forbidden. Omitting them would
         # instead leave a model that has called tools several times still emitting
@@ -94,7 +100,7 @@ class ModelNode:
         call_failed = response is None
 
         if not call_failed and response.tool_calls:
-            return self._called_tools(state, response, tool_rounds_made, config)
+            return self._called_tools(response, tool_rounds_made)
 
         # Past the tool branch, so whatever came back was meant to be text.
         answered_with_nothing = not call_failed and not flatten_content(response.content).strip()
@@ -104,7 +110,7 @@ class ModelNode:
             logger.error("Model call produced nothing; falling back to NO_ANSWER")
             response = AIMessage(content=no_answer(bot.prompt_search_path, state.get("lang_code")))
 
-        return self._answered(state, response)
+        return self._answered(response)
 
     async def _respond(self, bot: Bot, callback_context: CallbackContext, llm_request: LLMRequest) -> AIMessage | None:
         """The response, from a callback or the model, or `None` if the model call failed."""
@@ -129,19 +135,12 @@ class ModelNode:
             return model
         return model.bind_tools(llm_request.tools, tool_choice=llm_request.tool_choice, parallel_tool_calls=True)
 
-    def _answered(self, state: BotState, response: AIMessage) -> Command:
-        """The model responded with text instead of calling a tool, so this node is done."""
-        # Reset the tool fields for the next node, skipping any already at their default:
-        # writing one could collide with a parallel node's write.
-        defaults = {"tool_round": 0, "tool_choice": None}
-        update = {key: default for key, default in defaults.items() if state.get(key, default) != default}
-        if self._config.text_is_reply:
-            update["messages"] = [response]
+    def _answered(self, response: AIMessage) -> Command:
+        """The model responded with text instead of calling a tool."""
+        update = {"messages": [response]} if self._config.text_is_reply else None
         return Command(goto=self._config.on_text, update=update)
 
-    def _called_tools(
-        self, state: BotState, response: AIMessage, tool_rounds_made: int, runnable_config: RunnableConfig
-    ) -> Command:
+    def _called_tools(self, response: AIMessage, tool_rounds_made: int) -> Command:
         """The model asked for one or more tool calls, so `tools` runs them and comes back here."""
         tool_round = tool_rounds_made + 1
 
@@ -150,20 +149,14 @@ class ModelNode:
         tool_rounds_exhausted = tool_round >= self._config.max_tool_rounds
         handover = tool_rounds_exhausted and not self._config.text_is_reply
 
-        # Read rather than configured, so this can't drift from the name the
-        # graph registered the node under.
-        this_node = runnable_config["metadata"]["langgraph_node"]
-
-        update = {
-            "messages": [response],
-            # Handing over, the next node starts its own rounds.
-            "tool_round": 0 if handover else tool_round,
-            "active_node": self._config.on_text if handover else this_node,
-        }
-        # A forced choice is spent, so the next node isn't forced too.
-        if state.get("tool_choice") is not None:
-            update["tool_choice"] = None
-        return Command(goto=self._config.on_tools, update=update)
+        return Command(
+            goto=self._config.on_tools,
+            update={
+                "messages": [response],
+                "tool_rounds": {self.name: tool_round},
+                "active_node": self._config.on_text if handover else self.name,
+            },
+        )
 
 
 def make_model_node(tools: list, **config) -> ModelNode:

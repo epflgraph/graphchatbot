@@ -120,16 +120,14 @@ class GraphChatBot(Bot):
             "classify",
             make_classify_node(self.CATEGORIES, fallback=RequestType.GREETING, compiler=ClassifyCompiler),
         )
-        workflow.add_node(
-            "model",
-            make_model_node(
-                tools, compiler=ResponseCompiler, model_callbacks=ModelCallbacks(before=(announce_status,))
-            ),
+        model_node = make_model_node(
+            tools, compiler=ResponseCompiler, model_callbacks=ModelCallbacks(before=(announce_status,))
         )
+        workflow.add_node(model_node.name, model_node)
         workflow.add_node(
             "tools", make_tools_node(tools, tool_round_callbacks=ToolRoundCallbacks(after=(dedupe_tool_results,)))
         )
         workflow.set_entry_point("classify")
-        workflow.add_edge("classify", "model")
+        workflow.add_edge("classify", model_node.name)
 
         return workflow.compile()

@@ -106,18 +106,17 @@ class HintingCourseBot(CourseBot):
             Node.CLASSIFY,
             make_classify_node(self.CATEGORIES, fallback=RequestType.GREETING, compiler=ClassifyCompiler),
         )
-        workflow.add_node(
-            Node.RETRIEVE,
-            make_model_node(
-                tools,
-                compiler=RetrieveCompiler,
-                on_text=Node.RESPOND,
-                on_tools=Node.TOOLS,
-                text_is_reply=False,
-                max_tool_rounds=self.MAX_RETRIEVAL_ROUNDS,
-                model_callbacks=ModelCallbacks(before=(announce_status,)),
-            ),
+        retrieve_node = make_model_node(
+            tools,
+            name=Node.RETRIEVE,
+            compiler=RetrieveCompiler,
+            on_text=Node.RESPOND,
+            on_tools=Node.TOOLS,
+            text_is_reply=False,
+            max_tool_rounds=self.MAX_RETRIEVAL_ROUNDS,
+            model_callbacks=ModelCallbacks(before=(announce_status,)),
         )
+        workflow.add_node(retrieve_node.name, retrieve_node)
         workflow.add_node(
             Node.TOOLS, make_tools_node(tools, tool_round_callbacks=ToolRoundCallbacks(after=(dedupe_tool_results,)))
         )
