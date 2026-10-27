@@ -12,6 +12,7 @@ class Topic(BaseModel):
 
     name: str = Field(min_length=1)
     deadline: datetime | None = None
+    points: tuple[str, ...] = ()
 
     @property
     def is_past_deadline(self) -> bool:
