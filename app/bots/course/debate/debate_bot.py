@@ -5,6 +5,9 @@ from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from app.bots.base import Bot, BotState
+from app.bots.callbacks.base import ModelCallbacks, ToolRoundCallbacks
+from app.bots.callbacks.dedupe import dedupe_tool_results
+from app.bots.callbacks.status import announce_status
 from app.bots.compilers.classify import ClassifyCompiler
 from app.bots.course.course_bot import CourseBot
 from app.bots.course.debate.compilers import DebateStage, compiler_for
@@ -80,11 +83,17 @@ class DebateCourseBot(CourseBot):
         workflow.add_conditional_edges("classify", lambda s: f"model-{s['category']}")
 
         for stage in DebateStage:
-            workflow.add_node(
-                f"model-{stage}", make_model_node(tools, compiler=compiler_for(stage), status_events=True)
+            model_node = make_model_node(
+                tools,
+                name=f"model-{stage}",
+                compiler=compiler_for(stage),
+                model_callbacks=ModelCallbacks(before=(announce_status,)),
             )
+            workflow.add_node(model_node.name, model_node)
 
-        workflow.add_node("tools", make_tools_node(tools))
+        workflow.add_node(
+            "tools", make_tools_node(tools, tool_round_callbacks=ToolRoundCallbacks(after=(dedupe_tool_results,)))
+        )
 
         workflow.set_entry_point("classify")
 

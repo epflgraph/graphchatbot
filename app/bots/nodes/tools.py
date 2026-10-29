@@ -1,20 +1,29 @@
-import json
 import logging
-import secrets
 
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import AIMessage, BaseMessage, ToolCall
+from langgraph.graph import END
 from langgraph.prebuilt import ToolNode
 from langgraph.runtime import Runtime
 from langgraph.types import Command
 
+from app.bots.base import Bot, BotState
+from app.bots.callbacks.base import ToolRound, ToolRoundCallbacks, ToolRoundContext, run_callbacks
+from app.bots.callbacks.return_direct import end_turn_on_return_direct, hold_back_return_direct_calls
+from app.llms.utils import flatten_content
+
 logger = logging.getLogger(__name__)
+
+BUILT_IN_TOOL_ROUND_CALLBACKS = ToolRoundCallbacks(
+    before=(hold_back_return_direct_calls,),
+    after=(end_turn_on_return_direct,),
+)
 
 
 # What a tool call that raised gets logged as, and what it reports to the model.
 # The instruction is mechanical: left to itself the model retries a dead tool
 # until the round budget runs out, and then answers nothing.
 # FUTURE: the presentational half — telling the user the answer is not based on
-# retrieved material — belongs with the prompt instructions rather than here.
+# tool results — belongs with the prompt instructions rather than here.
 TOOL_FAILURE = "The tool call failed and returned no result."
 TOOL_FAILURE_INSTRUCTION = f"{TOOL_FAILURE} Do not retry it; answer with what you already have."
 
@@ -25,88 +34,51 @@ def tool_failed(error: Exception) -> str:
     return TOOL_FAILURE_INSTRUCTION
 
 
-def _unique_chunks(chunks: list, seen: set[str]) -> list:
-    """`chunks` with repeats gone, keyed on the chunk's content. The overlap
-    several searches return lands in here; the first occurrence of a content
-    wins, which keeps each search's own ranking order intact."""
-    kept = []
-    for chunk in chunks:
-        if isinstance(chunk, dict) and isinstance(chunk.get("content"), str):
-            if chunk["content"] in seen:
-                continue
-            seen.add(chunk["content"])
-        kept.append(chunk)
-    return kept
+class ToolsNode:
+    """Executes all tool calls in the last message, with its round callbacks around them.
 
-
-def dedupe_tool_results(messages: list[BaseMessage]) -> list[BaseMessage]:
-    """Parallel searches overlap: keep the first occurrence of every chunk
-    across all of a round's tool results, keyed on content itself — chunks
-    cut from the same document share its url yet differ in content, and
-    remote indexes may also return the very same chunk twice."""
-    seen: set[str] = set()
-    deduped = []
-    for message in messages:
-        if message.type != "tool":
-            deduped.append(message)
-            continue
-
-        content = message.content
-        if isinstance(content, str):
-            try:
-                parsed = json.loads(content)
-            except json.JSONDecodeError:
-                deduped.append(message)
-                continue
-        elif isinstance(content, list):
-            parsed = content
-        else:
-            deduped.append(message)
-            continue
-
-        if not isinstance(parsed, list):
-            deduped.append(message)
-            continue
-
-        filtered = _unique_chunks(parsed, seen)
-        if len(filtered) < len(parsed):
-            logger.info("Dropped %d duplicate chunk(s).", len(parsed) - len(filtered))
-            message = message.model_copy(update={"content": json.dumps(filtered)})
-        deduped.append(message)
-    return deduped
-
-
-def make_tools_node(tools: list):
-    """
-    Returns a node that executes all tool calls in the last message.
+    Callable as a LangGraph node: `await node(state, runtime)`.
 
     Where the result goes is not this node's decision: it returns control to
     `state['active_node']`, which the model node that issued the calls wrote.
+    The one exception is a round whose callbacks set `actions.skip_summarization`
+    (as `end_turn_on_return_direct` does): its results are the reply, and the turn ends on them.
     """
 
-    tool_names = {t.name for t in tools}
-    _tool_node = ToolNode(tools, handle_tool_errors=tool_failed)
+    def __init__(self, tools: list, tool_round_callbacks: ToolRoundCallbacks):
+        self._tools_by_name = {tool.name: tool for tool in tools}
+        self._tool_node = ToolNode(tools, handle_tool_errors=tool_failed)
+        self._before = (*BUILT_IN_TOOL_ROUND_CALLBACKS.before, *tool_round_callbacks.before)
+        self._after = (*BUILT_IN_TOOL_ROUND_CALLBACKS.after, *tool_round_callbacks.after)
 
-    async def tools_node(state, runtime: Runtime) -> Command:
-        tool_calls = state["messages"][-1].tool_calls
+    async def __call__(self, state: BotState, runtime: Runtime[Bot]) -> Command:
+        tool_round_context = ToolRoundContext(state=state, runtime=runtime, tools_by_name=self._tools_by_name)
+        tool_round = ToolRound(calls=list(state["messages"][-1].tool_calls))
 
-        for i, tc in enumerate(tool_calls):
-            # Fix missing tool call ids (https://github.com/langchain-ai/langgraph/issues/4717)
-            if not tc["id"]:
-                logger.warning("Missing tool call id, fixing with random string.")
-                state["messages"][-1].tool_calls[i]["id"] = f"chatcmpl-tool-{secrets.token_hex(16)}"
+        if answered := await run_callbacks(self._before, tool_round_context, tool_round):
+            tool_round.results = answered
+        elif tool_round.calls:
+            logger.info("Executing %d tool call(s) in parallel", len(tool_round.calls))
+            tool_round.results.extend(await self._run_tool_calls(state, tool_round.calls))
 
-            # Fix tool name being repeated (e.g. 'search_lexsearch_lex' → 'search_lex')
-            if tc["name"] not in tool_names:
-                for name in tool_names:
-                    if name in tc["name"]:
-                        logger.warning("Fixing repeated tool name `%s` → `%s`.", tc["name"], name)
-                        state["messages"][-1].tool_calls[i]["name"] = name
-                        break
+        # In call order: the model pairs results with calls by position.
+        call_order = {call["id"]: index for index, call in enumerate(state["messages"][-1].tool_calls)}
+        tool_round.results.sort(key=lambda result: call_order.get(result.tool_call_id, len(call_order)))
 
-        logger.info("Executing %d tool call(s) in parallel", len(tool_calls))
-        result = await _tool_node.ainvoke(state)
+        results = await run_callbacks(self._after, tool_round_context, tool_round) or tool_round.results
 
-        return Command(goto=state["active_node"], update={"messages": dedupe_tool_results(result["messages"])})
+        if tool_round_context.actions.skip_summarization:
+            reply = "\n\n".join(flatten_content(result.content) for result in results)
+            runtime.stream_writer(reply)
+            return Command(goto=END, update={"messages": [*results, AIMessage(content=reply)]})
+        return Command(goto=state["active_node"], update={"messages": results})
 
-    return tools_node
+    async def _run_tool_calls(self, state: BotState, tool_calls: list[ToolCall]) -> list[BaseMessage]:
+        """The results of `tool_calls`, run as though they were all the last message asked for."""
+        calling = state["messages"][-1].model_copy(update={"tool_calls": tool_calls})
+        return (await self._tool_node.ainvoke({**state, "messages": [*state["messages"][:-1], calling]}))["messages"]
+
+
+def make_tools_node(tools: list, tool_round_callbacks: ToolRoundCallbacks = ToolRoundCallbacks()) -> ToolsNode:
+    """Returns a node that executes all tool calls in the last message."""
+    return ToolsNode(tools, tool_round_callbacks)

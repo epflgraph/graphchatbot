@@ -1,8 +1,10 @@
 import inspect
+import operator
 from abc import ABC, abstractmethod
 from datetime import datetime
 from functools import cached_property
 from pathlib import Path
+from typing import Annotated
 
 from langchain_openai import ChatOpenAI
 from langgraph.graph import MessagesState
@@ -28,9 +30,10 @@ class BotState(MessagesState):
 
     # The tool loop, shared by every family: `active_node` is where `tools`
     # sends control back to, written by whichever model node issued the calls;
-    # `tool_round` counts the rounds that node has taken this turn.
+    # `tool_rounds` counts the rounds each model node has taken this turn, by node
+    # name: no node inherits another's count, and writes in one step merge.
     active_node: str | None
-    tool_round: int
+    tool_rounds: Annotated[dict[str, int], operator.or_]
 
 
 # A node's return value: a partial update merged into the graph state by
