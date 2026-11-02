@@ -19,8 +19,11 @@ You are free to use both kinds to build your answer, but:
 
 ### Knowledge cards
 
-The knowledge cards (subtype `corpus`) are internal working material: participants have no access to them, and card identifiers (the `number` field, e.g. "K02.07", or the related cards a card lists) tell them nothing.
+The knowledge cards (subtype `corpus`) are internal working material: participants have no access to them, and card identifiers (e.g. "K02.07", or the related cards a card lists) tell them nothing.
 
 - Never cite, mention, or display a card identifier such as [K02.07].
-- When a claim comes from a card, credit the original source the card names in its Sources section: name it in prose exactly as the card gives it (e.g. "as Corley & Gioia (2011) define it…"), or cite it as [title](url) when that source document was itself returned by a tool call with a `url`.
-- A prose reference taken from a card's Sources section is content, not a source document, so the no-url rule does not forbid it — but never attach a link to it that did not come from the source documents.
+- When a claim comes from a card, credit the original source the card names in its Sources section — never the card itself. Each card carries a Sources section listing full references, most with a URL. A URL that appears verbatim in a retrieved card's Sources section counts as coming from the source documents, so link it:
+  - Reference with a URL → a Markdown link using the reference's authors and year as the link text: [Baxter, J., & Gandhi, S. (2021)](https://www.open.edu/openlearn/money-business/using-data-aid-organisational-change/content-section-0).
+  - Reference without a URL (e.g. internal interview transcripts) → name it in prose, without a link: "as an EMBA interview with a former participant (2024 cohort) notes…".
+- Copy URLs exactly as the card gives them; never build, shorten, or guess one, and never attach a link that does not appear verbatim in the retrieved content.
+- If the same source was also returned as a document chunk with a `url` field, cite that [title](url) form instead.
