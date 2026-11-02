@@ -1,3 +1,4 @@
+import re
 from typing import Annotated, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
@@ -5,6 +6,10 @@ from pydantic import BaseModel, Field
 from app.bots.course.course_bot import CATEGORIES, RequestType
 from app.bots.course.direct.direct_bot import DirectCourseBot
 from app.interfaces.graphai import RAGResult
+
+# Cards open with a YAML frontmatter block (`id: K05.01`, `related: …`) whose
+# identifiers participants have no access to.
+_LEADING_FRONTMATTER = re.compile(r"\A---\n.*?\n---\n+", re.DOTALL)
 
 
 class TheoryFilters(BaseModel):
@@ -47,7 +52,15 @@ class EMBASIPBot(DirectCourseBot):
     @classmethod
     def _format_results(cls, result: RAGResult) -> list[dict]:
         formatted = super()._format_results(result)
-        # The `number` field holds the cards' internal identifiers (e.g. "A01").
-        # Participants have no access to the cards, so citing them tells them
-        # nothing — drop the identifiers instead of asking the model to ignore them.
-        return [{key: value for key, value in item.items() if key != "number"} for item in formatted]
+        # The `number` field and the cards' leading YAML frontmatter hold the
+        # cards' internal identifiers (e.g. "K05.01"). Participants have no
+        # access to the cards, so citing them tells them nothing — drop the
+        # identifiers instead of asking the model to ignore them.
+        return [
+            {
+                key: _LEADING_FRONTMATTER.sub("", value) if key == "content" and isinstance(value, str) else value
+                for key, value in item.items()
+                if key != "number"
+            }
+            for item in formatted
+        ]
