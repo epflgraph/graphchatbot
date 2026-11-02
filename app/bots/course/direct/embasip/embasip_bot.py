@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 from app.bots.course.course_bot import CATEGORIES, RequestType
 from app.bots.course.direct.direct_bot import DirectCourseBot
+from app.interfaces.graphai import RAGResult
 
 
 class TheoryFilters(BaseModel):
@@ -42,3 +43,11 @@ class EMBASIPBot(DirectCourseBot):
             "tool_choice": "any",
         },
     }
+
+    @classmethod
+    def _format_results(cls, result: RAGResult) -> list[dict]:
+        formatted = super()._format_results(result)
+        # The `number` field holds the cards' internal identifiers (e.g. "A01").
+        # Participants have no access to the cards, so citing them tells them
+        # nothing — drop the identifiers instead of asking the model to ignore them.
+        return [{key: value for key, value in item.items() if key != "number"} for item in formatted]

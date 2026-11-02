@@ -14,7 +14,7 @@ Calling strategy:
 - Always make at least one call with key concepts in the query and filters={type:"theory"} (subtype omitted, so both subtypes are searched).
 - For questions about rules, deadlines, supervision, confidentiality, academic integrity, grading, or the defense, make a call whose query names the concrete topic (e.g. "confidentiality agreement", "defense jury criteria"); the A and E cards hold these answers.
 - For methodology questions (problem statement, literature, approach, data collection and analysis, writing), add a call with subtype "corpus".
-- To ground an answer in the original documents (quotes, full references), add a call with subtype "sources".
+- So the reply can cite the original documents behind the cards (with their links), also make one call with subtype "sources" for the same key concepts as your card calls.
 - Make separate calls for unrelated topics or sub-questions.
 
 Query rules:
