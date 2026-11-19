@@ -22,6 +22,20 @@ class Status:
     description: str
 
 
+@dataclass(frozen=True)
+class Source:
+    """A retrieved document, listed under a reply that cites it."""
+
+    title: str
+    url: str
+    # The content of each chunk retrieved at `url`; none for a video a chunk only links to.
+    excerpts: tuple[str, ...]
+
+
+# What a turn streams to the user: a status line, a cited source, or reply text.
+TurnEvent = Status | Source | str
+
+
 def announce(template: str, runtime: Runtime[Bot], **context: Any) -> None:
     """Put `template`'s line on screen before any reply. Status lines are English whatever
     the conversation's language, so no turn has to know its language first."""
