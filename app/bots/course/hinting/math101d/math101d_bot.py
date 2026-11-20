@@ -35,6 +35,10 @@ class ExamFilters(BaseModel):
         default=None,
         description="Optional subtype for exam content. 'midterm_exam' = the examen blanc (mock midterm).",
     )
+    number: Optional[int] = Field(
+        default=None,
+        description="Which exam: the midterm ('examen blanc', 'midterm') → 1; a past exam by its year, e.g. 'Examen 2022' → 2022.",
+    )
     sub_number: Optional[int] = Field(
         default=None,
         description="Question number within the exam, ignoring any letter, e.g. 'examen blanc question 6b' → 6, 'mock midterm Q3' → 3.",
