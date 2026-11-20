@@ -41,18 +41,18 @@ app/
 │   ├── registry.py      # Auto-discovery of bot classes via filesystem scanning
 │   ├── languages.py     # Languages a bot can be instructed to reply in
 │   ├── main.py          # LLM completion / streaming helpers
-│   ├── utils.py         # Status events and text a node writes to the stream itself
+│   ├── utils.py         # Status and source events, and text, a node writes to the stream itself
 │   ├── compilers/       # Shared message compilers (classify, respond)
 │   ├── prompts/         # Shared prompt templates and macros
-│   ├── nodes/           # Reusable LangGraph nodes (classify, model, tools, transcribe_image, detect_language)
-│   ├── artifacts/       # Base for bot responses rendered as HTML
+│   ├── nodes/           # Reusable LangGraph nodes (classify, model, tools, respond, transcribe_image, detect_language)
+│   ├── artifacts/       # Bot responses rendered from templates: rich-response blocks (Markdown) and HTML pages
 │   ├── cache/           # Shared on-disk caches (e.g. image transcriptions, topic points)
 │   ├── admin/           # AdminBot + concrete admin bots
 │   ├── course/          # CourseBot + pedagogical variants
 │   ├── explique/        # ExpliqueBot base + its train/ and grade/ flavours
 │   └── graph_chat/      # GraphChatBot
 ├── interfaces/          # Clients for external services (GraphAI RAG, Moodle)
-├── llms/utils.py        # Message shaping helpers (flattening, image parts, timeouts)
+├── llms/utils.py        # Message shaping helpers, and model calls bounded by a timeout (plain, structured, streamed)
 └── routers/             # FastAPI public routers
 ```
 
@@ -63,7 +63,7 @@ app/
 - **Prompts as templates**: Prompts are Jinja templates resolved along a per-bot search path, allowing easy inheritance and overrides
 - **Typed configuration**: `config.ini` is validated against a frozen Pydantic model at startup, so a bad key fails fast
 - **Stateless graphs**: LangGraph graphs are compiled once at startup (`@cached_property`) and reused per request
-- **Streaming-first**: All bots support streaming message completion via `stream_mode=["messages", "custom"]`; a node can also write a status event or text to the stream itself through `runtime.stream_writer`
+- **Streaming-first**: All bots support streaming message completion via `stream_mode=["messages", "custom"]`; a node can also write a status or source event, or text, to the stream itself through `runtime.stream_writer`
 
 ---
 
@@ -149,7 +149,8 @@ The `X-OpenWebUI-User-Id` and `X-OpenWebUI-User-Email` headers, when the chat fr
 them, tell a bot who is asking. They are unverified, and without them the bot sees no requester.
 
 A streamed reply can also carry status events: chunks with an `event` object, which Open WebUI
-shows as a line above the reply until its text arrives.
+shows as a line above the reply until its text arrives. Hinting and direct course bots also send
+`source` events: the documents a reply cites, which Open WebUI shows as citation chips under it.
 
 ---
 

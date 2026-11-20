@@ -39,6 +39,19 @@ def _unique_chunks(chunks: list, seen: set[str]) -> list:
     return kept
 
 
+def parse_tool_result(message: BaseMessage) -> list | None:
+    """None for a result that isn't a list, such as a failed call's instruction."""
+    content = message.content
+    if isinstance(content, list):
+        return content
+
+    try:
+        parsed = json.loads(content)
+    except json.JSONDecodeError:
+        return None
+    return parsed if isinstance(parsed, list) else None
+
+
 def dedupe_tool_results(messages: list[BaseMessage]) -> list[BaseMessage]:
     """Parallel searches overlap: keep the first occurrence of every chunk
     across all of a round's tool results, keyed on content itself — chunks
@@ -47,31 +60,15 @@ def dedupe_tool_results(messages: list[BaseMessage]) -> list[BaseMessage]:
     seen: set[str] = set()
     deduped = []
     for message in messages:
-        if message.type != "tool":
-            deduped.append(message)
-            continue
-
-        content = message.content
-        if isinstance(content, str):
-            try:
-                parsed = json.loads(content)
-            except json.JSONDecodeError:
-                deduped.append(message)
-                continue
-        elif isinstance(content, list):
-            parsed = content
-        else:
-            deduped.append(message)
-            continue
-
-        if not isinstance(parsed, list):
+        parsed = parse_tool_result(message) if message.type == "tool" else None
+        if parsed is None:
             deduped.append(message)
             continue
 
         filtered = _unique_chunks(parsed, seen)
         if len(filtered) < len(parsed):
             logger.info("Dropped %d duplicate chunk(s).", len(parsed) - len(filtered))
-            message = message.model_copy(update={"content": json.dumps(filtered)})
+            message = message.model_copy(update={"content": json.dumps(filtered, ensure_ascii=False)})
         deduped.append(message)
     return deduped
 

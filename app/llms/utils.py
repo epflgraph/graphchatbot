@@ -1,10 +1,11 @@
 import asyncio
 import logging
-from typing import Callable
+from typing import Any, Callable
 
 from langchain_core.exceptions import OutputParserException
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.runnables import Runnable
 from langgraph.constants import TAG_NOSTREAM
 from openai import AuthenticationError, PermissionDeniedError
@@ -13,7 +14,13 @@ from pydantic import BaseModel, ValidationError
 logger = logging.getLogger(__name__)
 
 # What a call is bounded by when the client declares no usable `request_timeout`.
-REQUEST_TIMEOUT = 120.0
+DEFAULT_REQUEST_TIMEOUT = 120.0
+
+# A streamed call's total bound: the student reads the reply as it streams, so a long one is worth the wait.
+STREAM_TOTAL_TIMEOUT = 120.0
+
+# How long a streamed reply may stop growing before its call counts as stuck.
+STREAM_STALL_TIMEOUT = 30.0
 
 # One element of multipart message content: a bare string, or an OpenAI-style
 # `{"type": ..., ...}` part dict (text, image_url, ...).
@@ -122,11 +129,11 @@ def drop_system_messages(messages: list[BaseMessage]) -> list[BaseMessage]:
     return [message for message in messages if message.type != "system"]
 
 
-def wall_clock_timeout(model: Runnable) -> float:
+def request_timeout(model: Runnable) -> float:
     """The seconds a call on `model` is bounded to, from its own `request_timeout`.
 
     That attribute is `float | tuple | httpx.Timeout | None`, and anything but a
-    plain number falls back to `REQUEST_TIMEOUT`: the point of this bound is that
+    plain number falls back to `DEFAULT_REQUEST_TIMEOUT`: the point of this bound is that
     it always exists. A slow trickle of bytes resets httpx's read timeout without
     ever completing the call, so only a wall-clock cutoff bounds a stuck one.
     """
@@ -134,8 +141,10 @@ def wall_clock_timeout(model: Runnable) -> float:
     if isinstance(timeout, (int, float)):
         return float(timeout)
 
-    logger.warning("Model has a non-numeric request_timeout (%r); bounding the call at %ss", timeout, REQUEST_TIMEOUT)
-    return REQUEST_TIMEOUT
+    logger.warning(
+        "Model has a non-numeric request_timeout (%r); bounding the call at %ss", timeout, DEFAULT_REQUEST_TIMEOUT
+    )
+    return DEFAULT_REQUEST_TIMEOUT
 
 
 async def generate_response(runnable: Runnable, messages: list[BaseMessage]) -> AIMessage | None:
@@ -148,7 +157,7 @@ async def generate_response(runnable: Runnable, messages: list[BaseMessage]) -> 
     may answer with tool calls instead of a reply.
     """
     try:
-        return await asyncio.wait_for(runnable.ainvoke(input=messages), timeout=wall_clock_timeout(runnable))
+        return await asyncio.wait_for(runnable.ainvoke(input=messages), timeout=request_timeout(runnable))
     except asyncio.TimeoutError:
         logger.error("Response timed out")
     except (AuthenticationError, PermissionDeniedError):
@@ -172,7 +181,7 @@ async def generate_structured_response(
     structured_model = model.with_structured_output(output_schema).with_config(tags=[TAG_NOSTREAM])
 
     try:
-        async with asyncio.timeout(wall_clock_timeout(model)):
+        async with asyncio.timeout(request_timeout(model)):
             attempts = max_retries + 1
             for attempt in range(1, attempts + 1):
                 try:
@@ -193,4 +202,36 @@ async def generate_structured_response(
         logger.critical("Structured response call failed with invalid credentials or access")
     except Exception:
         logger.exception("Structured response call raised an exception")
+    return None
+
+
+async def stream_structured_response(
+    model: BaseChatModel,
+    messages: list[BaseMessage],
+    output_schema: type[BaseModel],
+    on_partial: Callable[[dict[str, Any]], None],
+) -> dict[str, Any] | None:
+    """`generate_structured_response`, streamed: `on_partial` is handed the reply each time it grows,
+    as the JSON object parsed so far. Returns the complete object, or `None` if the call fails.
+
+    Nothing is checked against `output_schema` here: the caller checks each part once it is complete.
+    """
+    streamed_model = (model.bind(response_format=output_schema) | JsonOutputParser()).with_config(tags=[TAG_NOSTREAM])
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + STREAM_TOTAL_TIMEOUT
+    reply = None
+    try:
+        async with asyncio.timeout_at(deadline) as timeout:
+            async for reply in streamed_model.astream(input=messages):
+                on_partial(reply)
+                # Each growth pushes the bound back, so a reply that stops growing mid-stream ends the call;
+                # the wait for its first token is the client's to bound.
+                timeout.reschedule(min(deadline, loop.time() + STREAM_STALL_TIMEOUT))
+        return reply
+    except asyncio.TimeoutError:
+        logger.error("Streamed structured response %s", "timed out" if loop.time() >= deadline else "stalled")
+    except (AuthenticationError, PermissionDeniedError):
+        logger.critical("Streamed structured response call failed with invalid credentials or access")
+    except Exception:
+        logger.exception("Streamed structured response call raised an exception")
     return None
