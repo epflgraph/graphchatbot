@@ -4,6 +4,7 @@ MATH-101d usage notes (strategy):
 - A graded exercise to hand in ("exercice à rendre", "exercice rendu", homework) uses subtype "homework" with its number only — never pass sub_number there.
 - For a question of the examen blanc (mock midterm), use subtype "midterm_exam" with number 1 and always pass sub_number, the question number without any letter.
 - The weekly lecture notes ("notes de la semaine N") are subtype "theory_slides": put "Notes Semaine N" in the query.
+- The course material is in French: write the query in French even when the student writes in English, e.g. "ratio test" → "critère de d'Alembert".
 
 Examples (from text to filters):
 - "S02 exo 3f": query="", filters={type:"practice", subtype:"serie", number:2, sub_number:3}

@@ -8,7 +8,6 @@
 - **Code** : MATH-101(d)
 - **Coefficient** : 6
 - **Enseignant** : [Senti Samuel Anton](https://people.epfl.ch/234667?lang=fr)
-- **Langue** : Français
 
 ## Résumé
 
