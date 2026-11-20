@@ -16,6 +16,7 @@ from app.bots.explique.grade.compilers.base import GradeContext, GradedTurnsComp
 from app.bots.explique.grade.models import GradeChallengePlan, GradeStudentIntent
 from app.bots.explique.grade.transcript import graded_turns
 from app.bots.explique.models import StudentIntent, StudentState, TutorAction
+from app.compilation.base import ModelChoice
 from app.llms.utils import flatten_content
 
 
@@ -80,6 +81,17 @@ class GradeTutoringResponseCompiler(GradedTurnsCompiler, ResponseCompiler):
         }
 
 
+class GradeExplanationResponseCompiler(GradeTutoringResponseCompiler):
+    """The explanation move, on the careful model: it is the one move that states the point itself, and the reply
+    model gets facts wrong in it."""
+
+    config = response_config(
+        model_choice=ModelChoice.CAREFUL,
+        system_template="intent-in-topic.md",
+        user_template="intent-in-topic-turn.md",
+    )
+
+
 class GradeContentUnreadableResponseCompiler(GradedTurnsCompiler, ContentUnreadableResponseCompiler):
     """The tutor's reply to an unreadable turn, told which topic the session is on."""
 
@@ -121,6 +133,14 @@ class GradeClarificationResponseCompiler(GradedTurnsCompiler, ResponseCompiler):
 
 
 # Only these categories reach a responder here; everything else is redirected without a model call.
-compiler_for = compiler_lookup(
+_compiler_for_category = compiler_lookup(
     GradeTutoringResponseCompiler, GradeContentUnreadableResponseCompiler, GradeClarificationResponseCompiler
 )
+
+
+def compiler_for(state: Mapping[str, Any]) -> type[ResponseCompiler]:
+    """The responder for this turn, looked up by its category; an explanation gets its own."""
+    compiler = _compiler_for_category(state.get("category"))
+    if compiler is GradeTutoringResponseCompiler and state.get("tutor_action") == TutorAction.EXPLAIN:
+        return GradeExplanationResponseCompiler
+    return compiler

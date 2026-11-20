@@ -36,9 +36,10 @@ class PlanDirective(BaseModel):
     reasoning: str = ""
 
 
-def response_config(**declared) -> MessageCompilerConfig:
-    """Every responder shares the same task and model; only what differs gets written out."""
-    return MessageCompilerConfig(task=ExpliqueTask.RESPOND, model_choice=ModelChoice.REPLY, **declared)
+def response_config(model_choice: ModelChoice = ModelChoice.REPLY, **declared) -> MessageCompilerConfig:
+    """Every responder shares the same task, and the reply model unless it declares another; only what differs gets
+    written out."""
+    return MessageCompilerConfig(task=ExpliqueTask.RESPOND, model_choice=model_choice, **declared)
 
 
 class ResponseCompiler(ExpliqueTurnsCompiler):

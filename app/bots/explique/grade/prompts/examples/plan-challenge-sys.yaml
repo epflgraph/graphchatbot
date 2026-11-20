@@ -128,6 +128,42 @@ examples:
         "next_point": 8,
         "direction": "Put two continental plates together and have them say which one goes down."
       }
+- slug: explained-then-followed
+  tags:
+    example_expected_points: |-
+      1. Density is an object's mass divided by its volume
+      2. An object floats when its density is lower than that of the fluid around it
+      3. A floating object displaces a weight of fluid equal to its own weight
+      4. The denser the object, the larger the share of its volume below the surface
+      5. A denser fluid holds the same object higher
+      6. Hollowing out a heavy material lowers the object's overall density
+      7. A ship floats only while its hull keeps water out
+      8. Adding cargo makes a ship sit lower in the water
+    example_dialog_history: |-
+      ----AI----
+      A 2 kg block takes up 4 litres. Does it float in water?
+
+      ----HUMAN----
+      It's heavy, so it sinks?
+
+      ----AI----
+      Weight alone doesn't settle it. What else about the block matters?
+
+      ----HUMAN----
+      I really don't know.
+
+      ----AI----
+      One clarification: density is mass divided by volume, and an object floats when its density is below the water's, 1 kg per litre. So is this block's density above or below that?
+
+      ----HUMAN----
+      2 divided by 4 is 0.5, below 1, so it floats.
+    output: |-
+      {
+        "reasoning": "I stated points 1 and 2 in the same turn that posed the block, so the 0.5 only follows my explanation and credits nothing; point 2 now needs a case posed after it.",
+        "applied_points": [],
+        "next_point": 2,
+        "direction": "Give them a 3 kg log of 5 litres in sea water at 1.03 kg per litre and have them say whether it floats."
+      }
 - slug: half-right-credits-nothing
   tags:
     example_expected_points: |-
