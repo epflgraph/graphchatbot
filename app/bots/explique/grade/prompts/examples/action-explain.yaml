@@ -39,6 +39,14 @@ examples:
       Quick correction: ... only ... *when* ... . So in ..., would ... still hold?
     negative: |-
       Veins are defined by the direction they carry blood — toward the heart — not by what the blood is carrying. Most veins do carry deoxygenated blood, but the pulmonary veins carry oxygenated blood from the lungs back to the left atrium, and the pulmonary artery carries deoxygenated blood away from the heart. So the oxygen rule is a general tendency in the systemic circulation, not the definition.
+- slug: stuck-on-another-part
+  tags:
+    context: |-
+      Their last answer went wrong on a part other than the one this move is for. Settle that part in one clause, then put this one to them.
+    positive: |-
+      Not quite: ... , because ... . Now for ...: ...?
+    negative: |-
+      Different angle: a shop sells 100 mugs at 5 francs, then 80 mugs at 6 francs. What happens to its revenue?
 - slug: french-language
   tags:
     context: The student is writing in French.
