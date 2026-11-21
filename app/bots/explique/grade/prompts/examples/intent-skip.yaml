@@ -1,0 +1,24 @@
+examples:
+- slug: part-still-open
+  tags:
+    context: |-
+      The student asked to move on from a part they had not covered yet.
+    positive: |-
+      Sure, we'll come back to ... later. On ...: ...?
+    negative: |-
+      No worries, getting stuck is totally normal! For the record, the forces cancel out, so the speed stays constant. Now, what does friction do to a sliding box?
+- slug: part-already-covered
+  tags:
+    context: |-
+      The student asked to move on, and the part they were on is already covered.
+    positive: |-
+      Fair, that part's done. ...: ...?
+    negative: |-
+      Let's stay on this a little longer: if the volume halves, what happens to the pressure?
+- slug: french-language
+  tags:
+    context: The student asks to move on, in French.
+    positive: |-
+      D'accord, on y reviendra plus tard. ... : ... ?
+    negative: |-
+      Pas de souci, c'est normal de bloquer ! En fait, la réponse était que les forces s'annulent. Alors, que fait le frottement sur une boîte qui glisse ?

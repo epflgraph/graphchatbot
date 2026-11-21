@@ -132,9 +132,42 @@ class GradeClarificationResponseCompiler(GradedTurnsCompiler, ResponseCompiler):
         return ()
 
 
+class GradeSkipResponseContext(GradeResponseContext):
+    """The point the planner moved to, and what is already covered."""
+
+    points_applied: tuple[str, ...]
+    current_point: str
+    direction: str
+    last_point_open: bool
+
+
+class GradeSkipResponseCompiler(GradedTurnsCompiler, ResponseCompiler):
+    """The reply to a student who asked to move on: the point they left stays open, and the turn takes up another."""
+
+    config = response_config(
+        overrides=(StudentIntent.SKIP_TOPIC,),
+        system_template="intent-skip.md",
+        user_template="intent-skip-turn.md",
+    )
+    context_class = GradeSkipResponseContext
+
+    @classmethod
+    def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
+        plan = state["challenge_plan"]
+        return super().context_fields(bot, state) | {
+            "points_applied": tuple(plan.points_applied),
+            "current_point": state["current_point"],
+            "direction": plan.direction,
+            "last_point_open": len(plan.points_remaining) == 1,
+        }
+
+
 # Only these categories reach a responder here; everything else is redirected without a model call.
 _compiler_for_category = compiler_lookup(
-    GradeTutoringResponseCompiler, GradeContentUnreadableResponseCompiler, GradeClarificationResponseCompiler
+    GradeTutoringResponseCompiler,
+    GradeContentUnreadableResponseCompiler,
+    GradeClarificationResponseCompiler,
+    GradeSkipResponseCompiler,
 )
 
 
