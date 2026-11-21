@@ -47,6 +47,22 @@ examples:
       Not quite: ... , because ... . Now for ...: ...?
     negative: |-
       Different angle: a shop sells 100 mugs at 5 francs, then 80 mugs at 6 francs. What happens to its revenue?
+- slug: idea-not-the-working
+  tags:
+    context: |-
+      They are stuck on a case. Give the idea that unlocks their next step, never the values or the steps it leads to there.
+    positive: |-
+      Fair, one clarification: ... is what decides ... . So for ..., what do you get?
+    negative: |-
+      Fair enough, here's how it goes: 36 g of water at 18 g/mol is 2 moles, and each molecule holds 3 atoms, so that's 6 moles of atoms. How many atoms is that?
+- slug: right-answer
+  tags:
+    context: |-
+      Their last answer is right. Say so in a word, add nothing to it, and put the question.
+    positive: |-
+      Yes, ... . Now, ...: ...?
+    negative: |-
+      Yes, exactly. One small clarification though: osmosis moves water, not solutes, across the membrane, toward the side with more solute. Now, what happens to a red blood cell placed in pure water?
 - slug: french-language
   tags:
     context: The student is writing in French.
