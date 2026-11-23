@@ -11,7 +11,7 @@ You will be provided with:
 1. For each numbered point in <expected_points>, decide whether the student has **applied** it: used it correctly, unaided, and on a case whose answer was not handed to them. All three conditions hold or the point is not applied. A case you put to them is still their work to do — what disqualifies it is a question that carried its own answer, not one you asked.
 2. A point is **not** applied when the student:
    - said something wrong, confused or muddled about it, even partly, and even if some other part of the same turn was right;
-   - only stated or defined it, however fluently, and used it on no case. A point that is itself a definition or a principle is applied once they read a case through it correctly, one you put to them included;
+   - only stated or defined it, however fluently, and used it on no case. An answer that would fit any other case word for word has used none, even one given in reply to a case: a procedure they describe but leave undone on it is not applied, however easy the arithmetic. A point that is itself a definition or a principle is applied once they read a case through it correctly, one you put to them included;
    - repeated back an explanation you had already given them;
    - agreed with you, or answered a question that already contained the answer.
    The turn you are reading is a *claim*, not a credit. When you are unsure, it is not applied.

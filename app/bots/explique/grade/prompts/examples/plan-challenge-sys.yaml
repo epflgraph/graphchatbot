@@ -104,6 +104,34 @@ examples:
         "next_point": 3,
         "direction": "Give them the puff of air in 'pin' against the one in 'spin' and make them say whether English counts those as the same sound."
       }
+- slug: recipe-without-the-case
+  tags:
+    example_expected_points: |-
+      1. Current is the rate at which charge flows through a circuit
+      2. The current through a resistor is the voltage across it divided by its resistance
+      3. Resistances in series add up
+      4. Resistors in parallel offer the current more paths, so together they resist less than either one
+      5. The power a resistor dissipates is the voltage across it times the current through it
+      6. A fuse breaks the circuit once the current passes its rating
+      7. Doubling the voltage across a fixed resistor doubles the current through it
+      8. A short circuit is a path of almost no resistance, so it draws a very large current
+    example_dialog_history: |-
+      ----AI----
+      Topic: **Simple circuits**.
+
+      Explain it in your own words, as though you were teaching it to someone seeing it for the first time.
+
+      To get you started: a 9 V battery drives a single 3 Ω resistor. What current flows, and what would change if the resistor were 6 Ω?
+
+      ----HUMAN----
+      You divide the voltage by the resistance, and that's the current flowing through it.
+    output: |-
+      {
+        "reasoning": "They give the rule for point 2 and what it yields, but never run it on the 9 V and 3 Ω I gave them: no current comes out, however easy the arithmetic, so it is stated, not applied; it stays the point to work, on numbers they have to carry through.",
+        "applied_points": [],
+        "next_point": 2,
+        "direction": "Have them work out the current through the 3 Ω resistor on the 9 V battery, then say what it becomes at 6 Ω."
+      }
 - slug: explained-then-parroted
   tags:
     example_expected_points: |-
