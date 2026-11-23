@@ -162,6 +162,29 @@ class GradeSkipResponseCompiler(GradedTurnsCompiler, ResponseCompiler):
         }
 
 
+class GradeOpeningQuestionContext(GradeResponseContext):
+    """The point the first question takes up."""
+
+    current_point: str
+
+
+class GradeOpeningQuestionCompiler(GradedTurnsCompiler, ResponseCompiler):
+    """The session's first question, written with the invitation: the student has said nothing to judge yet, so it
+    puts the topic's first point to them."""
+
+    config = response_config(system_template="opening-question.md", user_template="opening-question-turn.md")
+    context_class = GradeOpeningQuestionContext
+
+    @classmethod
+    def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
+        return super().context_fields(bot, state) | {"current_point": state["topic_points"][0]}
+
+    @classmethod
+    def embedded_turns(cls, bot: Bot, context: GradeOpeningQuestionContext) -> tuple[BaseMessage, ...]:
+        """No conversation turns: so far the student has only picked the topic."""
+        return ()
+
+
 # Only these categories reach a responder here; everything else is redirected without a model call.
 _compiler_for_category = compiler_lookup(
     GradeTutoringResponseCompiler,
