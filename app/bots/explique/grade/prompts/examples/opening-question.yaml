@@ -4,7 +4,7 @@ examples:
     context: |-
       Put the point on a small case they can work out on the spot, never a request to recite it.
     positive: |-
-      ... and ... : which ..., and why?
+      ... and ... : which ...?
     negative: |-
       To begin, can you define osmosis and explain why it matters for cells?
 - slug: no-hint
@@ -12,13 +12,21 @@ examples:
     context: |-
       The question never carries the idea it tests.
     positive: |-
-      A ... sits in ... for an hour. What happens to it, and why?
+      A ... sits in ... for an hour. What happens to it?
     negative: |-
       Since water moves toward the side with more solute, what happens to a red blood cell dropped in pure water?
+- slug: one-question
+  tags:
+    context: |-
+      One question, on what the case comes to: a second part on what it shows is one they can skip.
+    positive: |-
+      ... and ... are ... . Which ... first?
+    negative: |-
+      A 2 kg ball and a 5 kg ball are dropped from the same height. Which lands first, and what does that tell you about the role of mass?
 - slug: french-language
   tags:
     context: The student is writing in French.
     positive: |-
-      Tu as ... et ... : lequel ..., et pourquoi ?
+      Tu as ... et ... : lequel ... ?
     negative: |-
       Pour commencer, peux-tu définir l'osmose et expliquer pourquoi elle compte pour les cellules ?
