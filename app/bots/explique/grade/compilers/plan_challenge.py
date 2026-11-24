@@ -13,7 +13,7 @@ class GradePlanChallengeContext(GradeGroundedDialogContext):
     move on."""
 
     past_points_applied: tuple[str, ...] = ()
-    moving_on: bool = False
+    asked_to_move_on: bool = False
 
 
 class GradePlanChallengeCompiler(GradedTurnsCompiler, ExpliqueGroundedCompiler):
@@ -30,5 +30,5 @@ class GradePlanChallengeCompiler(GradedTurnsCompiler, ExpliqueGroundedCompiler):
     def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
         return super().context_fields(bot, state) | {
             "past_points_applied": state.get("past_points_applied", ()),
-            "moving_on": state.get("category") == StudentIntent.SKIP_TOPIC,
+            "asked_to_move_on": state.get("category") == StudentIntent.SKIP_TOPIC,
         }

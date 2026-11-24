@@ -11,12 +11,6 @@ from app.bots.explique.tutor_action import (
 )
 
 
-def _needs_motivation(student_state: StudentState) -> bool:
-    """A disengaged student is re-engaged before any teaching move, unless they have stalled: their attempts earned
-    the explanation, and frustration by then is no reason to withhold it."""
-    return needs_motivation(student_state) and not is_stalled(student_state)
-
-
 def _needs_explanation(student_state: StudentState) -> bool:
     """We withhold an explanation to keep the dialogue Socratic: the student must reason
     first, and only earns one once they are genuinely stalled on the same point, whatever
@@ -38,7 +32,7 @@ def _needs_hint(student_state: StudentState) -> bool:
 # mutually exclusive, so any order would pick the same action.
 RULES = (
     (needs_mastery_challenge, TutorAction.CHALLENGE_MASTERY),
-    (_needs_motivation, TutorAction.MOTIVATE),
+    (needs_motivation, TutorAction.MOTIVATE),
     (_needs_explanation, TutorAction.EXPLAIN),
     (needs_misconception_challenge, TutorAction.CHALLENGE_MISCONCEPTION),
     (_needs_hint, TutorAction.HINT),

@@ -82,11 +82,11 @@ class GradeTutoringResponseCompiler(GradedTurnsCompiler, ResponseCompiler):
 
 
 class GradeExplanationResponseCompiler(GradeTutoringResponseCompiler):
-    """The explanation move, on the careful model: it is the one move that states the point itself, and the reply
-    model gets facts wrong in it."""
+    """The explanation a stalled student has earned: the one move that states the point itself, hence the careful model."""
 
     config = response_config(
         model_choice=ModelChoice.CAREFUL,
+        overrides=(TutorAction.EXPLAIN,),
         system_template="intent-in-topic.md",
         user_template="intent-in-topic-turn.md",
     )
@@ -169,8 +169,7 @@ class GradeOpeningQuestionContext(GradeResponseContext):
 
 
 class GradeOpeningQuestionCompiler(GradedTurnsCompiler, ResponseCompiler):
-    """The session's first question, written with the invitation: the student has said nothing to judge yet, so it
-    puts the topic's first point to them."""
+    """The session's first question, on the topic's first point."""
 
     config = response_config(system_template="opening-question.md", user_template="opening-question-turn.md")
     context_class = GradeOpeningQuestionContext
@@ -186,17 +185,10 @@ class GradeOpeningQuestionCompiler(GradedTurnsCompiler, ResponseCompiler):
 
 
 # Only these categories reach a responder here; everything else is redirected without a model call.
-_compiler_for_category = compiler_lookup(
+compiler_for = compiler_lookup(
     GradeTutoringResponseCompiler,
+    GradeExplanationResponseCompiler,
     GradeContentUnreadableResponseCompiler,
     GradeClarificationResponseCompiler,
     GradeSkipResponseCompiler,
 )
-
-
-def compiler_for(state: Mapping[str, Any]) -> type[ResponseCompiler]:
-    """The responder for this turn, looked up by its category; an explanation gets its own."""
-    compiler = _compiler_for_category(state.get("category"))
-    if compiler is GradeTutoringResponseCompiler and state.get("tutor_action") == TutorAction.EXPLAIN:
-        return GradeExplanationResponseCompiler
-    return compiler

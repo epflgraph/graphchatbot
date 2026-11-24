@@ -6,7 +6,7 @@
 {{ sources }}
 </sources>
 
-{% if moving_on %}
+{% if asked_to_move_on %}
 The student's latest message asks to move on from the point you were asking about.
 
 {% endif %}

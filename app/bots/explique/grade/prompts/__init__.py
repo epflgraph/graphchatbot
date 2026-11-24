@@ -11,7 +11,7 @@ INVITE_TEMPLATE = "invite.md"
 INVITE_UNRECORDED_TEMPLATE = "invite-unrecorded.md"
 # The same invitation, warning that the topic's deadline has passed, so nothing will be recorded.
 INVITE_PAST_DEADLINE_TEMPLATE = "invite-past-deadline.md"
-# Ends the invitation with the session's first question, when one was written.
+# Ends the invitation with the session's first question.
 INVITE_QUESTION_TEMPLATE = "invite-question.md"
 # Answers instead of the invitation when the topic has no points to grade against.
 DECLINE_TOPIC_TEMPLATE = "decline-topic.md"
