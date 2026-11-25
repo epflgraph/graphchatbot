@@ -15,13 +15,6 @@ logger = logging.getLogger(__name__)
 class LanguageDetection(BaseModel):
     """The language a user is writing in."""
 
-    reasoning: str = Field(
-        default="",
-        description=(
-            "One short sentence: which language the latest user's turn is written in, and — "
-            "when the message is too thin to carry one — what can be inferred from the conversation history."
-        ),
-    )
     lang_code: Literal[*LANGUAGES, UNDETERMINED] = Field(
         default=UNDETERMINED,
         description=f"The turn's language code, or `{UNDETERMINED}` when no supported language can be inferred.",
@@ -43,7 +36,7 @@ def make_detect_language_node(compiler: type[MessageCompiler]):
             fallback=LanguageDetection(),
         )
 
-        logger.info("Detected language: lang_code=%r; reasoning=%s", detection.lang_code, detection.reasoning)
+        logger.info("Detected language: lang_code=%r", detection.lang_code)
 
         return {"lang_code": detection.lang_code if detection.lang_code in LANGUAGES else None}
 
