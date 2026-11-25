@@ -1,19 +1,19 @@
 {% if lang_code == 'fr' %}
 Sujet : **{{ topic.name }}**.
 
-C'est ta preuve de travail : ton quiz d'entraînement ne s'ouvre qu'une fois ce sujet expliqué et vérifié.
+C'est ici que tu montres que tu as travaillé ce sujet : ton quiz d'entraînement ne s'ouvre qu'une fois que tu l'as expliqué et que ton explication tient la route.
 
-Explique-le avec tes propres mots, comme si tu l'enseignais à quelqu'un qui le découvre. Prends toute la place qu'il te faut.
+Explique-le avec tes propres mots, comme si tu l'enseignais à quelqu'un qui le découvre. Tu peux développer autant que tu veux.
 {% elif lang_code in ['de', 'gsw'] %}
 Thema: **{{ topic.name }}**.
 
-Das ist dein Arbeitsnachweis: dein Übungsquiz öffnet sich erst, wenn du dieses Thema erklärt und belegt hast.
+Hier zeigst du, dass du dieses Thema erarbeitet hast: Dein Übungsquiz öffnet sich erst, wenn du es erklärt hast und deine Erklärung standhält.
 
-Erklär es in eigenen Worten, als würdest du es jemandem beibringen, der es zum ersten Mal sieht. Nimm dir so viel Raum, wie du brauchst.
+Erklär es mit eigenen Worten, als würdest du es jemandem beibringen, der zum ersten Mal davon hört. Du kannst so ausführlich sein, wie du möchtest.
 {% elif lang_code == 'it' %}
 Argomento: **{{ topic.name }}**.
 
-Questa è la tua prova di lavoro: il quiz di esercitazione si apre solo dopo che avrai spiegato questo argomento e dimostrato che regge.
+Qui dimostri di aver studiato questo argomento: il quiz di esercitazione si apre solo dopo che l'avrai spiegato e avrai mostrato che la tua spiegazione regge.
 
 Spiegalo con parole tue, come se lo insegnassi a qualcuno che lo vede per la prima volta. Prenditi tutto lo spazio che ti serve.
 {% else %}
