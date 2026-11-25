@@ -30,7 +30,14 @@ async def invite_node(state: GradeBotState, runtime: Runtime[Bot]) -> StateUpdat
     # Written while Moodle is asked, so it adds no wait; without a question, the invitation stands alone.
     template, question = await asyncio.gather(
         _invite_template(state, runtime),
-        text_call(bot, GradeOpeningQuestionCompiler, state, tags=(TAG_NOSTREAM,), fallback=""),
+        text_call(
+            bot,
+            GradeOpeningQuestionCompiler,
+            # For the invitation only, the templates fall back to English when no language is detected.
+            {**state, "lang_code": lang_code or "en"},
+            tags=(TAG_NOSTREAM,),
+            fallback="",
+        ),
     )
 
     invitation = render_prompt(bot.prompt_search_path, template, topic=state["topic_lock"].topic, lang_code=lang_code)
