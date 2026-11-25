@@ -1,19 +1,29 @@
 import logging
 
 from langchain_core.messages import AIMessage
-from langchain_core.runnables import Runnable, RunnableConfig
+from langchain_core.runnables import Runnable
 from langgraph.graph import END
 from langgraph.runtime import Runtime
 from langgraph.types import Command
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.bots.base import Bot, BotState
+from app.bots.callbacks.base import CallbackContext, LLMRequest, ModelCallbacks, run_callbacks
+from app.bots.callbacks.return_direct import (
+    keep_only_return_direct_tools_past_budget,
+    withhold_return_direct_tools_when_forced,
+)
+from app.bots.callbacks.tool_call_repairs import fill_missing_call_ids, fix_repeated_tool_names
 from app.bots.languages import no_answer
-from app.bots.utils import STATUS_FETCHING, STATUS_RESPONDING, announce
 from app.compilation.base import MessageCompiler
 from app.llms.utils import flatten_content, generate_response
 
 logger = logging.getLogger(__name__)
+
+BUILT_IN_MODEL_CALLBACKS = ModelCallbacks(
+    before=(withhold_return_direct_tools_when_forced, keep_only_return_direct_tools_past_budget),
+    after=(fill_missing_call_ids, fix_repeated_tool_names),
+)
 
 
 class ModelNodeConfig(BaseModel):
@@ -21,69 +31,76 @@ class ModelNodeConfig(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
+    name: str = "model"
     compiler: type[MessageCompiler]
 
     # The text branch: where a plain answer goes, and whether it is this node's
-    # reply or only its decision not to search. A decision is discarded; keeping
+    # reply or only its decision not to call a tool. A decision is discarded; keeping
     # it would put an AI turn nobody asked for into the transcript.
     on_text: str = END
     text_is_reply: bool = True
 
-    # The tool branch: where a search goes, and how many rounds it may take.
+    # The tool branch: where tool calls go, and how many rounds they may take.
     # The cap always exists — unbounded, the loop runs until LangGraph aborts
     # the turn, which reaches the user as an empty reply.
     on_tools: str = "tools"
     max_tool_rounds: int = Field(default=8, ge=1)
 
-    status_events: bool = False
+    model_callbacks: ModelCallbacks = ModelCallbacks()
 
 
 class ModelNode:
     """Calls the bot's LLM client with its tools bound, and routes on what came back.
 
-    Callable as a LangGraph node: `await node(state, runtime, config)`.
+    Callable as a LangGraph node: `await node(state, runtime)`.
     """
 
     def __init__(self, tools: list, config: ModelNodeConfig):
         self._tools = tools
         self._config = config
+        self._before = (*BUILT_IN_MODEL_CALLBACKS.before, *config.model_callbacks.before)
+        self._after = (*BUILT_IN_MODEL_CALLBACKS.after, *config.model_callbacks.after)
 
-    async def __call__(self, state: BotState, runtime: Runtime[Bot], config: RunnableConfig) -> Command:
+    @property
+    def name(self) -> str:
+        """The name the graph registers this node under."""
+        return self._config.name
+
+    async def __call__(self, state: BotState, runtime: Runtime[Bot]) -> Command:
         bot = runtime.context
-        tool_rounds_made = state.get("tool_round", 0)
-        is_first_round = tool_rounds_made == 0
+        tool_rounds = state.get("tool_rounds", {})
+        tool_rounds_made = tool_rounds.get(self.name, 0)
 
-        if self._config.status_events:
-            will_search = is_first_round and bool(self._tools) and state.get("tool_choice") is not None
-            if will_search:
-                announce(STATUS_FETCHING, runtime)
-            elif is_first_round or self._config.text_is_reply:
-                announce(STATUS_RESPONDING, runtime)
-
-        # A forced `tool_choice` happens on the first round: once the model has
-        # searched, whether to search again is up to it, not the
-        # classifier. Without this, the forced choice would fire on every pass.
-        tool_choice = state.get("tool_choice") if is_first_round else None
+        # A forced `tool_choice` is for the turn's first tool round, whichever node
+        # takes it: once the model has called a tool, whether to call another is up
+        # to it, not the classifier. Without this, the forced choice would fire on every pass.
+        tool_choice = None if tool_rounds else state.get("tool_choice")
 
         # Past the budget the tools stay bound but forbidden. Omitting them would
-        # instead leave a model that has searched multiple times still emitting
+        # instead leave a model that has called tools several times still emitting
         # tool-call syntax, which parses to an empty reply.
         tool_rounds_exhausted = bool(self._tools) and tool_rounds_made >= self._config.max_tool_rounds
         if tool_rounds_exhausted:
             tool_choice = "none"
 
-        logger.info(
-            "Calling LLM client with %d tool(s), round=%d, tool_choice=%s",
-            len(self._tools),
-            tool_rounds_made,
-            tool_choice,
+        callback_context = CallbackContext(
+            state=state,
+            runtime=runtime,
+            tools=tuple(self._tools),
+            tool_round=tool_rounds_made,
+            max_tool_rounds=self._config.max_tool_rounds,
+            text_is_reply=self._config.text_is_reply,
         )
-        messages = self._config.compiler.compile(bot, {**state, "tool_rounds_exhausted": tool_rounds_exhausted})
-        response = await generate_response(self._resolve_model(bot, tool_choice), messages)
+        llm_request = LLMRequest(
+            messages=self._config.compiler.compile(bot, {**state, "tool_rounds_exhausted": tool_rounds_exhausted}),
+            tools=list(self._tools),
+            tool_choice=tool_choice,
+        )
+        response = await self._respond(bot, callback_context, llm_request)
         call_failed = response is None
 
         if not call_failed and response.tool_calls:
-            return self._searched(response, tool_rounds_made, config)
+            return self._called_tools(response, tool_rounds_made)
 
         # Past the tool branch, so whatever came back was meant to be text.
         answered_with_nothing = not call_failed and not flatten_content(response.content).strip()
@@ -95,19 +112,35 @@ class ModelNode:
 
         return self._answered(response)
 
-    def _resolve_model(self, bot: Bot, tool_choice: str | None) -> Runnable:
-        """The model the compiler chose, with the tools bound to it."""
+    async def _respond(self, bot: Bot, callback_context: CallbackContext, llm_request: LLMRequest) -> AIMessage | None:
+        """The response, from a callback or the model, or `None` if the model call failed."""
+        if intercepted := await run_callbacks(self._before, callback_context, llm_request):
+            return intercepted
+
+        logger.info(
+            "Calling LLM client with %d tool(s), round=%d, tool_choice=%s",
+            len(llm_request.tools),
+            callback_context.tool_round,
+            llm_request.tool_choice,
+        )
+        response = await generate_response(self._resolve_model(bot, llm_request), llm_request.messages)
+        if response is None:
+            return None
+        return await run_callbacks(self._after, callback_context, response) or response
+
+    def _resolve_model(self, bot: Bot, llm_request: LLMRequest) -> Runnable:
+        """The model the compiler chose, with the request's tools bound to it."""
         model = bot.model_for(self._config.compiler.config.model_choice)
-        if not self._tools:
+        if not llm_request.tools:
             return model
-        return model.bind_tools(self._tools, tool_choice=tool_choice, parallel_tool_calls=True)
+        return model.bind_tools(llm_request.tools, tool_choice=llm_request.tool_choice, parallel_tool_calls=True)
 
     def _answered(self, response: AIMessage) -> Command:
-        """The model responded with text instead of searching."""
+        """The model responded with text instead of calling a tool."""
         update = {"messages": [response]} if self._config.text_is_reply else None
         return Command(goto=self._config.on_text, update=update)
 
-    def _searched(self, response: AIMessage, tool_rounds_made: int, runnable_config: RunnableConfig) -> Command:
+    def _called_tools(self, response: AIMessage, tool_rounds_made: int) -> Command:
         """The model asked for one or more tool calls, so `tools` runs them and comes back here."""
         tool_round = tool_rounds_made + 1
 
@@ -116,16 +149,12 @@ class ModelNode:
         tool_rounds_exhausted = tool_round >= self._config.max_tool_rounds
         handover = tool_rounds_exhausted and not self._config.text_is_reply
 
-        # Read rather than configured, so this can't drift from the name the
-        # graph registered the node under.
-        this_node = runnable_config["metadata"]["langgraph_node"]
-
         return Command(
             goto=self._config.on_tools,
             update={
                 "messages": [response],
-                "tool_round": tool_round,
-                "active_node": self._config.on_text if handover else this_node,
+                "tool_rounds": {self.name: tool_round},
+                "active_node": self._config.on_text if handover else self.name,
             },
         )
 
@@ -135,4 +164,7 @@ def make_model_node(tools: list, **config) -> ModelNode:
 
     Keywords are `ModelNodeConfig` fields; the defaults describe the node that answers the user.
     """
-    return ModelNode(tools, ModelNodeConfig(**config))
+    node_config = ModelNodeConfig(**config)
+    if not node_config.text_is_reply and any(tool.return_direct for tool in tools):
+        raise ValueError("A tool whose output is the reply (`return_direct`) needs a node whose text is the reply.")
+    return ModelNode(tools, node_config)

@@ -4,6 +4,9 @@ from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from app.bots.base import Bot, BotState
+from app.bots.callbacks.base import ModelCallbacks, ToolRoundCallbacks
+from app.bots.callbacks.dedupe import dedupe_tool_results
+from app.bots.callbacks.status import announce_status
 from app.bots.compilers.classify import ClassifyCompiler
 from app.bots.course.compilers.retrieve import RetrieveCompiler
 from app.bots.course.course_bot import CourseBot, RequestType
@@ -50,23 +53,27 @@ class DirectCourseBot(CourseBot):
             Node.CLASSIFY,
             make_classify_node(self.CATEGORIES, fallback=RequestType.GREETING, compiler=ClassifyCompiler),
         )
-        workflow.add_node(
-            Node.RETRIEVE,
-            make_model_node(
-                tools,
-                compiler=RetrieveCompiler,
-                on_text=Node.RESPOND,
-                on_tools=Node.TOOLS,
-                text_is_reply=False,
-                max_tool_rounds=self.MAX_RETRIEVAL_ROUNDS,
-                status_events=True,
-            ),
+        retrieve_node = make_model_node(
+            tools,
+            name=Node.RETRIEVE,
+            compiler=RetrieveCompiler,
+            on_text=Node.RESPOND,
+            on_tools=Node.TOOLS,
+            text_is_reply=False,
+            max_tool_rounds=self.MAX_RETRIEVAL_ROUNDS,
+            model_callbacks=ModelCallbacks(before=(announce_status,)),
         )
-        workflow.add_node(Node.TOOLS, make_tools_node(tools))
+        workflow.add_node(retrieve_node.name, retrieve_node)
         workflow.add_node(
-            Node.RESPOND,
-            make_model_node([], compiler=DirectResponseCompiler, status_events=True),
+            Node.TOOLS, make_tools_node(tools, tool_round_callbacks=ToolRoundCallbacks(after=(dedupe_tool_results,)))
         )
+        respond_node = make_model_node(
+            [],
+            name=Node.RESPOND,
+            compiler=DirectResponseCompiler,
+            model_callbacks=ModelCallbacks(before=(announce_status,)),
+        )
+        workflow.add_node(respond_node.name, respond_node)
 
         workflow.set_entry_point(Node.CLASSIFY)
         workflow.add_conditional_edges(Node.CLASSIFY, self._route_after_classify)
