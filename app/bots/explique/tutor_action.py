@@ -56,8 +56,8 @@ def needs_mastery_challenge(student_state: StudentState) -> bool:
 
 
 def needs_motivation(student_state: StudentState) -> bool:
-    """A disengaged student needs re-engagement before any teaching move."""
-    return not student_state.mastery and is_disengaged(student_state)
+    """A disengaged student needs re-engagement before any teaching move, unless they have stalled."""
+    return not student_state.mastery and is_disengaged(student_state) and not is_stalled(student_state)
 
 
 def needs_misconception_challenge(student_state: StudentState) -> bool:

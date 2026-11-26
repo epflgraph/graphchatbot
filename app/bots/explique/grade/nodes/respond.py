@@ -23,7 +23,7 @@ def make_respond_node(on_candidate_response: str):
         category = state.get("category")
         logger.info("Responding to a %s turn", category)
 
-        compiler = compiler_for(category)
+        compiler = compiler_for(category, state.get("tutor_action"))
         dialog = compiler.apply_callbacks(state)["messages"]
         context = EvaluatorContext(prior_turns=all_assistant_turns(dialog))
 

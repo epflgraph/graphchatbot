@@ -16,6 +16,7 @@ from app.bots.explique.grade.compilers.base import GradeContext, GradedTurnsComp
 from app.bots.explique.grade.models import GradeChallengePlan, GradeStudentIntent
 from app.bots.explique.grade.transcript import graded_turns
 from app.bots.explique.models import StudentIntent, StudentState, TutorAction
+from app.compilation.base import ModelChoice
 from app.llms.utils import flatten_content
 
 
@@ -80,6 +81,17 @@ class GradeTutoringResponseCompiler(GradedTurnsCompiler, ResponseCompiler):
         }
 
 
+class GradeExplanationResponseCompiler(GradeTutoringResponseCompiler):
+    """The explanation a stalled student has earned: the one move that states the point itself, hence the careful model."""
+
+    config = response_config(
+        model_choice=ModelChoice.CAREFUL,
+        overrides=(TutorAction.EXPLAIN,),
+        system_template="intent-in-topic.md",
+        user_template="intent-in-topic-turn.md",
+    )
+
+
 class GradeContentUnreadableResponseCompiler(GradedTurnsCompiler, ContentUnreadableResponseCompiler):
     """The tutor's reply to an unreadable turn, told which topic the session is on."""
 
@@ -120,7 +132,63 @@ class GradeClarificationResponseCompiler(GradedTurnsCompiler, ResponseCompiler):
         return ()
 
 
+class GradeSkipResponseContext(GradeResponseContext):
+    """The point the planner moved to, and what is already covered."""
+
+    points_applied: tuple[str, ...]
+    current_point: str
+    direction: str
+    last_point_open: bool
+
+
+class GradeSkipResponseCompiler(GradedTurnsCompiler, ResponseCompiler):
+    """The reply to a student who asked to move on: the point they left stays open, and the turn takes up another."""
+
+    config = response_config(
+        overrides=(StudentIntent.SKIP_TOPIC,),
+        system_template="intent-skip.md",
+        user_template="intent-skip-turn.md",
+    )
+    context_class = GradeSkipResponseContext
+
+    @classmethod
+    def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
+        plan = state["challenge_plan"]
+        return super().context_fields(bot, state) | {
+            "points_applied": tuple(plan.points_applied),
+            "current_point": state["current_point"],
+            "direction": plan.direction,
+            "last_point_open": len(plan.points_remaining) == 1,
+        }
+
+
+class GradeOpeningQuestionContext(GradeResponseContext):
+    """The point the first question takes up."""
+
+    current_point: str
+
+
+class GradeOpeningQuestionCompiler(GradedTurnsCompiler, ResponseCompiler):
+    """The session's first question, on the topic's first point."""
+
+    config = response_config(system_template="opening-question.md", user_template="opening-question-turn.md")
+    context_class = GradeOpeningQuestionContext
+
+    @classmethod
+    def context_fields(cls, bot: Bot, state: Mapping[str, Any]) -> dict[str, Any]:
+        return super().context_fields(bot, state) | {"current_point": state["topic_points"][0]}
+
+    @classmethod
+    def embedded_turns(cls, bot: Bot, context: GradeOpeningQuestionContext) -> tuple[BaseMessage, ...]:
+        """No conversation turns: so far the student has only picked the topic."""
+        return ()
+
+
 # Only these categories reach a responder here; everything else is redirected without a model call.
 compiler_for = compiler_lookup(
-    GradeTutoringResponseCompiler, GradeContentUnreadableResponseCompiler, GradeClarificationResponseCompiler
+    GradeTutoringResponseCompiler,
+    GradeExplanationResponseCompiler,
+    GradeContentUnreadableResponseCompiler,
+    GradeClarificationResponseCompiler,
+    GradeSkipResponseCompiler,
 )

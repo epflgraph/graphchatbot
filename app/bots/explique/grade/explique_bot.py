@@ -125,12 +125,20 @@ class ExpliqueGradeBot(ExpliqueBot):
     def _route_after_classify(state: GradeBotState) -> Node | tuple[Node, ...] | GradeNode:
         """A graded session answers nothing but the topic it locked.
         A question about the tutor's own question is answered without grading, since it claims nothing.
+        A request to move on claims nothing either, so only the planner reads it, to pick another point.
         Every other intent is redirected, and what was retrieved for it is unused."""
         if state["category"] == StudentIntent.IN_TOPIC_RESPONSE:
             return (Node.EVALUATE, Node.PLAN_CHALLENGE)
         if state["category"] == GradeStudentIntent.CLARIFICATION:
             return Node.RESPOND
+        if state["category"] == StudentIntent.SKIP_TOPIC:
+            return Node.PLAN_CHALLENGE
         return GradeNode.REDIRECT
+
+    @staticmethod
+    def _route_after_plan_challenge(state: GradeBotState) -> Node:
+        """A request to move on was never evaluated, so its reply follows the plan alone."""
+        return Node.RESPOND if state["category"] == StudentIntent.SKIP_TOPIC else Node.SELECT_ACTION
 
     def _route_after_select_action(self, state: GradeBotState) -> Node | GradeNode:
         """A covered topic ends the exercise instead of extending it; a turn that could not be evaluated gets
@@ -170,6 +178,7 @@ class ExpliqueGradeBot(ExpliqueBot):
             ┌─────────────────────────────────────────────────────────────────────────────────────────────────┘
             ├─ (anything but an explanation) ─► redirect ─► END
             ├─ (a question about the tutor's question) ─► respond
+            ├─ (a request to move on) ─► plan_challenge ─► respond
             └─ (an explanation) ─┬─ evaluate ───────┬─► select_action ─┬─ (covered) ─► finish ─► END
                                  └─ plan_challenge ─┘                  ├─ (not evaluated) ─► no_answer ─► END
                                                                        └─ (points left) ─► respond
@@ -260,7 +269,7 @@ class ExpliqueGradeBot(ExpliqueBot):
         workflow.add_edge([Node.CLASSIFY, Node.POST_RETRIEVE], GradeNode.POST_CLASSIFY)
         workflow.add_conditional_edges(GradeNode.POST_CLASSIFY, self._route_after_classify)
         workflow.add_edge(Node.EVALUATE, Node.SELECT_ACTION)
-        workflow.add_edge(Node.PLAN_CHALLENGE, Node.SELECT_ACTION)
+        workflow.add_conditional_edges(Node.PLAN_CHALLENGE, self._route_after_plan_challenge)
         workflow.add_conditional_edges(Node.SELECT_ACTION, self._route_after_select_action)
 
         return workflow.compile()

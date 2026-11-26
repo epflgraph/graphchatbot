@@ -2,7 +2,6 @@ from functools import partial
 
 from app.bots.explique.models import GapType, StudentState, TutorAction
 from app.bots.explique.tutor_action import (
-    is_large_gap,
     is_ready_to_be_taught,
     is_stalled,
     needs_mastery_challenge,
@@ -13,20 +12,20 @@ from app.bots.explique.tutor_action import (
 
 
 def _needs_explanation(student_state: StudentState) -> bool:
-    """Large gaps ultimately call for an explanation, but we withhold it to keep the
-    dialogue Socratic: the student must reason first, and only earns one once they are
-    genuinely stalled on the same point with no way out. This is the single route to a
-    direct answer."""
-    return is_ready_to_be_taught(student_state) and is_large_gap(student_state) and is_stalled(student_state)
+    """We withhold an explanation to keep the dialogue Socratic: the student must reason
+    first, and only earns one once they are genuinely stalled on the same point, whatever
+    the size of the gap or their mood by then. This is the single route to a direct answer, and the planner
+    credits the explained point only on a later case."""
+    return not student_state.mastery and is_stalled(student_state)
 
 
 def _needs_hint(student_state: StudentState) -> bool:
-    """Right idea wrong mechanics, or stalled with something still to build on."""
-    # Guards on `large` rather than `substantive` so every stalled state the stricter
-    # explanation gate rejects lands here — otherwise it circles on `probe` forever.
-    if not is_ready_to_be_taught(student_state) or (is_large_gap(student_state) and is_stalled(student_state)):
-        return False
-    return student_state.gap_type == GapType.PROCEDURAL or is_stalled(student_state)
+    """Right idea wrong mechanics, while the student has not stalled; once they have, they get the explanation."""
+    return (
+        is_ready_to_be_taught(student_state)
+        and student_state.gap_type == GapType.PROCEDURAL
+        and not is_stalled(student_state)
+    )
 
 
 # Reads naturally top-to-bottom, but isn't load-bearing: the conditions are

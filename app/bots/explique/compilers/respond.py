@@ -36,9 +36,10 @@ class PlanDirective(BaseModel):
     reasoning: str = ""
 
 
-def response_config(**declared) -> MessageCompilerConfig:
-    """Every responder shares the same task and model; only what differs gets written out."""
-    return MessageCompilerConfig(task=ExpliqueTask.RESPOND, model_choice=ModelChoice.REPLY, **declared)
+def response_config(model_choice: ModelChoice = ModelChoice.REPLY, **declared) -> MessageCompilerConfig:
+    """Every responder shares the same task, and the reply model unless it declares another; only what differs gets
+    written out."""
+    return MessageCompilerConfig(task=ExpliqueTask.RESPOND, model_choice=model_choice, **declared)
 
 
 class ResponseCompiler(ExpliqueTurnsCompiler):
@@ -95,14 +96,22 @@ class UnassignedCategoryError(KeyError):
         super().__init__(f"No compiler for category {category!s}. Assigned: {[str(cat) for cat in assigned]!r}")
 
 
-def _compiler_for(by_category: Mapping[StrEnum, type[ResponseCompiler]], category: StrEnum) -> type[ResponseCompiler]:
-    compiler = by_category.get(category)
+def _compiler_for(
+    by_action: Mapping[StrEnum, type[ResponseCompiler]],
+    by_category: Mapping[StrEnum, type[ResponseCompiler]],
+    category: StrEnum,
+    tutor_action: TutorAction | None = None,
+) -> type[ResponseCompiler]:
+    compiler = by_action.get(tutor_action) or by_category.get(category)
     if compiler is None:
         raise UnassignedCategoryError(category, by_category)
     return compiler
 
 
-def compiler_lookup(*compilers: type[ResponseCompiler]) -> Callable[[StrEnum], type[ResponseCompiler]]:
-    """A `compiler_for(category)` over `compilers`, from the `overrides` each one declares."""
-    by_category = {category: compiler for compiler in compilers for category in compiler.config.overrides}
-    return partial(_compiler_for, by_category)
+def compiler_lookup(*compilers: type[ResponseCompiler]) -> Callable[..., type[ResponseCompiler]]:
+    """A `compiler_for(category, tutor_action=None)` over `compilers`, from the `overrides` each one declares: one
+    declared for the tutor action wins over the one for the category."""
+    declared = [(override, compiler) for compiler in compilers for override in compiler.config.overrides]
+    by_action = {override: compiler for override, compiler in declared if isinstance(override, TutorAction)}
+    by_category = {override: compiler for override, compiler in declared if not isinstance(override, TutorAction)}
+    return partial(_compiler_for, by_action, by_category)

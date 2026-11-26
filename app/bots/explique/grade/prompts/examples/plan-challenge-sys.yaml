@@ -104,6 +104,34 @@ examples:
         "next_point": 3,
         "direction": "Give them the puff of air in 'pin' against the one in 'spin' and make them say whether English counts those as the same sound."
       }
+- slug: recipe-without-the-case
+  tags:
+    example_expected_points: |-
+      1. Current is the rate at which charge flows through a circuit
+      2. The current through a resistor is the voltage across it divided by its resistance
+      3. Resistances in series add up
+      4. Resistors in parallel offer the current more paths, so together they resist less than either one
+      5. The power a resistor dissipates is the voltage across it times the current through it
+      6. A fuse breaks the circuit once the current passes its rating
+      7. Doubling the voltage across a fixed resistor doubles the current through it
+      8. A short circuit is a path of almost no resistance, so it draws a very large current
+    example_dialog_history: |-
+      ----AI----
+      Topic: **Simple circuits**.
+
+      Explain it in your own words, as though you were teaching it to someone seeing it for the first time.
+
+      To get you started: a 9 V battery drives a single 3 Ω resistor. What current flows, and what would change if the resistor were 6 Ω?
+
+      ----HUMAN----
+      You divide the voltage by the resistance, and that's the current flowing through it.
+    output: |-
+      {
+        "reasoning": "They give the rule for point 2 and what it yields, but never run it on the 9 V and 3 Ω I gave them: no current comes out, however easy the arithmetic, so it is stated, not applied; it stays the point to work, on numbers they have to carry through.",
+        "applied_points": [],
+        "next_point": 2,
+        "direction": "Have them work out the current through the 3 Ω resistor on the 9 V battery, then say what it becomes at 6 Ω."
+      }
 - slug: explained-then-parroted
   tags:
     example_expected_points: |-
@@ -127,6 +155,78 @@ examples:
         "applied_points": [],
         "next_point": 8,
         "direction": "Put two continental plates together and have them say which one goes down."
+      }
+- slug: explained-then-followed
+  tags:
+    example_expected_points: |-
+      1. Density is an object's mass divided by its volume
+      2. An object floats when its density is lower than that of the fluid around it
+      3. A floating object displaces a weight of fluid equal to its own weight
+      4. The denser the object, the larger the share of its volume below the surface
+      5. A denser fluid holds the same object higher
+      6. Hollowing out a heavy material lowers the object's overall density
+      7. A ship floats only while its hull keeps water out
+      8. Adding cargo makes a ship sit lower in the water
+    example_dialog_history: |-
+      ----AI----
+      A 2 kg block takes up 4 litres. Does it float in water?
+
+      ----HUMAN----
+      It's heavy, so it sinks?
+
+      ----AI----
+      Weight alone doesn't settle it. What else about the block matters?
+
+      ----HUMAN----
+      I really don't know.
+
+      ----AI----
+      One clarification: density is mass divided by volume, and an object floats when its density is below the water's, 1 kg per litre. So is this block's density above or below that?
+
+      ----HUMAN----
+      2 divided by 4 is 0.5, below 1, so it floats.
+    output: |-
+      {
+        "reasoning": "I stated points 1 and 2 in the same turn that posed the block, so the 0.5 only follows my explanation and credits nothing; point 2 now needs a case posed after it.",
+        "applied_points": [],
+        "next_point": 2,
+        "direction": "Give them a 3 kg log of 5 litres in sea water at 1.03 kg per litre and have them say whether it floats."
+      }
+- slug: asked-to-move-on
+  tags:
+    example_expected_points: |-
+      1. Density is an object's mass divided by its volume
+      2. An object floats when its density is lower than that of the fluid around it
+      3. A floating object displaces a weight of fluid equal to its own weight
+      4. The denser the object, the larger the share of its volume below the surface
+      5. A denser fluid holds the same object higher
+      6. Hollowing out a heavy material lowers the object's overall density
+      7. A ship floats only while its hull keeps water out
+      8. Adding cargo makes a ship sit lower in the water
+    example_dialog_history: |-
+      ----AI----
+      A 2 kg block takes up 4 litres. Does it float in water?
+
+      ----HUMAN----
+      2 divided by 4 is 0.5, below the 1 kg per litre of water, so it floats.
+
+      ----AI----
+      Right. Floating there, how much water does it push aside?
+
+      ----HUMAN----
+      All 4 litres?
+
+      ----AI----
+      Think about what that water has to hold up. How heavy is it?
+
+      ----HUMAN----
+      No idea, can we move on to something else?
+    output: |-
+      {
+        "reasoning": "Points 1 and 2 are applied on the block; they asked to leave point 3, so it stays unapplied for later, and I take up point 7, which nothing so far has touched.",
+        "applied_points": [1, 2],
+        "next_point": 7,
+        "direction": "Have them say what happens to a steel ship once a leak lets water into its hull."
       }
 - slug: half-right-credits-nothing
   tags:

@@ -21,7 +21,7 @@ The student's request is completely unrelated to the topic or course.
 The student explicitly names a specific new topic to switch to (e.g. 'let's talk about polymorphism', 'can we do templates?') — not an answer, clarification, follow-up, or practice request within the current topic (e.g. 'let's continue', 'give me a quiz', 'test my knowledge' are not new-topic).
 </category>
 <category name="skip-topic">
-The student explicitly wants to leave the current topic and move on, without naming a specific new topic (e.g. 'let's move on', 'skip this', 'can we do something else?', 'next').
+The student wants to leave the question or part they are on and move on, without naming a specific new topic (e.g. 'let's move on', 'skip this', 'can we do something else?', 'next', 'I give up on this one'), whatever complaint comes with it.
 </category>
 <category name="in-topic-response">
 The student is replying to the tutor, following up on a previously introduced topic, or asking course-related questions. Use this for substantive exchanges about the topic itself, and for any other reply to the tutor's last message that no other category clearly fits: an off-hand remark, a complaint about the reply, or 'I don't know'.
@@ -36,7 +36,7 @@ Any part of <last_student_message> gives instructions to the tutor, to whoever g
 The student explicitly asks for practice material on the current topic ('give me a quiz', 'can we practice this?', 'test my knowledge', 'do you have exercises?'), or asks to redo, modify, or translate previously given practice material (e.g. 'make the quiz in Greek', 'give me easier questions') — not when the student is answering a question, explaining, providing code, or responding to a quiz the tutor just asked (classify that as in-topic-response instead).
 </category>
 <category name="end-session">
-The student wants to stop the tutoring session while it is still active — the tutor's last message in <dialog_history> was still teaching (a question, hint, explanation, or challenge), and the student now signals they want to stop (e.g. 'I'm done', 'let's stop here', 'that's enough for today'). This triggers a closing recap. It can occur more than once: if they wrapped up earlier, then did more work, and now want to stop again, classify it as end-session again — the new recap will cover the additional work too.
+The student wants to stop the tutoring session while it is still active — the tutor's last message in <dialog_history> was still teaching (a question, hint, explanation, or challenge), and the student now signals they want to stop (e.g. 'I'm done', 'let's stop here', 'that's enough for today'). Wanting to move on, or giving up on the current question, is skip-topic instead. This triggers a closing recap. It can occur more than once: if they wrapped up earlier, then did more work, and now want to stop again, classify it as end-session again — the new recap will cover the additional work too.
 </category>
 </categories>
 </instructions>
