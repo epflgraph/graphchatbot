@@ -3,9 +3,21 @@ from enum import StrEnum
 from functools import cached_property
 
 from langchain.tools import tool
+from langchain_core.messages import BaseMessage
+from langgraph.graph import StateGraph
+from langgraph.graph.state import CompiledStateGraph
 from pydantic import BaseModel
 
-from app.bots.base import Bot
+from app.bots.artifacts.rich_response import RichResponse
+from app.bots.base import Bot, BotState
+from app.bots.compilers.classify import ClassifyCompiler
+from app.bots.course.compilers.respond import GroundedResponseCompiler
+from app.bots.course.compilers.retrieve import RetrieveCompiler
+from app.bots.nodes.classify import make_classify_node
+from app.bots.nodes.model import make_model_node
+from app.bots.nodes.respond import make_respond_node
+from app.bots.nodes.tools import make_tools_node, parse_tool_result
+from app.bots.utils import Source
 from app.compilation.templates import render_prompt
 from app.interfaces.graphai import RAGResult, graphai
 
@@ -85,6 +97,8 @@ class CourseBot(Bot):
         other translation of every retrieved chunk is dropped in
         `_format_results`, so one search feeds the model half the text.
         Defaults to French; English-taught courses override it with `"en"`.
+        may_cite() — which retrieved documents a reply may show as a source.
+        Defaults to every one.
     """
 
     tool_input_schema: type[BaseModel]
@@ -144,6 +158,34 @@ class CourseBot(Bot):
             formatted.append({key: value for key, value in item.items() if value is not None})
         return formatted
 
+    @staticmethod
+    def may_cite(chunk: dict) -> bool:
+        """Whether a reply may cite the document this chunk comes from."""
+        return True
+
+    @classmethod
+    def retrieved_sources(cls, messages: list[BaseMessage]) -> dict[str, Source]:
+        """Every source a reply may cite from the tool results in `messages`, by url, in the order first returned."""
+        titles, excerpts = {}, {}
+        # Earlier turns' tool results never reach the transcript, so every one here is this turn's.
+        for message in messages:
+            chunks = parse_tool_result(message) if message.type == "tool" else None
+            for chunk in chunks or ():
+                if not isinstance(chunk, dict):
+                    continue
+                # Without its url, the chunk's document is no source; the videos it links to still are.
+                if not cls.may_cite(chunk):
+                    chunk = {key: value for key, value in chunk.items() if key != "url"}
+                # A chunk names its own document and the lecture videos it links to.
+                for document in (chunk, *chunk.get("associated_video_lectures", ())):
+                    if document.get("url"):
+                        titles.setdefault(document["url"], document.get("title") or document["url"])
+                        excerpts.setdefault(document["url"], [])
+                if chunk.get("url") and chunk.get("content"):
+                    excerpts[chunk["url"]].append(chunk["content"])
+
+        return {url: Source(title=title, url=url, excerpts=tuple(excerpts[url])) for url, title in titles.items()}
+
     async def search_course_material(self, query: str, filters: BaseModel | None = None) -> list:
         logger.info("filters=`%s`", filters)
 
@@ -166,3 +208,77 @@ class CourseBot(Bot):
                 self.search_course_material
             )
         ]
+
+
+class Node(StrEnum):
+    """Graph node identifiers for rich-response course bots."""
+
+    CLASSIFY = "classify"
+    RETRIEVE = "retrieve"
+    TOOLS = "tools"
+    RESPOND = "respond"
+
+
+class RichResponseCourseBot(CourseBot):
+    """Base for course bots that reply with a rich response, in `response_schema`.
+
+    The graph is split into a lightweight retrieval node that decides what to search, and a
+    separate answer node that replies from the retrieved sources. The model decides which blocks
+    the response is made of, from the conversation.
+
+    Subclasses must define:
+        response_schema — the bot's response, whose `blocks` is the union of the blocks it offers
+    """
+
+    MAX_RETRIEVAL_ROUNDS = 1
+
+    response_schema: type[RichResponse]
+
+    # The respond node writes its reply to the stream itself, block by block.
+    # Listing it here would send the reply a second time.
+    model_nodes = ()
+
+    def prompt_context(self) -> dict:
+        return super().prompt_context() | {"block_schemas": self.response_schema.block_schemas()}
+
+    def _route_after_classify(self, state: BotState) -> Node:
+        """Course-content requests retrieve material; everything else answers directly."""
+        category = state.get("category")
+        if self.CATEGORIES[category]["tool_choice"] is None:
+            return Node.RESPOND
+        return Node.RETRIEVE
+
+    def build_graph(self) -> CompiledStateGraph:
+        tools = self.build_tools()
+
+        workflow = StateGraph(BotState, context_schema=Bot)
+        workflow.add_node(
+            Node.CLASSIFY,
+            make_classify_node(self.CATEGORIES, fallback=RequestType.GREETING, compiler=ClassifyCompiler),
+        )
+        workflow.add_node(
+            Node.RETRIEVE,
+            make_model_node(
+                tools,
+                compiler=RetrieveCompiler,
+                on_text=Node.RESPOND,
+                on_tools=Node.TOOLS,
+                text_is_reply=False,
+                max_tool_rounds=self.MAX_RETRIEVAL_ROUNDS,
+                status_events=True,
+            ),
+        )
+        workflow.add_node(Node.TOOLS, make_tools_node(tools))
+        workflow.add_node(
+            Node.RESPOND,
+            make_respond_node(
+                compiler=GroundedResponseCompiler,
+                response_schema=self.response_schema,
+                retrieved_sources=self.retrieved_sources,
+            ),
+        )
+
+        workflow.set_entry_point(Node.CLASSIFY)
+        workflow.add_conditional_edges(Node.CLASSIFY, self._route_after_classify)
+
+        return workflow.compile()

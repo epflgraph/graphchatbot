@@ -19,3 +19,10 @@ def parse_int(text: str) -> int | None:
     except ValueError:
         # Past the digit limit `int()` reads.
         return None
+
+
+def time_label(seconds: int) -> str:
+    """`seconds` as a video player shows it, e.g. 1:40:22, or 4:05 under an hour."""
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    return f"{hours}:{minutes:02}:{seconds:02}" if hours else f"{minutes}:{seconds:02}"

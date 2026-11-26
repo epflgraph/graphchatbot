@@ -23,18 +23,18 @@ app/
 │   ├── registry.py      # Auto-discovery of bot classes via filesystem scanning
 │   ├── languages.py     # Languages a bot can be instructed to reply in
 │   ├── main.py          # LLM completion / streaming helpers
-│   ├── utils.py         # Status events and text a node writes to the stream itself
+│   ├── utils.py         # Status and source events, and text, a node writes to the stream itself
 │   ├── compilers/       # Shared message compilers (classify, respond)
 │   ├── prompts/         # Shared prompt templates and macros
-│   ├── nodes/           # Reusable LangGraph nodes (classify, model, tools, transcribe_image, detect_language)
-│   ├── artifacts/       # Base for bot responses rendered as HTML
+│   ├── nodes/           # Reusable LangGraph nodes (classify, model, tools, respond, transcribe_image, detect_language)
+│   ├── artifacts/       # Bot responses rendered from templates: rich-response blocks (Markdown) and HTML pages
 │   ├── cache/           # Shared on-disk caches (e.g. image transcriptions, topic points)
 │   ├── admin/           # AdminBot + concrete admin bots
 │   ├── course/          # CourseBot + pedagogical variants
 │   ├── explique/        # ExpliqueBot base + its train/ and grade/ flavours
 │   └── graph_chat/      # GraphChatBot
 ├── interfaces/          # Clients for external services (GraphAI RAG, Moodle)
-├── llms/utils.py        # Message shaping helpers (flattening, image parts, timeouts)
+├── llms/utils.py        # Message shaping helpers, and model calls bounded by a timeout (plain, structured, streamed)
 └── routers/             # FastAPI public routers
 ```
 
@@ -75,7 +75,7 @@ Templates render under `StrictUndefined`, so a placeholder with no value raises 
 - **Type hints**: Use `list[str]`, `dict[str, ...]`, `str | None` (Python 3.12)
 - **Models**: `langchain_openai.ChatOpenAI`. Credentials (`base_url`, `api_key`) are read from `config.ini`; the shared base model name and generation parameters in `app.bots.base.Bot` are currently hardcoded.
 - **Graphs**: Stateless, compiled at startup via `@cached_property`, reused per request
-- **Streaming**: Use `stream_mode=["messages", "custom"]`, filter tokens by `metadata["langgraph_node"]`; a node can also write a `Status` event or text to the stream itself through `runtime.stream_writer` (helpers in `app.bots.utils`)
+- **Streaming**: Use `stream_mode=["messages", "custom"]`, filter tokens by `metadata["langgraph_node"]`; a node can also write a `Status` or `Source` event, or text, to the stream itself through `runtime.stream_writer` (helpers in `app.bots.utils`)
 - **Tools**: Declare via `langchain.tools.tool`, with Pydantic `args_schema`
 - **State**: Extend `BotState` (adds `category`, `tool_choice`, `requester`, `active_node`, and `tool_round` to `MessagesState`)
 - **Requester**: `BotState.requester` is who is asking, read by `app.identity` from the headers Open WebUI forwards; unverified, and `None` when they are not forwarded
@@ -115,7 +115,7 @@ client = OpenAI(base_url="http://localhost:8000/v1", api_key="unused")
 client.chat.completions.create(model="MY-BOT-NAME", messages=[{"role": "user", "content": "Hi"}])
 ```
 
-The `X-OpenWebUI-User-Id` and `X-OpenWebUI-User-Email` headers, when forwarded, become `BotState.requester`. A streamed reply can also carry status events: chunks with an `event` object, which Open WebUI shows as a line above the reply.
+The `X-OpenWebUI-User-Id` and `X-OpenWebUI-User-Email` headers, when forwarded, become `BotState.requester`. A streamed reply can also carry status events: chunks with an `event` object, which Open WebUI shows as a line above the reply. Hinting and direct course bots also send `source` events: the documents a reply cites, which Open WebUI shows as citation chips under it.
 
 ## Testing a Bot
 

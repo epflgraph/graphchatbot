@@ -1,0 +1,1 @@
+{{ content }}{% include "citations.md" %}

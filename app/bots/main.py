@@ -9,11 +9,15 @@ from langchain_core.messages import convert_to_messages
 from langchain_core.runnables import RunnableConfig
 from langfuse import Langfuse
 from langfuse.langchain import CallbackHandler
+from openai.types.chat import ChatCompletion, ChatCompletionChunk, ChatCompletionMessage
+from openai.types.chat.chat_completion import Choice
+from openai.types.chat.chat_completion_chunk import Choice as ChunkChoice
+from openai.types.chat.chat_completion_chunk import ChoiceDelta
 from openai.types.chat.completion_create_params import CompletionCreateParams
 
 from app.bots.base import Bot
 from app.bots.languages import no_answer
-from app.bots.utils import Status
+from app.bots.utils import Source, Status, TurnEvent
 from app.config import config
 from app.identity import Requester
 from app.llms.utils import drop_system_messages
@@ -56,28 +60,29 @@ async def generate_completion(chat_request: CompletionCreateParams, bot: Bot, *,
         # a 500 — unlike the streaming path, which has already committed to a 200.
         logger.exception("Completion failed for bot %r, model %r", bot.name, chat_request["model"])
         raise
-    content = agent_state["messages"][-1].content
+    message = ChatCompletionMessage(role="assistant", content=agent_state["messages"][-1].content)
 
-    return {
-        "id": "1",
-        "object": "chat.completion",
-        "created": int(time.time()),
-        "model": chat_request["model"],
-        "choices": [{"index": 0, "message": {"role": "assistant", "content": content}, "finish_reason": "stop"}],
-    }
+    completion = ChatCompletion(
+        id="1",
+        object="chat.completion",
+        created=int(time.time()),
+        model=chat_request["model"],
+        choices=[Choice(index=0, message=message, finish_reason="stop")],
+    )
+    return completion.model_dump(exclude_unset=True)
 
 
 def sse_chunk(model_name: str, content: str | None = None, finish_reason: str | None = None) -> str:
     """One `data:` chunk of a streamed reply, carrying `content` or the reason it ended."""
-    delta = {} if content is None else {"content": content}
-    chunk = {
-        "id": "1",
-        "object": "chat.completion.chunk",
-        "created": int(time.time()),
-        "model": model_name,
-        "choices": [{"index": 0, "delta": delta, "finish_reason": finish_reason}],
-    }
-    return f"data: {json.dumps(chunk)}\n\n"
+    delta = ChoiceDelta() if content is None else ChoiceDelta(content=content)
+    chunk = ChatCompletionChunk(
+        id="1",
+        object="chat.completion.chunk",
+        created=int(time.time()),
+        model=model_name,
+        choices=[ChunkChoice(index=0, delta=delta, finish_reason=finish_reason)],
+    )
+    return f"data: {chunk.model_dump_json(exclude_unset=True)}\n\n"
 
 
 def sse_status(status: Status, *, done: bool) -> str:
@@ -87,8 +92,26 @@ def sse_status(status: Status, *, done: bool) -> str:
     return f"data: {json.dumps({'event': event})}\n\n"
 
 
-async def turn_events(bot: Bot, agent_input: dict) -> AsyncGenerator[Status | str, None]:
-    """The status lines and reply text of one turn, in the order the graph streams them."""
+def sse_source(source: Source) -> str:
+    """One `data:` chunk carrying a source for Open WebUI to attach to the reply, which numbers
+    the reply's sources in the order they arrive; `[n]` in the text opens the nth."""
+    # Open WebUI doesn't number sources itself: chip [n] opens the nth entry of a list it builds
+    # by walking each source's excerpts. A source with none never enters that list, so every
+    # chip after it opens the source after its own. Its title stands in as its one excerpt.
+    excerpts = source.excerpts or (source.title,)
+    event = {
+        "type": "source",
+        "data": {
+            "source": {"name": source.title, "url": source.url},
+            "document": list(excerpts),
+            "metadata": [{"source": source.url, "name": source.title} for _ in excerpts],
+        },
+    }
+    return f"data: {json.dumps({'event': event})}\n\n"
+
+
+async def turn_events(bot: Bot, agent_input: dict) -> AsyncGenerator[TurnEvent, None]:
+    """The status lines, sources and reply text of one turn, in the order the graph streams them."""
     try:
         async for mode, payload in bot.graph.astream(
             input=agent_input, config=agent_config(bot), context=bot, stream_mode=["messages", "custom"]
@@ -107,18 +130,17 @@ async def turn_events(bot: Bot, agent_input: dict) -> AsyncGenerator[Status | st
         yield no_answer(bot.prompt_search_path, None)
 
 
-async def sse_lines(events: AsyncIterator[Status | str], model_name: str) -> AsyncGenerator[str, None]:
-    """The turn's events as SSE chunks. A status line stays up until the first text
-    that follows it, or until the turn ends without any."""
+async def sse_lines(events: AsyncIterator[TurnEvent], model_name: str) -> AsyncGenerator[str, None]:
+    """The turn's events as SSE chunks. A status line stays up until the turn ends,
+    so the student can tell a reply still being written from a finished one."""
     on_screen: Status | None = None
     async for event in events:
         if isinstance(event, Status):
             on_screen = event
             yield sse_status(event, done=False)
+        elif isinstance(event, Source):
+            yield sse_source(event)
         elif event:
-            if on_screen is not None:
-                yield sse_status(on_screen, done=True)
-                on_screen = None
             yield sse_chunk(model_name, content=event)
     if on_screen is not None:
         yield sse_status(on_screen, done=True)
