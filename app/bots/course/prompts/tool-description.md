@@ -10,7 +10,7 @@ When processing questions:
 Calling strategy:
 - Always make at least one call with key concepts in the query and filters={type:"theory"}. Make additional theory calls if there are multiple concepts or sub-questions.
 - If the question is about practice or an exam, make the theory call(s) above AND:
-  - One call with query="" using filters only to locate the specific exercise/exam.
+  - If the student names a specific exercise or exam, one call with query="" using filters only to locate it.
   - One call using keywords in the query filtering only by type.
 - Make separate tool calls for unrelated topics or sub-questions.
 - If an exercise number is followed by a letter (e.g. "exo 4f"), ignore the letter in filters.
