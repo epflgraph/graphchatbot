@@ -6,6 +6,7 @@ from langchain.tools import tool
 from pydantic import BaseModel
 
 from app.bots.base import Bot
+from app.bots.languages import LANGUAGES
 from app.compilation.templates import render_prompt
 from app.interfaces.graphai import RAGResult, graphai
 
@@ -103,7 +104,11 @@ class CourseBot(Bot):
         return render_prompt(self.prompt_search_path, "course-name.md")
 
     def prompt_context(self) -> dict:
-        return super().prompt_context() | {"course_name": self.course_name, "categories": self.CATEGORIES}
+        return super().prompt_context() | {
+            "course_name": self.course_name,
+            "categories": self.CATEGORIES,
+            "languages": LANGUAGES,
+        }
 
     # --- Tools ---
 

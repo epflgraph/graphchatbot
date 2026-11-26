@@ -2,13 +2,14 @@ import logging
 from enum import StrEnum
 
 from langchain_core.messages import AIMessage
-from langgraph.graph import END, StateGraph
+from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.runtime import Runtime
 from langgraph.types import Command
 
 from app.bots.base import Bot, BotState
 from app.bots.compilers.classify import ClassifyCompiler
+from app.bots.compilers.detect_language import LanguageDetectorCompiler
 from app.bots.course.compilers.retrieve import RetrieveCompiler
 from app.bots.course.course_bot import CourseBot, RequestType
 from app.bots.course.hinting.artifacts import HintingResponseArtifact
@@ -16,6 +17,7 @@ from app.bots.course.hinting.compilers import HintingResponseCompiler
 from app.bots.course.hinting.models import HintingResponse, ResponseSection
 from app.bots.languages import no_answer
 from app.bots.nodes.classify import make_classify_node
+from app.bots.nodes.detect_language import make_detect_language_node
 from app.bots.nodes.model import make_model_node
 from app.bots.nodes.tools import make_tools_node
 from app.bots.utils import STATUS_RESPONDING, announce, stream_text
@@ -27,6 +29,7 @@ logger = logging.getLogger(__name__)
 class Node(StrEnum):
     """Graph node identifiers for the hinting course bot."""
 
+    DETECT_LANGUAGE = "detect_language"
     CLASSIFY = "classify"
     RETRIEVE = "retrieve"
     TOOLS = "tools"
@@ -39,8 +42,8 @@ class HintingCourseBot(CourseBot):
     The graph is split into a lightweight retrieval node and a single answer
     node. The answer node always uses the same structured response format: an
     ordered list of text paragraphs and/or expandable hints. The LLM decides
-    which sections to produce based on the conversation. No language detection
-    or enforcement is performed.
+    which sections to produce based on the conversation. The reply is in the
+    language a detection node read off the student's latest turn.
     """
 
     MAX_RETRIEVAL_ROUNDS = 1
@@ -56,13 +59,13 @@ class HintingCourseBot(CourseBot):
             return Node.RESPOND
         return Node.RETRIEVE
 
-    def _fallback_response(self) -> HintingResponse:
+    def _fallback_response(self, lang_code: str | None) -> HintingResponse:
         """What to render when the structured hinting call fails."""
         return HintingResponse(
             sections=[
                 ResponseSection(
                     type="text",
-                    content=no_answer(self.prompt_search_path, None),
+                    content=no_answer(self.prompt_search_path, lang_code),
                 )
             ]
         )
@@ -78,7 +81,7 @@ class HintingCourseBot(CourseBot):
                 bot,
                 HintingResponseCompiler,
                 state,
-                fallback=self._fallback_response(),
+                fallback=self._fallback_response(state.get("lang_code")),
             )
             rendered_sections = []
             for section in response.sections:
@@ -99,6 +102,7 @@ class HintingCourseBot(CourseBot):
         tools = self.build_tools()
 
         workflow = StateGraph(BotState, context_schema=Bot)
+        workflow.add_node(Node.DETECT_LANGUAGE, make_detect_language_node(LanguageDetectorCompiler))
         workflow.add_node(
             Node.CLASSIFY,
             make_classify_node(self.CATEGORIES, fallback=RequestType.GREETING, compiler=ClassifyCompiler),
@@ -118,7 +122,8 @@ class HintingCourseBot(CourseBot):
         workflow.add_node(Node.TOOLS, make_tools_node(tools))
         workflow.add_node(Node.RESPOND, self._make_respond_node())
 
-        workflow.set_entry_point(Node.CLASSIFY)
+        workflow.add_edge(START, Node.DETECT_LANGUAGE)
+        workflow.add_edge(START, Node.CLASSIFY)
         workflow.add_conditional_edges(Node.CLASSIFY, self._route_after_classify)
 
         return workflow.compile()
