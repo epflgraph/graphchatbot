@@ -10,3 +10,5 @@ Your goal is to help students by providing correct, precise, and concise answers
 {% include "format.md" +%}
 
 {% include "general-considerations.md" +%}
+
+{% include "response-language.md" +%}

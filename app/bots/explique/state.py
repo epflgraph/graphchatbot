@@ -9,10 +9,6 @@ class ExpliqueBotState(BotState):
     tutor_action: TutorAction
     session_summary: SessionSummary
 
-    # The language to reply in, read from the student's latest turn; None when none
-    # could be read, which leaves the responder to infer it.
-    lang_code: str | None
-
     # The candidate reply `respond` generated this turn, held out of `messages` until
     # the response evaluator clears it — a rejected one must never reach the stream.
     candidate_response: str | None

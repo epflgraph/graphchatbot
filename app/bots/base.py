@@ -26,6 +26,10 @@ class BotState(MessagesState):
     # Who is asking, when the frontend forwards it. None when it does not.
     requester: Requester | None
 
+    # The language to reply in, read from the student's latest turn; None when none
+    # could be read, which leaves the responder to infer it.
+    lang_code: str | None
+
     # The tool loop, shared by every family: `active_node` is where `tools`
     # sends control back to, written by whichever model node issued the calls;
     # `tool_round` counts the rounds that node has taken this turn.

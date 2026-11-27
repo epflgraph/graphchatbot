@@ -24,7 +24,7 @@ app/
 │   ├── languages.py     # Languages a bot can be instructed to reply in
 │   ├── main.py          # LLM completion / streaming helpers
 │   ├── utils.py         # Status events and text a node writes to the stream itself
-│   ├── compilers/       # Shared message compilers (classify, respond)
+│   ├── compilers/       # Shared message compilers (classify, respond, detect_language)
 │   ├── prompts/         # Shared prompt templates and macros
 │   ├── nodes/           # Reusable LangGraph nodes (classify, model, tools, transcribe_image, detect_language)
 │   ├── artifacts/       # Base for bot responses rendered as HTML
@@ -77,7 +77,7 @@ Templates render under `StrictUndefined`, so a placeholder with no value raises 
 - **Graphs**: Stateless, compiled at startup via `@cached_property`, reused per request
 - **Streaming**: Use `stream_mode=["messages", "custom"]`, filter tokens by `metadata["langgraph_node"]`; a node can also write a `Status` event or text to the stream itself through `runtime.stream_writer` (helpers in `app.bots.utils`)
 - **Tools**: Declare via `langchain.tools.tool`, with Pydantic `args_schema`
-- **State**: Extend `BotState` (adds `category`, `tool_choice`, `requester`, `active_node`, and `tool_round` to `MessagesState`)
+- **State**: Extend `BotState` (adds `category`, `tool_choice`, `requester`, `lang_code`, `active_node`, and `tool_round` to `MessagesState`)
 - **Requester**: `BotState.requester` is who is asking, read by `app.identity` from the headers Open WebUI forwards; unverified, and `None` when they are not forwarded
 - **Config access**: Use the typed `app.config.config` object, e.g. `config.rcp.api_key` — never hardcode credentials
 - **Logging**: Use `logging.getLogger(__name__)`; structured logs via `app.logging_config`
